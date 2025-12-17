@@ -1,0 +1,21 @@
+{
+  "name": "tell-a-vision",
+  "version": "1.0.0",
+  "description": "A simple Electron app to play YouTube videos using yt-dlp",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "electron",
+    "youtube",
+    "yt-dlp",
+    "video-player"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "three": "^0.160.0"
+  }
+}

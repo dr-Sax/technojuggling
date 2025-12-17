@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tell-A-Vision</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Courier New', monospace;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* ===== FULL-SCREEN VISUALIZATION LAYER ===== */
+    #visualization-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    #webgl-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #css3d-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    #css3d-container > div {
+      pointer-events: none;
+    }
+
+    .video-element {
+      width: 640px;
+      height: 480px;
+      background: #000;
+      pointer-events: auto;
+      border: 3px solid #00ff00;
+    }
+
+    /* ===== HYDRA-STYLE CODE OVERLAY ===== */
+    #code-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    #code-editor {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      outline: none;
+      resize: none;
+      overflow-y: scroll;
+      overflow-x: auto;
+      pointer-events: auto;
+      
+      font-family: monospace;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #fff;
+      
+      /* Aggressive performance optimizations */
+      contain: layout style paint;
+      
+      /* Simple rendering - no effects */
+      text-shadow: none;
+      -webkit-font-smoothing: auto;
+      -moz-osx-font-smoothing: auto;
+      tab-size: 2;
+      
+      /* Force separate compositing layer */
+      transform: translate3d(0, 0, 0);
+    }
+
+    #code-editor::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    #code-editor::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    #code-editor::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 5px;
+    }
+
+    #code-editor::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    #code-editor::selection {
+      background: rgba(255, 255, 255, 0.3);
+      color: #fff;
+    }
+
+    /* ===== MINIMAL STATUS BAR ===== */
+    #status-bar {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 100;
+      display: flex;
+      gap: 15px;
+      pointer-events: none;
+    }
+
+    .status-pill {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .status-pill .label {
+      opacity: 0.6;
+      margin-right: 6px;
+    }
+
+    .status-pill .value {
+      color: #fff;
+      font-weight: bold;
+    }
+
+    /* ===== MINIMAL CONTROLS (BOTTOM) ===== */
+    #controls-bar {
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .control-btn {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .control-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: #fff;
+    }
+
+    /* ===== LOADING STATE ===== */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: opacity 0.5s;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-text {
+      font-size: 24px;
+      color: #fff;
+      letter-spacing: 4px;
+      opacity: 0.8;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* ===== CURSOR ===== */
+    #code-container {
+      cursor: text;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-text">TELL-A-VISION</div>
+  </div>
+
+  <!-- Full-Screen Visualization Layer (Camera + Three.js) -->
+  <div id="visualization-layer">
+    <div id="webgl-container"></div>
+    <div id="css3d-container"></div>
+  </div>
+
+  <!-- Hydra-Style Code Overlay -->
+  <div id="code-overlay">
+    <textarea id="code-editor" spellcheck="false">
+// TELL-A-VISION - Scene-Based Performance System
+// Press Ctrl+Enter to load scenes
+// Press Space to cycle scenes forward
+// Press 'b' to cycle scenes backward
+
+scene(1, "Opening - Chaos", {
+  global_foot: {
+    x: { param: "scale", range: [0.5, 2.5], sensitivity: 0.8 },
+    y: { param: "hue", range: [0, 360], sensitivity: 1.0 }
+  },
+  
+  balls: {
+    1: {
+      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
+      start: 0,
+      end: 9,
+      clipPath: "circle(50% at 50% 50%)",
+      volume: 80,
+      speed: 1.0,
+      blur: 0,
+      locked: false,
+      zIndex: 0.3
+    },
+    
+    2: {
+      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
+      clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
+      volume: 60,
+      speed: 1.5,
+      locked: false,
+      zIndex: 0.2
+    }
+  },
+  
+  hands: {
+    right: {
+      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
+      start: 0,
+      end: 5,
+      hue: 0,
+      opacity: 0.8,
+      blur: 0,
+      zIndex: 0.4
+    },
+    
+    left: {
+      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
+      start: 0,
+      end: 5,
+      hue: 120,
+      opacity: 0.8,
+      blur: 0,
+      zIndex: 0.4
+    }
+  }
+});
+
+scene(2, "Solo Ball Focus", {
+  balls: {
+    1: {
+      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
+      clipPath: "circle(40% at 50% 50%)",
+      volume: 100,
+      speed: 1.0,
+      scale: 2.0,
+      zIndex: 0.3,
+      
+      foot: {
+        x: { param: "speed", range: [0.25, 4.0], sensitivity: 0.6 },
+        y: { param: "volume", range: [0, 100], sensitivity: 1.2 }
+      }
+    }
+  },
+  
+  hands: {
+    right: {
+      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
+      hue: 180,
+      opacity: 1.0,
+      zIndex: 0.5
+    }
+  }
+});
+</textarea>
+  </div>
+
+  <!-- Minimal Status Bar -->
+  <div id="status-bar">
+    <div class="status-pill">
+      <span class="label">scene</span>
+      <span class="value" id="currentScene">none</span>
+    </div>
+    <div class="status-pill">
+      <span class="label">status</span>
+      <span class="value" id="statusText">ready</span>
+    </div>
+  </div>
+
+  <!-- Minimal Controls -->
+  <div id="controls-bar">
+    <button class="control-btn" id="prevSceneBtn">◀ prev</button>
+    <button class="control-btn" id="executeBtn">ctrl+enter</button>
+    <button class="control-btn" id="nextSceneBtn">next ▶</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+  <script src="technojuggling.js"></script>
+</body>
+</html>
