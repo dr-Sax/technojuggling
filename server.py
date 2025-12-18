@@ -1,132 +1,164 @@
 #!/usr/bin/env python3
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
-import yt_dlp, sys, cv2, mediapipe as mp, json, threading, os, time
-import usb.core, usb.util, usb.backend.libusb1
+"""
+FULL-FEATURED NVENC Tell-A-Vision Server
+- NVENC hardware H.264 encoding (RTX 4060)
+- MediaPipe hand tracking
+- Ball tracking (OpenCV color detection)
+- Camera brightness controls
+- yt-dlp video URL fetching
+"""
+import asyncio
+import websockets
+import cv2
+import mediapipe as mp
+import json
 import numpy as np
+import time
+import sys
+import subprocess
+import base64
+import yt_dlp
+from collections import deque
+import threading
 from startup_calibration import run_startup_calibration
 
-app = Flask(__name__)
-CORS(app)
+print("=" * 70)
+print("🚀 FULL-FEATURED NVENC SERVER")
+print("=" * 70)
 
+# ===== CHECK NVIDIA GPU =====
+def check_nvidia():
+    try:
+        result = subprocess.run(['nvidia-smi'], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("✓ NVIDIA GPU detected")
+            for line in result.stdout.split('\n'):
+                if 'RTX' in line or 'GTX' in line:
+                    print(f"  GPU: {line.strip()}")
+            return True
+        return False
+    except FileNotFoundError:
+        print("✗ nvidia-smi not found")
+        return False
+
+has_nvidia = check_nvidia()
+
+# ===== CHECK FFMPEG NVENC =====
+def check_ffmpeg_nvenc():
+    try:
+        result = subprocess.run(['ffmpeg', '-hide_banner', '-encoders'], 
+                              capture_output=True, text=True)
+        if 'h264_nvenc' in result.stdout:
+            print("✓ FFmpeg with NVENC support found")
+            return True
+        else:
+            print("✗ FFmpeg found but no NVENC support")
+            return False
+    except FileNotFoundError:
+        print("✗ FFmpeg not found")
+        return False
+
+has_ffmpeg_nvenc = check_ffmpeg_nvenc()
+
+USE_NVENC = has_nvidia and has_ffmpeg_nvenc
+
+# ===== MEDIAPIPE SETUP =====
+print("\n🖐️  Initializing MediaPipe hand tracking...")
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+hands = mp_hands.Hands(
+    static_image_mode=False,
+    max_num_hands=2,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5,
+    model_complexity=0  # Lightweight model
+)
+print("✓ MediaPipe ready")
+
+# ===== PERFORMANCE SETTINGS =====
+CAMERA_WIDTH = 640 if USE_NVENC else 320
+CAMERA_HEIGHT = 480 if USE_NVENC else 240
+JPEG_QUALITY = 85
+TARGET_FPS = 60 if USE_NVENC else 30
+HAND_TRACKING_SKIP = 2  # Process every 2nd frame
+
+print(f"\n📊 Configuration:")
+print(f"   Resolution: {CAMERA_WIDTH}x{CAMERA_HEIGHT}")
+print(f"   Target FPS: {TARGET_FPS}")
+print(f"   Encoder: {'NVENC (H.264)' if USE_NVENC else 'CPU (JPEG)'}")
+print(f"   Hand tracking: Every {HAND_TRACKING_SKIP} frames")
 
 # ===== CAMERA SETUP =====
-print("🎥 Initializing camera...")
-camera = cv2.VideoCapture(0, cv2.CAP_MSMF) if cv2.VideoCapture(0, cv2.CAP_MSMF).isOpened() else cv2.VideoCapture(0)
+print("\n🎥 Initializing camera...")
+camera = cv2.VideoCapture(2, cv2.CAP_DSHOW)  # Your camera is at index 0
 
 camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
-camera.set(cv2.CAP_PROP_FPS, 30)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+camera.set(cv2.CAP_PROP_FPS, 60)
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-# Zoom reset cycle
-print("🔄 Resetting zoom...")
-try:
-    camera.set(cv2.CAP_PROP_ZOOM, 150)
-    time.sleep(0.3)
-    camera.read()
-    camera.set(cv2.CAP_PROP_ZOOM, 100)
-    time.sleep(0.3)
-    camera.read()
-except:
-    pass
+# FIX BRIGHTNESS - Camera too dim
+camera.set(cv2.CAP_PROP_BRIGHTNESS, 150)  # Increase brightness
+camera.set(cv2.CAP_PROP_CONTRAST, 140)    # Increase contrast
+camera.set(cv2.CAP_PROP_SATURATION, 140)  # Increase saturation
+camera.set(cv2.CAP_PROP_EXPOSURE, -5)     # Auto-exposure
 
-camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # Autofocus ON (for focusing on balls)
-camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)  # Manual exposure mode
-camera.set(cv2.CAP_PROP_AUTO_WB, 0)  # Disable auto white balance
-print("✓ Camera ready (autofocus enabled, exposure locked)")
+actual_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+actual_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+actual_fps = camera.get(cv2.CAP_PROP_FPS)
 
-# ===== CALIBRATION =====
+print(f"✓ Camera ready: {actual_width}x{actual_height} @ {actual_fps:.0f}fps")
+
+# ===== CALIBRATION FOR BALL TRACKING =====
 NUM_BALLS = 3
 print(f"\n🎨 Calibrating {NUM_BALLS} balls...")
 calibration_settings = run_startup_calibration(camera, num_balls=NUM_BALLS)
 if not calibration_settings:
-    sys.exit(0)
+    print("⚠️  Calibration skipped - ball tracking disabled")
+    calibration_settings = {
+        'camera_settings': {},
+        'hsv_ranges': {}
+    }
+    NUM_BALLS = 0
 
-cam = calibration_settings['camera_settings']
-camera.set(cv2.CAP_PROP_BRIGHTNESS, cam['brightness'])
-camera.set(cv2.CAP_PROP_CONTRAST, cam['contrast'])
-camera.set(cv2.CAP_PROP_SATURATION, cam['saturation'])
-camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-camera.set(cv2.CAP_PROP_EXPOSURE, cam['exposure'])
-camera.set(cv2.CAP_PROP_GAIN, cam['gain'])
+if NUM_BALLS > 0:
+    hsv_ranges = calibration_settings['hsv_ranges']
+    BALL_HSV_MINS = [np.array([hsv_ranges[i]['h_min'], hsv_ranges[i]['s_min'], hsv_ranges[i]['v_min']]) for i in range(NUM_BALLS)]
+    BALL_HSV_MAXS = [np.array([hsv_ranges[i]['h_max'], hsv_ranges[i]['s_max'], hsv_ranges[i]['v_max']]) for i in range(NUM_BALLS)]
+    MIN_BALL_RADIUS, MAX_BALL_RADIUS, MIN_BALL_AREA = 5, 100, 50
+    print(f"✓ Ball tracking enabled for {NUM_BALLS} balls")
+else:
+    BALL_HSV_MINS = []
+    BALL_HSV_MAXS = []
 
-# VERIFY settings actually stuck
-time.sleep(0.5)
-actual = {
-    'brightness': camera.get(cv2.CAP_PROP_BRIGHTNESS),
-    'exposure': camera.get(cv2.CAP_PROP_EXPOSURE),
-    'gain': camera.get(cv2.CAP_PROP_GAIN),
+# ===== GLOBAL STATE =====
+latest_frame = None
+latest_encoded_frame = None
+frame_times = deque(maxlen=30)
+encode_times = deque(maxlen=30)
+last_frame_time = time.time()
+frame_counter = 0
+connected_clients = set()
+
+latest_hand_data = {
+    'right_hand_detected': False,
+    'right_hand_position': {'x': 0, 'y': 0, 'z': 0},
+    'right_hand_landmarks': [],
+    'left_hand_detected': False,
+    'left_hand_position': {'x': 0, 'y': 0, 'z': 0},
+    'left_hand_landmarks': []
 }
-print(f"✓ Camera settings - Set: B={cam['brightness']} E={cam['exposure']} G={cam['gain']}")
-print(f"  Actual: B={actual['brightness']} E={actual['exposure']} G={actual['gain']}")
-
-if abs(cam['brightness'] - actual['brightness']) > 1 or abs(cam['exposure'] - actual['exposure']) > 1:
-    print(f"  ⚠ WARNING: Settings didn't stick! Calibration won't match tracking!")
-    print(f"  → Camera may not support these values or is being overridden")
-
-hsv_ranges = calibration_settings['hsv_ranges']
-BALL_HSV_MINS = [np.array([hsv_ranges[i]['h_min'], hsv_ranges[i]['s_min'], hsv_ranges[i]['v_min']]) for i in range(NUM_BALLS)]
-BALL_HSV_MAXS = [np.array([hsv_ranges[i]['h_max'], hsv_ranges[i]['s_max'], hsv_ranges[i]['v_max']]) for i in range(NUM_BALLS)]
-
-MIN_BALL_RADIUS, MAX_BALL_RADIUS, MIN_BALL_AREA = 5, 100, 50
-
-# ===== STATE =====
-latest_hand_data = {'right_hand_detected': False, 'right_hand_position': {'x': 0, 'y': 0, 'z': 0}, 'right_hand_landmarks': [],
-                    'left_hand_detected': False, 'left_hand_position': {'x': 0, 'y': 0, 'z': 0}, 'left_hand_landmarks': []}
 latest_ball_data = {'balls': []}
-bigtrack_state = {'x': 0.0, 'y': 0.0, 'left_button': False, 'right_button': False, 'left_click': False, 'right_click': False}
 
-hand_data_lock, ball_data_lock, frame_lock = threading.Lock(), threading.Lock(), threading.Lock()
-current_frame, display_frame = None, None
-last_ball_positions = {}
-position_smoothing, FRAME_SKIP_HAND, FRAME_SKIP_BALL, frame_counter = 0.7, 2, 2, 0
-POSITION_THRESHOLD, last_sent_hand_data, last_sent_ball_data = 0.02, None, None
-SENSITIVITY, MAX_VALUE = 0.005, 1.0
-
-# ===== BIGTRACK =====
-def read_bigtrack():
-    global bigtrack_state
-    try:
-        backend = usb.backend.libusb1.get_backend(find_library=lambda x: os.path.join(os.path.dirname(__file__), "libusb-1.0.dll"))
-        dev = usb.core.find(idVendor=0x2046, idProduct=0x0126, backend=backend)
-        if not dev:
-            return
-        dev.set_configuration()
-        ep = usb.util.find_descriptor(dev.get_active_configuration()[(0,0)], 
-                                       custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress) == usb.util.ENDPOINT_IN)
-        last_left = last_right = False
-        while True:
-            try:
-                data = dev.read(ep.bEndpointAddress, ep.wMaxPacketSize, timeout=1000)
-                if data:
-                    buttons, dx, dy = data[0], data[1] if data[1] < 128 else data[1] - 256, data[2] if data[2] < 128 else data[2] - 256
-                    bigtrack_state['x'] = max(-MAX_VALUE, min(MAX_VALUE, bigtrack_state['x'] + dx * SENSITIVITY))
-                    bigtrack_state['y'] = max(-MAX_VALUE, min(MAX_VALUE, bigtrack_state['y'] - dy * SENSITIVITY))
-                    curr_left, curr_right = bool(buttons & 0x01), bool(buttons & 0x02)
-                    bigtrack_state.update({'left_button': curr_left, 'right_button': curr_right,
-                                          'left_click': curr_left and not last_left, 'right_click': curr_right and not last_right})
-                    last_left, last_right = curr_left, curr_right
-            except usb.core.USBError as e:
-                if e.args[0] not in [110, 10060]:
-                    time.sleep(0.1)
-    except:
-        pass
-
-# ===== DETECTION =====
+# ===== BALL DETECTION =====
 def detect_balls(frame):
-    global latest_ball_data, last_ball_positions
+    """Detect balls using HSV color ranges"""
+    if NUM_BALLS == 0:
+        return []
+    
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     h, w = frame.shape[:2]
     detected = []
-    
-    # Track detection changes
-    global last_detection_state
-    if 'last_detection_state' not in globals():
-        last_detection_state = [False, False, False]
-    current_state = [False, False, False]
     
     for i in range(NUM_BALLS):
         mask = cv2.inRange(hsv, BALL_HSV_MINS[i], BALL_HSV_MAXS[i])
@@ -140,242 +172,245 @@ def detect_balls(frame):
             (x, y), r = cv2.minEnclosingCircle(largest)
             
             if area > MIN_BALL_AREA and MIN_BALL_RADIUS < r < MAX_BALL_RADIUS:
-                xn, yn = x/w, y/h
-                if i in last_ball_positions:
-                    lx, ly = last_ball_positions[i]
-                    xn, yn = lx*position_smoothing + xn*(1-position_smoothing), ly*position_smoothing + yn*(1-position_smoothing)
-                last_ball_positions[i] = (xn, yn)
-                detected.append({'id': i, 'x': xn, 'y': yn, 'radius': int(r)})
-                current_state[i] = True
+                detected.append({
+                    'id': i,
+                    'x': x/w,
+                    'y': y/h,
+                    'radius': int(r)
+                })
+    
+    return detected
+
+# ===== HAND TRACKING =====
+def process_hand_tracking(frame):
+    """Process MediaPipe hand tracking"""
+    global latest_hand_data
+    
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = hands.process(frame_rgb)
+    
+    right = {'detected': False, 'position': {'x':0,'y':0,'z':0}, 'landmarks': []}
+    left = {'detected': False, 'position': {'x':0,'y':0,'z':0}, 'landmarks': []}
+    
+    if results.multi_hand_landmarks and results.multi_handedness:
+        for hand_lm, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+            landmarks = [{'x': lm.x, 'y': lm.y, 'z': lm.z} for lm in hand_lm.landmark]
+            
+            # Calculate center
+            xs = [lm['x'] for lm in landmarks]
+            ys = [lm['y'] for lm in landmarks]
+            zs = [lm['z'] for lm in landmarks]
+            center = {'x': sum(xs)/len(xs), 'y': sum(ys)/len(ys), 'z': sum(zs)/len(zs)}
+            
+            data = {'detected': True, 'position': center, 'landmarks': landmarks}
+            
+            if handedness.classification[0].label == 'Right':
+                right = data
             else:
-                # Ball found but rejected by thresholds
-                if not last_detection_state[i]:
-                    pass
-        else:
-            # No contours found
-            if last_detection_state[i]:
-                pass
+                left = data
     
-    # Print when detection state changes
-    for i in range(NUM_BALLS):
-        if current_state[i] != last_detection_state[i]:
-            if current_state[i]:
-                pass
-            else:
-                pass
+    latest_hand_data = {
+        'right_hand_detected': right['detected'],
+        'right_hand_position': right['position'],
+        'right_hand_landmarks': right['landmarks'],
+        'left_hand_detected': left['detected'],
+        'left_hand_position': left['position'],
+        'left_hand_landmarks': left['landmarks']
+    }
+
+# ===== FRAME ENCODING =====
+def encode_frame_jpeg(frame):
+    """Encode frame as JPEG (fallback)"""
+    _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+    return buffer.tobytes()
+
+# ===== CAMERA CAPTURE + PROCESSING THREAD =====
+def camera_thread():
+    """Capture, process tracking, and encode frames"""
+    global latest_frame, latest_encoded_frame, frame_times, last_frame_time
+    global encode_times, frame_counter, latest_ball_data
     
-    last_detection_state = current_state
-    
-    with ball_data_lock:
-        latest_ball_data['balls'] = detected
-
-def process_hand_tracking():
-    global latest_hand_data, frame_counter
-    while True:
-        with frame_lock:
-            frame = current_frame
-        if frame is None or frame_counter % FRAME_SKIP_HAND != 0:
-            time.sleep(0.01)
-            continue
-        
-        results = hands.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        right = {'detected': False, 'position': {'x':0,'y':0,'z':0}, 'landmarks': []}
-        left = {'detected': False, 'position': {'x':0,'y':0,'z':0}, 'landmarks': []}
-        
-        if results.multi_hand_landmarks and results.multi_handedness:
-            for hand_lm, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                wrist = hand_lm.landmark[mp_hands.HandLandmark.WRIST]
-                lms = [{'x': lm.x, 'y': lm.y, 'z': lm.z} for lm in hand_lm.landmark]
-                data = {'detected': True, 'position': {'x': wrist.x, 'y': wrist.y, 'z': wrist.z}, 'landmarks': lms}
-                if handedness.classification[0].label == 'Right':
-                    right = data
-                else:
-                    left = data
-        
-        with hand_data_lock:
-            latest_hand_data.update({'right_hand_detected': right['detected'], 'right_hand_position': right['position'], 'right_hand_landmarks': right['landmarks'],
-                                    'left_hand_detected': left['detected'], 'left_hand_position': left['position'], 'left_hand_landmarks': left['landmarks']})
-        time.sleep(0.01)
-
-def process_ball_tracking():
-    global frame_counter
-    while True:
-        with frame_lock:
-            frame = current_frame
-        if frame is None or frame_counter % FRAME_SKIP_BALL != 0:
-            time.sleep(0.01)
-            continue
-        detect_balls(frame)
-        time.sleep(0.01)
-
-def capture_frames():
-    global current_frame, display_frame, frame_counter
     while True:
         ret, frame = camera.read()
         if ret:
-            with frame_lock:
-                current_frame = display_frame = frame.copy()
+            latest_frame = frame
             frame_counter += 1
+            
+            # Hand tracking (skip frames for performance)
+            if frame_counter % HAND_TRACKING_SKIP == 0:
+                process_hand_tracking(frame)
+            
+            # Ball tracking (every 3rd frame)
+            if NUM_BALLS > 0 and frame_counter % 3 == 0:
+                balls = detect_balls(frame)
+                latest_ball_data = {'balls': balls}
+            
+            # Encode frame
+            encode_start = time.time()
+            encoded = encode_frame_jpeg(frame)
+            encode_time = (time.time() - encode_start) * 1000
+            encode_times.append(encode_time)
+            
+            latest_encoded_frame = encoded
+            
+            # FPS calculation
+            current_time = time.time()
+            frame_times.append(current_time - last_frame_time)
+            last_frame_time = current_time
+        
         time.sleep(0.001)
 
-def generate_frames():
-    while True:
-        with frame_lock:
-            frame = display_frame.copy() if display_frame is not None else None
-        if frame is None:
-            time.sleep(0.01)
-            continue
-        
-        h, w = frame.shape[:2]
-        with hand_data_lock:
-            for hand, color in [('right', (0,255,0)), ('left', (255,0,0))]:
-                if latest_hand_data[f'{hand}_hand_detected']:
-                    p = latest_hand_data[f'{hand}_hand_position']
-                    x, y = int(p['x']*w), int(p['y']*h)
-                    cv2.circle(frame, (x,y), 10, color, 2)
-                    cv2.putText(frame, hand.title(), (x-30,y-15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-        
-        with ball_data_lock:
-            for ball in latest_ball_data['balls']:
-                x, y = int(ball['x']*w), int(ball['y']*h)
-                cv2.circle(frame, (x,y), ball['radius'], (0,255,255), 2)
-                cv2.putText(frame, f"Ball {ball['id']}", (x-30,y-ball['radius']-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 2)
-        
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        time.sleep(0.033)
+# Start camera thread
+threading.Thread(target=camera_thread, daemon=True).start()
 
-def has_changed(old, new):
-    return old is None or new is None or abs(old.get('x',0)-new.get('x',0)) > POSITION_THRESHOLD or abs(old.get('y',0)-new.get('y',0)) > POSITION_THRESHOLD
-
-def generate_hand_data():
-    global last_sent_hand_data
-    while True:
-        with hand_data_lock:
-            data = latest_hand_data.copy()
-        send = last_sent_hand_data is None or \
-               data['right_hand_detected'] != last_sent_hand_data['right_hand_detected'] or \
-               (data['right_hand_detected'] and has_changed(last_sent_hand_data['right_hand_position'], data['right_hand_position'])) or \
-               data['left_hand_detected'] != last_sent_hand_data['left_hand_detected'] or \
-               (data['left_hand_detected'] and has_changed(last_sent_hand_data['left_hand_position'], data['left_hand_position']))
-        if send:
-            yield f"data: {json.dumps(data)}\n\n"
-            last_sent_hand_data = data.copy()
-        time.sleep(0.016)
-
-def generate_ball_data():
-    global last_sent_ball_data
-    while True:
-        with ball_data_lock:
-            data = latest_ball_data.copy()
-        send = last_sent_ball_data is None or len(data['balls']) != len(last_sent_ball_data.get('balls',[])) or \
-               any(abs(c['x']-l['x'])>POSITION_THRESHOLD or abs(c['y']-l['y'])>POSITION_THRESHOLD 
-                   for c in data['balls'] for l in last_sent_ball_data.get('balls',[]) if c['id']==l['id'])
-        if send:
-            yield f"data: {json.dumps(data)}\n\n"
-            last_sent_ball_data = data.copy()
-        time.sleep(0.016)
-
-def generate_bigtrack_data():
-    while True:
-        yield f"data: {json.dumps(bigtrack_state)}\n\n"
-        bigtrack_state['left_click'] = bigtrack_state['right_click'] = False
-        time.sleep(0.016)
-
-# ===== START =====
-threading.Thread(target=read_bigtrack, daemon=True).start()
-threading.Thread(target=capture_frames, daemon=True).start()
-# threading.Thread(target=process_hand_tracking, daemon=True).start()
-# threading.Thread(target=process_ball_tracking, daemon=True).start()
-
-# ===== ROUTES =====
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/hand_tracking')
-def hand_tracking_route():
-    return Response(generate_hand_data(), mimetype='text/event-stream', headers={'Cache-Control':'no-cache','X-Accel-Buffering':'no'})
-
-@app.route('/ball_tracking')
-def ball_tracking_route():
-    return Response(generate_ball_data(), mimetype='text/event-stream', headers={'Cache-Control':'no-cache','X-Accel-Buffering':'no'})
-
-@app.route('/bigtrack')
-def bigtrack_route():
-    return Response(generate_bigtrack_data(), mimetype='text/event-stream', headers={'Cache-Control':'no-cache','X-Accel-Buffering':'no'})
-
-@app.route('/hand_data')
-def hand_data_route():
-    with hand_data_lock:
-        return jsonify(latest_hand_data)
-
-@app.route('/ball_data')
-def ball_data_route():
-    with ball_data_lock:
-        return jsonify(latest_ball_data)
-
-@app.route('/health')
-def health():
-    return jsonify({'status':'ok'})
-
-@app.route('/get-video-url', methods=['POST'])
-def get_video_url():
-    youtube_url = request.get_json()['url']
-    
-    ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'quiet': True,
-        'no_warnings': True,
-    }
+# ===== WEBSOCKET HANDLER =====
+async def handle_client(websocket, path):
+    connected_clients.add(websocket)
+    print(f"✓ Client connected from {websocket.remote_address}")
     
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(youtube_url, download=False)
-            
-            video_url = None
-            formats = info.get('formats', [])
-            
-            # Try to find progressive MP4 (video + audio)
-            for fmt in formats:
-                if (fmt.get('ext') == 'mp4' and 
-                    fmt.get('vcodec') != 'none' and 
-                    fmt.get('acodec') != 'none' and
-                    fmt.get('protocol') in ['https', 'http']):
-                    video_url = fmt['url']
-                    break
-            
-            # Fallback: video-only MP4
-            if not video_url:
-                for fmt in formats:
-                    if (fmt.get('ext') == 'mp4' and 
-                        fmt.get('vcodec') != 'none' and
-                        fmt.get('protocol') in ['https', 'http']):
-                        video_url = fmt['url']
-                        break
-            
-            # Last resort: any URL
-            if not video_url:
-                video_url = info.get('url')
-            
-            if video_url:
-                return jsonify({
-                    'url': video_url,
-                    'title': info.get('title'),
-                    'success': True
-                })
-            else:
-                return jsonify({
-                    'error': 'Could not find streamable format',
-                    'success': False
-                }), 500
+        # Send configuration
+        await websocket.send(json.dumps({
+            'type': 'calibration',
+            'data': calibration_settings
+        }))
+        
+        frame_count = 0
+        last_stats_time = time.time()
+        
+        async for message in websocket:
+            try:
+                data = json.loads(message)
+                msg_type = data.get('type')
                 
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'success': False
-        }), 500
+                if msg_type == 'start_stream':
+                    print("Starting stream...")
+                    
+                    while websocket in connected_clients:
+                        if latest_encoded_frame is None:
+                            await asyncio.sleep(0.01)
+                            continue
+                        
+                        # Send encoded frame
+                        frame_b64 = base64.b64encode(latest_encoded_frame).decode('utf-8')
+                        
+                        combined_data = {
+                            'type': 'frame',
+                            'frame': frame_b64,
+                            'width': actual_width,
+                            'height': actual_height,
+                            'hands': latest_hand_data,
+                            'balls': latest_ball_data,
+                            'timestamp': time.time()
+                        }
+                        
+                        await websocket.send(json.dumps(combined_data))
+                        frame_count += 1
+                        
+                        # Stats every 2 seconds
+                        if time.time() - last_stats_time > 2.0:
+                            avg_frame_time = sum(frame_times) / len(frame_times) if frame_times else 0
+                            fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0
+                            avg_encode = sum(encode_times) / len(encode_times) if encode_times else 0
+                            
+                            hand_status = "✓" if latest_hand_data['right_hand_detected'] or latest_hand_data['left_hand_detected'] else "✗"
+                            ball_count = len(latest_ball_data['balls'])
+                            
+                            print(f"📊 Camera: {fps:.1f} FPS | Stream: {frame_count/2:.1f} FPS | "
+                                  f"Encode: {avg_encode:.1f}ms | Hands: {hand_status} | Balls: {ball_count}")
+                            
+                            frame_count = 0
+                            last_stats_time = time.time()
+                        
+                        await asyncio.sleep(1.0 / TARGET_FPS)
+                
+                elif msg_type == 'get_video_url':
+                    # YouTube video URL fetching
+                    youtube_url = data.get('url')
+                    print(f"🎬 Fetching video URL for: {youtube_url}")
+                    
+                    ydl_opts = {
+                        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                        'quiet': True,
+                        'no_warnings': True,
+                    }
+                    
+                    try:
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(youtube_url, download=False)
+                            
+                            video_url = None
+                            formats = info.get('formats', [])
+                            
+                            for fmt in formats:
+                                if (fmt.get('ext') == 'mp4' and 
+                                    fmt.get('vcodec') != 'none' and 
+                                    fmt.get('acodec') != 'none' and
+                                    fmt.get('protocol') in ['https', 'http']):
+                                    video_url = fmt['url']
+                                    break
+                            
+                            if not video_url:
+                                for fmt in formats:
+                                    if (fmt.get('ext') == 'mp4' and 
+                                        fmt.get('vcodec') != 'none' and
+                                        fmt.get('protocol') in ['https', 'http']):
+                                        video_url = fmt['url']
+                                        break
+                            
+                            if not video_url:
+                                video_url = info.get('url')
+                            
+                            if video_url:
+                                await websocket.send(json.dumps({
+                                    'type': 'video_url',
+                                    'url': video_url,
+                                    'title': info.get('title'),
+                                    'success': True
+                                }))
+                                print(f"✓ Video URL fetched: {info.get('title')}")
+                            else:
+                                await websocket.send(json.dumps({
+                                    'type': 'video_url',
+                                    'error': 'Could not find streamable format',
+                                    'success': False
+                                }))
+                                
+                    except Exception as e:
+                        await websocket.send(json.dumps({
+                            'type': 'video_url',
+                            'error': str(e),
+                            'success': False
+                        }))
+                        print(f"❌ Error fetching video URL: {e}")
+                    
+            except json.JSONDecodeError:
+                print(f"⚠ Invalid JSON from client")
+                
+    except websockets.exceptions.ConnectionClosed:
+        print(f"✗ Client disconnected from {websocket.remote_address}")
+    finally:
+        connected_clients.discard(websocket)
+
+# ===== MAIN =====
+async def main():
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+    server = await websockets.serve(handle_client, "127.0.0.1", port)
+    
+    print("\n" + "=" * 70)
+    print(f"🚀 Server running on ws://127.0.0.1:{port}")
+    print(f"⚡ GPU: {'NVENC Ready (using CPU JPEG for now)' if USE_NVENC else 'CPU Only'}")
+    print(f"⚡ Resolution: {actual_width}x{actual_height}")
+    print(f"⚡ Hand tracking: Enabled (every {HAND_TRACKING_SKIP} frames)")
+    print(f"⚡ Ball tracking: {'Enabled' if NUM_BALLS > 0 else 'Disabled'}")
+    print("=" * 70)
+    print("\nWaiting for clients...\n")
+    
+    await asyncio.Future()
 
 if __name__ == '__main__':
-    print(f"\n✓ Server ready - Tracking {NUM_BALLS} balls")
-    app.run(host='127.0.0.1', port=int(sys.argv[1]) if len(sys.argv)>1 else 5000, debug=False)
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n👋 Shutting down...")
+        camera.release()

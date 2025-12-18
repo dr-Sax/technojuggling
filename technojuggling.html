@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tell-A-Vision</title>
+  <title>Techno-Juggling</title>
   <style>
     * {
       margin: 0;
@@ -245,86 +245,39 @@
   <!-- Hydra-Style Code Overlay -->
   <div id="code-overlay">
     <textarea id="code-editor" spellcheck="false">
-// TELL-A-VISION - Scene-Based Performance System
+// TELL-A-VISION - Full Scene Example
 // Press Ctrl+Enter to load scenes
 // Press Space to cycle scenes forward
 // Press 'b' to cycle scenes backward
 
-scene(1, "Opening - Chaos", {
+// ===== SCENE 1: Both Hands =====
+scene(1, "Both Hands - Full Tracking", {
   global_foot: {
     x: { param: "scale", range: [0.5, 2.5], sensitivity: 0.8 },
     y: { param: "hue", range: [0, 360], sensitivity: 1.0 }
   },
   
-  balls: {
-    1: {
-      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
-      start: 0,
-      end: 9,
-      clipPath: "circle(50% at 50% 50%)",
-      volume: 80,
-      speed: 1.0,
-      blur: 0,
-      locked: false,
-      zIndex: 0.3
-    },
-    
-    2: {
-      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
-      clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
-      volume: 60,
-      speed: 1.5,
-      locked: false,
-      zIndex: 0.2
-    }
-  },
-  
   hands: {
+    // RIGHT HAND - Define this or it will disappear!
     right: {
       url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
       start: 0,
       end: 5,
-      hue: 0,
+      hue: 0,        // Red tint
       opacity: 0.8,
       blur: 0,
       zIndex: 0.4
     },
     
+    // LEFT HAND
     left: {
       url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
       start: 0,
       end: 5,
-      hue: 120,
+      hue: 120,      // Green tint
       opacity: 0.8,
       blur: 0,
       zIndex: 0.4
-    }
-  }
-});
-
-scene(2, "Solo Ball Focus", {
-  balls: {
-    1: {
-      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
-      clipPath: "circle(40% at 50% 50%)",
-      volume: 100,
-      speed: 1.0,
-      scale: 2.0,
-      zIndex: 0.3,
-      
-      foot: {
-        x: { param: "speed", range: [0.25, 4.0], sensitivity: 0.6 },
-        y: { param: "volume", range: [0, 100], sensitivity: 1.2 }
-      }
-    }
-  },
-  
-  hands: {
-    right: {
-      url: "https://www.youtube.com/shorts/KJYWj7lIwhs",
-      hue: 180,
-      opacity: 1.0,
-      zIndex: 0.5
     }
   }
 });

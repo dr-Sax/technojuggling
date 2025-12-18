@@ -1,15 +1,15 @@
-// ===== TELL-A-VISION HYDRA-STYLE RENDERER =====
+// ===== TELL-A-VISION WEBSOCKET CLIENT =====
 
 // ===== THREE.JS SCENE SETUP =====
-const scene = new THREE.Scene();
+const threeScene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ 
   alpha: true,
-  antialias: false,  // Disable antialiasing for better performance
+  antialias: false,
   powerPreference: "high-performance"
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit pixel ratio for performance
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 document.getElementById('webgl-container').appendChild(renderer.domElement);
 
 // CSS3D Scene
@@ -19,25 +19,23 @@ cssRenderer.setSize(window.innerWidth, window.innerHeight);
 document.getElementById('css3d-container').appendChild(cssRenderer.domElement);
 
 // Camera feed dimensions
-const CAMERA_WIDTH = 480;
-const CAMERA_HEIGHT = 640;
+const CAMERA_WIDTH = 320;
+const CAMERA_HEIGHT = 240;
 const PLANE_HEIGHT = 16;
 const PLANE_WIDTH = PLANE_HEIGHT * (CAMERA_WIDTH / CAMERA_HEIGHT);
 
-// ===== CAMERA FEED BACKGROUND =====
+// ===== CAMERA FEED BACKGROUND (Now uses WebSocket frames) =====
 const img = document.createElement('img');
-img.src = 'http://127.0.0.1:5000/video_feed';
 const texture = new THREE.Texture(img);
 texture.minFilter = THREE.LinearFilter;
 texture.magFilter = THREE.LinearFilter;
-img.onload = () => texture.needsUpdate = true;
 
 const plane = new THREE.Mesh(
   new THREE.PlaneGeometry(PLANE_WIDTH, PLANE_HEIGHT),
   new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.5 })
 );
 plane.position.z = 0;
-scene.add(plane);
+threeScene.add(plane);
 
 // ===== STATE MANAGEMENT =====
 const state = {
@@ -81,6 +79,158 @@ const executeBtn = document.getElementById('executeBtn');
 const prevSceneBtn = document.getElementById('prevSceneBtn');
 const nextSceneBtn = document.getElementById('nextSceneBtn');
 const loadingOverlay = document.getElementById('loadingOverlay');
+
+// ===== WEBSOCKET CONNECTION =====
+let ws = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_DELAY = 2000;
+let isWebSocketReady = false;
+
+// Performance stats
+let frameCount = 0;
+let lastStatsTime = Date.now();
+let latencySum = 0;
+let latencyCount = 0;
+
+function connectWebSocket() {
+  console.log('🔌 Connecting to WebSocket server...');
+  statusText.textContent = 'connecting...';
+  
+  ws = new WebSocket('ws://127.0.0.1:5000');
+  
+  ws.onopen = () => {
+    console.log('✓ WebSocket connected');
+    reconnectAttempts = 0;
+    isWebSocketReady = true;
+    statusText.textContent = 'connected';
+    
+    // Hide loading screen and execute code
+    loadingOverlay.classList.add('hidden');
+    executeCode();
+    
+    // Start streaming
+    ws.send(JSON.stringify({ type: 'start_stream' }));
+  };
+  
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      
+      switch(data.type) {
+        case 'calibration':
+          console.log('✓ Received calibration data');
+          break;
+          
+        case 'frame':
+          handleFrameData(data);
+          break;
+          
+        case 'hand_data':
+          handleHandData(data.data);
+          break;
+          
+        case 'ball_data':
+          handleBallData(data.data);
+          break;
+      }
+      
+    } catch (e) {
+      console.error('Error parsing WebSocket message:', e);
+    }
+  };
+  
+  ws.onerror = (error) => {
+    console.error('❌ WebSocket error:', error);
+    statusText.textContent = 'connection error';
+    
+    // Show error message on loading screen
+    const loadingText = loadingOverlay.querySelector('.loading-text');
+    if (loadingText) {
+      loadingText.textContent = 'CONNECTION ERROR - Check if server is running';
+      loadingText.style.color = '#ff4444';
+    }
+  };
+  
+  ws.onclose = () => {
+    console.log('❌ WebSocket closed');
+    statusText.textContent = 'disconnected';
+    isWebSocketReady = false;
+    
+    // Show error on loading screen if not already hidden
+    if (!loadingOverlay.classList.contains('hidden')) {
+      const loadingText = loadingOverlay.querySelector('.loading-text');
+      if (loadingText) {
+        loadingText.textContent = 'SERVER NOT FOUND - Start websocket_server.py';
+        loadingText.style.color = '#ff4444';
+      }
+    }
+    
+    // Attempt reconnection
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      console.log(`Reconnecting... (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+      statusText.textContent = `reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`;
+      setTimeout(connectWebSocket, RECONNECT_DELAY);
+    } else {
+      console.error('Max reconnection attempts reached');
+      statusText.textContent = 'connection failed';
+      const loadingText = loadingOverlay.querySelector('.loading-text');
+      if (loadingText) {
+        loadingText.textContent = 'CONNECTION FAILED - Restart app and server';
+        loadingText.style.color = '#ff0000';
+      }
+    }
+  };
+}
+
+// ===== FRAME HANDLING =====
+function handleFrameData(data) {
+  // Update camera frame
+  img.src = 'data:image/jpeg;base64,' + data.frame;
+  texture.needsUpdate = true;
+  
+  // Update tracking data
+  handleHandData(data.hands);
+  handleBallData(data.balls);
+  
+  // Calculate latency
+  const latency = Date.now() - (data.timestamp * 1000);
+  latencySum += latency;
+  latencyCount++;
+  
+  // Update stats
+  frameCount++;
+  const now = Date.now();
+  if (now - lastStatsTime > 2000) {
+    const fps = frameCount / 2;
+    const avgLatency = latencySum / latencyCount;
+    console.log(`📊 Receiving: ${fps.toFixed(1)} FPS | Latency: ${avgLatency.toFixed(1)}ms`);
+    
+    frameCount = 0;
+    lastStatsTime = now;
+    latencySum = 0;
+    latencyCount = 0;
+  }
+}
+
+function handleHandData(data) {
+  if (data.right_hand_detected && data.right_hand_landmarks?.length === 21) {
+    updateHandVideo('right', data.right_hand_landmarks);
+  }
+  
+  if (data.left_hand_detected && data.left_hand_landmarks?.length === 21) {
+    updateHandVideo('left', data.left_hand_landmarks);
+  }
+}
+
+function handleBallData(data) {
+  if (data.balls && data.balls.length > 0) {
+    data.balls.forEach(ball => {
+      updateBallVideo(ball.id, ball);
+    });
+  }
+}
 
 // ===== UTILITY FUNCTIONS =====
 function mapCameraToWorld(normalizedX, normalizedY) {
@@ -134,6 +284,7 @@ function updateHandVideo(hand, landmarks) {
   const element = hand === 'right' ? rightVideoElement : leftVideoElement;
   const cssObject = hand === 'right' ? rightCssObject : leftCssObject;
   
+  // Silently skip if this hand's video isn't loaded in current scene
   if (!element || !cssObject || !landmarks) return;
   
   const handCenter = getHandCenter(landmarks);
@@ -273,154 +424,182 @@ function applyVideoParameters(hand, params) {
     `grayscale(${params.grayscale}%)`,
     `sepia(${params.sepia}%)`
   ];
+  
   element.style.filter = filters.join(' ');
-  
-  if (element.tagName === 'VIDEO') {
-    element.volume = params.volume / 100;
-    element.playbackRate = params.speed;
-  }
-  
   element.style.opacity = params.opacity;
-  const baseScale = PLANE_HEIGHT / 480;
-  const scaleMultiplier = hand.startsWith('ball-') ? 0.5 : 1.0;
-  cssObject.scale.set(
-    baseScale * params.scale * scaleMultiplier,
-    baseScale * params.scale * scaleMultiplier,
-    baseScale * params.scale * scaleMultiplier
-  );
+  element.volume = params.volume / 100;
+  element.playbackRate = params.speed;
   
-  if (params.clipPath) {
-    element.style.clipPath = params.clipPath;
-    element.style.webkitClipPath = params.clipPath;
-  }
-}
-
-// ===== CODE PARSING =====
-function getCodeText() {
-  return codeEditor.value;
+  const baseScale = PLANE_HEIGHT / 480;
+  const scaleFactor = hand.startsWith('ball-') ? 0.5 : 1.0;
+  const finalScale = baseScale * scaleFactor * params.scale;
+  cssObject.scale.set(finalScale, finalScale, finalScale);
+  cssObject.position.z = params.zIndex;
 }
 
 // ===== SCENE MANAGEMENT =====
+function scene(id, name, config) {
+  state.scenes.push({ id, name, config });
+}
+
 async function executeCode() {
+  statusText.textContent = 'executing...';
+  
+  state.scenes = [];
+  
   try {
-    state.scenes = [];
+    eval(codeEditor.value);
     
-    const scene = (index, name, config) => {
-      state.scenes.push({ index, name, config });
-    };
-    
-    const code = getCodeText();
-    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-    const executor = new AsyncFunction('scene', code);
-    executor(scene);
-    
-    state.scenes.sort((a, b) => a.index - b.index);
-    
-    statusText.textContent = `loaded ${state.scenes.length}`;
-    
-    if (state.scenes.length > 0) {
-      state.currentSceneIndex = 0;
-      await loadScene(state.currentSceneIndex);
+    if (state.scenes.length === 0) {
+      statusText.textContent = 'no scenes';
+      return;
     }
     
+    statusText.textContent = `loaded ${state.scenes.length} scenes`;
+    state.currentSceneIndex = 0;
+    await loadScene(0);
+    
   } catch (error) {
-    statusText.textContent = `error`;
-    console.error('Execution error:', error);
+    console.error('Code execution error:', error);
+    statusText.textContent = 'error';
+    alert(`Error: ${error.message}`);
   }
 }
 
-async function loadScene(sceneIndex) {
-  const scene = state.scenes[sceneIndex];
-  if (!scene) return;
+async function loadScene(index) {
+  if (index < 0 || index >= state.scenes.length) return;
   
-  currentSceneLabel.textContent = `${scene.index}`;
+  const sceneData = state.scenes[index];
+  state.currentSceneIndex = index;
+  currentSceneLabel.textContent = sceneData.name;
+  statusText.textContent = 'loading scene...';
   
-  initializeSceneParameters(scene);
+  // Clear existing videos
+  if (rightCssObject) {
+    cssScene.remove(rightCssObject);
+    rightVideoElement = null;
+    rightCssObject = null;
+  }
+  if (leftCssObject) {
+    cssScene.remove(leftCssObject);
+    leftVideoElement = null;
+    leftCssObject = null;
+  }
   
-  if (scene.config.hands) {
-    if (scene.config.hands.right) {
-      await loadHandVideo('right', scene.config.hands.right);
+  Object.values(ballVideos).forEach(ball => {
+    if (ball.cssObject) cssScene.remove(ball.cssObject);
+  });
+  ballVideos = {};
+  
+  // Load hands
+  if (sceneData.config.hands) {
+    if (sceneData.config.hands.right) {
+      await loadHandVideo('right', sceneData.config.hands.right);
     }
-    if (scene.config.hands.left) {
-      await loadHandVideo('left', scene.config.hands.left);
+    if (sceneData.config.hands.left) {
+      await loadHandVideo('left', sceneData.config.hands.left);
     }
   }
   
-  if (scene.config.balls) {
-    for (const ballId of Object.keys(scene.config.balls)) {
-      await loadBallVideo(parseInt(ballId), scene.config.balls[ballId]);
+  // Load balls
+  if (sceneData.config.balls) {
+    for (const [ballId, ballConfig] of Object.entries(sceneData.config.balls)) {
+      await loadBallVideo(ballId, ballConfig);
     }
   }
+  
+  initializeSceneParameters(sceneData);
+  statusText.textContent = 'ready';
 }
 
 async function loadHandVideo(hand, config) {
-  const result = await window.electronAPI.getVideoUrl(config.url);
+  statusText.textContent = `loading ${hand} video...`;
   
-  if (!result.success) {
-    console.error(`Failed to get video URL for ${hand} hand:`, result.error);
-    return;
-  }
-  
-  const videoObj = {
-    hand: hand,
-    type: 'hand',
-    url: result.url,
-    youtubeUrl: config.url,
-    startTime: config.start || 0,
-    endTime: config.end || null,
-    title: result.title
-  };
-  
-  state.currentVideoObjects[hand] = videoObj;
-  
-  const zIndex = config.zIndex !== undefined ? config.zIndex : 0.1;
-  
-  if (hand === 'right') {
-    displayRightHandVideo(result.url, config.start || 0, config.end || null, zIndex);
-    const params = { ...DEFAULTS, ...config };
-    applyVideoParameters('right', params);
-  } else if (hand === 'left') {
-    displayLeftHandVideo(result.url, config.start || 0, config.end || null, zIndex);
-    const params = { ...DEFAULTS, ...config };
-    applyVideoParameters('left', params);
+  try {
+    // Send request via WebSocket
+    ws.send(JSON.stringify({
+      type: 'get_video_url',
+      url: config.url
+    }));
+    
+    // Wait for response
+    const data = await new Promise((resolve) => {
+      const handler = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'video_url') {
+          ws.removeEventListener('message', handler);
+          resolve(msg);
+        }
+      };
+      ws.addEventListener('message', handler);
+    });
+    
+    if (!data.success) {
+      console.error(`Failed to get video URL for ${hand} hand:`, data.error);
+      return;
+    }
+    
+    const zIndex = config.zIndex !== undefined ? config.zIndex : 0.1;
+    
+    if (hand === 'right') {
+      displayRightHandVideo(data.url, config.start || 0, config.end || null, zIndex);
+    } else {
+      displayLeftHandVideo(data.url, config.start || 0, config.end || null, zIndex);
+    }
+    
+    const params = { ...DEFAULTS, ...config, selected: false };
+    applyVideoParameters(hand, params);
+    
+  } catch (error) {
+    console.error(`Error loading ${hand} hand video:`, error);
   }
 }
 
 async function loadBallVideo(ballId, config) {
-  const result = await window.electronAPI.getVideoUrl(config.url);
+  statusText.textContent = `loading ball ${ballId} video...`;
   
-  if (!result.success) {
-    console.error(`Failed to get video URL for ball ${ballId}:`, result.error);
-    return;
+  try {
+    // Send request via WebSocket
+    ws.send(JSON.stringify({
+      type: 'get_video_url',
+      url: config.url
+    }));
+    
+    // Wait for response
+    const data = await new Promise((resolve) => {
+      const handler = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'video_url') {
+          ws.removeEventListener('message', handler);
+          resolve(msg);
+        }
+      };
+      ws.addEventListener('message', handler);
+    });
+    
+    if (!data.success) {
+      console.error(`Failed to get video URL for ball ${ballId}:`, data.error);
+      return;
+    }
+    
+    const locked = config.locked || false;
+    const zIndex = config.zIndex !== undefined ? config.zIndex : 0.1;
+    
+    displayBallVideo(
+      ballId,
+      data.url,
+      config.start || 0,
+      config.end || null,
+      locked,
+      zIndex
+    );
+    
+    const params = { ...DEFAULTS, ...config, selected: false };
+    applyVideoParameters(`ball-${ballId}`, params);
+    
+  } catch (error) {
+    console.error(`Error loading ball ${ballId} video:`, error);
   }
-  
-  const videoObj = {
-    hand: `ball-${ballId}`,
-    type: 'ball',
-    ballId: ballId,
-    url: result.url,
-    youtubeUrl: config.url,
-    startTime: config.start || 0,
-    endTime: config.end || null,
-    title: result.title,
-    locked: config.locked !== undefined ? config.locked : false
-  };
-  
-  state.currentVideoObjects[`ball-${ballId}`] = videoObj;
-  
-  const zIndex = config.zIndex !== undefined ? config.zIndex : 0.1;
-  
-  displayBallVideo(
-    ballId,
-    result.url,
-    config.start || 0,
-    config.end || null,
-    config.locked !== undefined ? config.locked : false,
-    zIndex
-  );
-  
-  const params = { ...DEFAULTS, ...config, selected: false };
-  applyVideoParameters(`ball-${ballId}`, params);
 }
 
 function initializeSceneParameters(scene) {
@@ -513,67 +692,6 @@ function sendParameterUpdate(key) {
   applyVideoParameters(key, params);
 }
 
-// ===== TRACKING SSE CONNECTIONS =====
-// Throttle hand tracking updates
-let lastHandUpdate = 0;
-const handTrackingSource = new EventSource('http://127.0.0.1:5000/hand_tracking');
-handTrackingSource.onmessage = (event) => {
-  const now = Date.now();
-  if (now - lastHandUpdate < 100) return; // Max 10 updates/sec
-  lastHandUpdate = now;
-  
-  const data = JSON.parse(event.data);
-  
-  if (data.right_hand_detected && data.right_hand_landmarks?.length === 21) {
-    updateHandVideo('right', data.right_hand_landmarks);
-  }
-  
-  if (data.left_hand_detected && data.left_hand_landmarks?.length === 21) {
-    updateHandVideo('left', data.left_hand_landmarks);
-  }
-};
-
-// Throttle ball tracking updates
-let lastBallUpdate = 0;
-const ballTrackingSource = new EventSource('http://127.0.0.1:5000/ball_tracking');
-ballTrackingSource.onmessage = (event) => {
-  const now = Date.now();
-  if (now - lastBallUpdate < 100) return; // Max 10 updates/sec
-  lastBallUpdate = now;
-  
-  const data = JSON.parse(event.data);
-  
-  if (data.balls && data.balls.length > 0) {
-    data.balls.forEach(ball => {
-      updateBallVideo(ball.id, ball);
-    });
-  }
-};
-
-// Throttle foot mouse updates heavily
-let lastFootUpdate = 0;
-const footMouseSource = new EventSource('http://127.0.0.1:5000/bigtrack');
-footMouseSource.onmessage = (event) => {
-  const now = Date.now();
-  if (now - lastFootUpdate < 50) return; // Max 20 updates/sec
-  lastFootUpdate = now;
-  
-  const data = JSON.parse(event.data);
-  
-  state.footPosition.x = data.x;
-  state.footPosition.y = data.y;
-  
-  if (data.left_click) {
-    nextScene();
-  }
-  
-  if (data.right_click) {
-    previousScene();
-  }
-  
-  updateFootControl();
-};
-
 // ===== UI CONTROLS =====
 executeBtn.addEventListener('click', executeCode);
 prevSceneBtn.addEventListener('click', previousScene);
@@ -581,14 +699,12 @@ nextSceneBtn.addEventListener('click', nextScene);
 
 // ===== KEYBOARD SHORTCUTS =====
 document.addEventListener('keydown', (e) => {
-  // Ctrl+Enter to execute (even when editing)
   if (e.ctrlKey && e.key === 'Enter') {
     e.preventDefault();
     executeCode();
     return;
   }
   
-  // Don't handle other shortcuts when editing
   if (document.activeElement === codeEditor) return;
   
   if (e.key === ' ') {
@@ -603,49 +719,14 @@ document.addEventListener('keydown', (e) => {
 // ===== ANIMATION LOOP =====
 camera.position.z = 12;
 
-// Throttle animation to 30fps instead of 60fps to reduce GPU load
-let lastFrameTime = 0;
-const targetFrameTime = 1000 / 30; // 30 FPS
-
-// Update texture less frequently
-let textureUpdateCounter = 0;
-
-// Pause rendering while typing
-let isTyping = false;
-let typingTimeout = null;
-
-codeEditor.addEventListener('input', () => {
-  isTyping = true;
-  clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => {
-    isTyping = false;
-  }, 500); // Resume rendering 500ms after typing stops
-});
-
-function animate(currentTime) {
+// Run at 60fps
+function animate() {
   requestAnimationFrame(animate);
   
-  // Skip rendering while typing for better text input responsiveness
-  if (isTyping) {
-    return;
-  }
-  
-  // Throttle to 30fps
-  if (currentTime - lastFrameTime < targetFrameTime) {
-    return;
-  }
-  lastFrameTime = currentTime;
-  
-  // Update texture every other frame (15fps instead of 30fps)
-  textureUpdateCounter++;
-  if (textureUpdateCounter % 2 === 0) {
-    texture.needsUpdate = true;
-  }
-  
-  renderer.render(scene, camera);
+  renderer.render(threeScene, camera);
   cssRenderer.render(cssScene, camera);
 }
-animate(0);
+animate();
 
 // ===== WINDOW RESIZE =====
 window.addEventListener('resize', () => {
@@ -656,30 +737,7 @@ window.addEventListener('resize', () => {
 });
 
 // ===== INITIALIZATION =====
-// Wait for Flask server to be ready before hiding loading screen
-let serverReady = false;
-let handTrackingReady = false;
+connectWebSocket();
 
-// Test server connection
-fetch('http://127.0.0.1:5000/video_feed', { method: 'HEAD' })
-  .then(() => {
-    serverReady = true;
-    checkReady();
-  })
-  .catch(() => {
-    console.log('Waiting for Flask server...');
-    setTimeout(() => {
-      fetch('http://127.0.0.1:5000/video_feed', { method: 'HEAD' })
-        .then(() => {
-          serverReady = true;
-          checkReady();
-        });
-    }, 2000);
-  });
-
-function checkReady() {
-  if (serverReady) {
-    loadingOverlay.classList.add('hidden');
-    executeCode();
-  }
-}
+// Note: Loading screen is hidden and executeCode() is called 
+// when WebSocket connection opens (see ws.onopen above)
