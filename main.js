@@ -13,7 +13,7 @@ function startFlaskServer() {
     ? path.join(__dirname, '.venv', 'Scripts', 'python.exe')
     : path.join(__dirname, '.venv', 'bin', 'python');
   
-  flaskProcess = spawn(venvPython, [path.join(__dirname, 'server.py'), FLASK_PORT.toString()]);
+  flaskProcess = spawn(venvPython, [path.join(__dirname, 'utils/main.py'), FLASK_PORT.toString()]);
   
   flaskProcess.stdout.on('data', (data) => {
     console.log(`Flask: ${data}`);
