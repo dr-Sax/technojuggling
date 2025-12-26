@@ -13,7 +13,7 @@ class Camera:
         
     def initialize(self):
         """Initialize camera with configured settings"""
-        print("🎥 Initializing Camera...")
+        print("Initializing Camera...")
         
         self.camera = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
         
@@ -35,7 +35,7 @@ class Camera:
         self.actual_height = int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.actual_fps = self.camera.get(cv2.CAP_PROP_FPS)
         
-        print(f"✓ Camera ready: {self.actual_width}x{self.actual_height} @ {self.actual_fps:.0f}fps")
+        print(f"Camera ready: {self.actual_width}x{self.actual_height} @ {self.actual_fps:.0f}fps")
         
         return self.camera
     

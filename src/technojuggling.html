@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tell-A-Vision</title>
+  
+  <!-- Three.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: 'Courier New', monospace;
+    }
+    
+    /* 3D rendering containers */
+    #webgl-container,
+    #css3d-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    #css3d-container {
+      z-index: 1;
+    }
+    
+    /* Loading screen */
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.5s;
+    }
+    
+    #loadingOverlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .loading-text {
+      font-size: 48px;
+      color: #fff;
+      letter-spacing: 0.2em;
+      margin-bottom: 40px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .loading-status {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 30px;
+      text-align: center;
+      line-height: 1.6;
+    }
+    
+    .loading-status.error {
+      color: #ff4444;
+    }
+    
+    /* Calibration buttons */
+    .calibration-buttons {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .calibration-buttons.show {
+      opacity: 1;
+    }
+    
+    .calibration-btn {
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      padding: 15px 30px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.3s;
+      min-width: 200px;
+    }
+    
+    .calibration-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.8);
+      transform: translateY(-2px);
+    }
+    
+    .calibration-btn:active {
+      transform: translateY(0);
+    }
+    
+    .calibration-btn.primary {
+      border-color: #00ff00;
+      color: #00ff00;
+    }
+    
+    .calibration-btn.primary:hover {
+      background: rgba(0, 255, 0, 0.1);
+      border-color: #00ff00;
+    }
+    
+    .calibration-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Code editor */
+    #code-editor {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 600px;
+      height: 400px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      padding: 10px;
+      z-index: 100;
+      resize: both;
+      overflow: auto;
+      pointer-events: auto;
+    }
+    
+    /* Status bar */
+    #status-bar {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      z-index: 100;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      pointer-events: none;
+    }
+    
+    #statusText {
+      margin-right: 20px;
+    }
+    
+    /* Control buttons */
+    #controls-bar {
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    
+    .control-btn {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+      padding: 8px 16px;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+    
+    .control-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading screen -->
+  <div id="loadingOverlay">
+    <div class="loading-text">TELL-A-VISION</div>
+    <div class="loading-status" id="loadingStatus">Connecting to server...</div>
+    
+    <!-- Calibration buttons (shown when server asks for choice) -->
+    <div class="calibration-buttons" id="calibrationButtons">
+      <button class="calibration-btn primary" id="useLast">
+        Use Last Settings
+        <br><small>Quick start</small>
+      </button>
+      <button class="calibration-btn" id="calibrateNow">
+        Calibrate Now
+        <br><small>Adjust camera & balls</small>
+      </button>
+    </div>
+  </div>
+  
+  <!-- 3D rendering containers -->
+  <div id="webgl-container"></div>
+  <div id="css3d-container"></div>
+  
+  <!-- Code editor -->
+  <textarea id="code-editor" spellcheck="false">
+// TELL-A-VISION - Scene-Based Performance System
+// Press Ctrl+Enter to load scenes
+// Press Space to cycle scenes forward
+// Press 'b' to cycle scenes backward
+
+scene(1, "Opening - Both Hands", {
+  showCamera: false,
+  global_foot: {
+    x: { param: "scale", range: [0.5, 2.5], sensitivity: 0.8 },
+    y: { param: "hue", range: [0, 360], sensitivity: 1.0 }
+  },
+  
+  hands: {
+    right: {
+      url: "https://www.youtube.com/watch?v=xIUwE3paZEI",
+      start: 0,
+      end: 5,
+      hue: 0,
+      opacity: 0.8,
+      blur: 0,
+      zIndex: 0.4,
+      scale: 0.25
+    },
+    
+    left: {
+      url: "https://www.youtube.com/shorts/p1h_Vmmepsw",
+      start: 0,
+      end: 5,
+      hue: 120,
+      opacity: 0.8,
+      blur: 0,
+      zIndex: 0.4,
+      scale: 0.25
+    }
+  }
+});
+  </textarea>
+  
+  <!-- Status bar -->
+  <div id="status-bar">
+    <span id="statusText">initializing</span>
+    <span id="currentScene"></span>
+  </div>
+  
+  <!-- Control buttons -->
+  <div id="controls-bar">
+    <button id="executeBtn" class="control-btn">Execute (Ctrl+Enter)</button>
+    <button id="prevSceneBtn" class="control-btn">← Previous (B)</button>
+    <button id="nextSceneBtn" class="control-btn">Next (Space) →</button>
+  </div>
+  
+  <!-- Import modular JavaScript -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

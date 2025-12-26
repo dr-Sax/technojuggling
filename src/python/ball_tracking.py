@@ -1,10 +1,10 @@
 """
-Ball tracking using OpenCV color detection
+Ball tracking using OpenCV color detection with async calibration
 """
 import cv2
 import numpy as np
 from config import *
-from startup_calibration import run_startup_calibration
+from startup_calibration_async import run_async_calibration
 
 class BallTracker:
     def __init__(self, camera):
@@ -15,19 +15,20 @@ class BallTracker:
         self.hsv_maxs = []
         self.calibration_settings = {}
         
-    def initialize(self):
-        """Initialize ball tracking with calibration"""
+    async def initialize(self):
+        """Initialize ball tracking with async calibration"""
         if not self.enabled:
-            print("⚠️  Ball tracking disabled")
+            print("Ball tracking disabled")
             self.num_balls = 0
             return {'camera_settings': {}, 'hsv_ranges': {}}
         
-        print(f"🎨 Calibrating {self.num_balls} balls...")
+        print(f"Calibrating {self.num_balls} balls...")
         
-        self.calibration_settings = run_startup_calibration(self.camera, num_balls=self.num_balls)
+        # Use async calibration
+        self.calibration_settings = await run_async_calibration(self.camera, num_balls=self.num_balls)
         
         if not self.calibration_settings:
-            print("⚠️  Calibration skipped - ball tracking disabled")
+            print("Calibration skipped - ball tracking disabled")
             self.num_balls = 0
             self.enabled = False
             return {'camera_settings': {}, 'hsv_ranges': {}}
@@ -43,7 +44,7 @@ class BallTracker:
             for i in range(self.num_balls)
         ]
         
-        print(f"✓ Ball tracking enabled for {self.num_balls} balls")
+        print(f"Ball tracking enabled for {self.num_balls} balls")
         return self.calibration_settings
     
     def detect(self, frame):

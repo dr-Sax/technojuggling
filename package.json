@@ -1,21 +1,28 @@
 {
   "name": "tell-a-vision",
   "version": "1.0.0",
-  "description": "A simple Electron app to play YouTube videos using yt-dlp",
+  "description": "Tell-A-Vision - Live coding performance system with computer vision",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "package": "electron-packager . tell-a-vision --platform=win32 --arch=x64 --out=dist --overwrite",
+    "package-mac": "electron-packager . tell-a-vision --platform=darwin --arch=x64 --out=dist --overwrite",
+    "package-linux": "electron-packager . tell-a-vision --platform=linux --arch=x64 --out=dist --overwrite",
+    "package-all": "electron-packager . tell-a-vision --all --out=dist --overwrite"
   },
   "keywords": [
     "electron",
-    "youtube",
-    "yt-dlp",
-    "video-player"
+    "performance",
+    "computer-vision",
+    "webgl",
+    "threejs"
   ],
-  "author": "",
+  "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^27.0.0",
-    "three": "^0.160.0"
-  }
+    "electron": "^28.0.0",
+    "electron-packager": "^17.1.2"
+  },
+  "dependencies": {}
 }

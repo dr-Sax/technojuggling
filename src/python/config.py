@@ -6,7 +6,7 @@ Configuration settings for Tell-A-Vision server
 USE_NVENC = True  # Enable NVENC hardware encoding (if available)
 
 # ===== CAMERA SETTINGS =====
-CAMERA_INDEX = 0  # Camera device index (0, 1, 2, etc.)
+CAMERA_INDEX = 1  # Camera device index (0, 1, 2, etc.)
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
 CAMERA_FPS = 60
@@ -27,8 +27,8 @@ TARGET_FPS = 60
 HAND_TRACKING_ENABLED = True
 HAND_TRACKING_SKIP = 2  # Process every Nth frame (1 = every frame, 2 = every other frame)
 MAX_NUM_HANDS = 2
-MIN_DETECTION_CONFIDENCE = 0.5
-MIN_TRACKING_CONFIDENCE = 0.5
+MIN_DETECTION_CONFIDENCE = 0.3
+MIN_TRACKING_CONFIDENCE = 0.3
 HAND_MODEL_COMPLEXITY = 0  # 0 = lite, 1 = full (lite is faster)
 
 # Ball Tracking

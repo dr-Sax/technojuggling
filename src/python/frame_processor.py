@@ -6,12 +6,24 @@ import time
 import threading
 from collections import deque
 from config import *
+from nvenc_encoder import create_encoder
 
 class FrameProcessor:
     def __init__(self, camera, hand_tracker, ball_tracker):
         self.camera = camera
         self.hand_tracker = hand_tracker
         self.ball_tracker = ball_tracker
+        
+        # Initialize encoder
+        camera_width, camera_height, camera_fps = camera.get_dimensions()
+        self.encoder = create_encoder(
+            width=camera_width,
+            height=camera_height,
+            fps=int(camera_fps),
+            use_nvenc=USE_NVENC
+        )
+        
+        print(f"[ENCODER] Using {'GPU (NVENC)' if self.encoder.is_using_gpu() else 'CPU (JPEG)'}")
         
         # State
         self.latest_frame = None
@@ -34,13 +46,15 @@ class FrameProcessor:
         self.running = True
         self.thread = threading.Thread(target=self._process_loop, daemon=True)
         self.thread.start()
-        print("✓ Frame processor started")
+        print("Frame processor started")
     
     def stop(self):
         """Stop frame processing thread"""
         self.running = False
         if self.thread:
             self.thread.join(timeout=1.0)
+        if self.encoder:
+            self.encoder.release()
     
     def _process_loop(self):
         """Main processing loop"""
@@ -78,9 +92,8 @@ class FrameProcessor:
             time.sleep(0.001)
     
     def _encode_frame(self, frame):
-        """Encode frame as JPEG"""
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
-        return buffer.tobytes()
+        """Encode frame using NVENC or JPEG"""
+        return self.encoder.encode(frame, JPEG_QUALITY)
     
     def get_latest_frame_data(self):
         """Get latest frame and tracking data"""
@@ -96,8 +109,8 @@ class FrameProcessor:
         fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0
         avg_encode = sum(self.encode_times) / len(self.encode_times) if self.encode_times else 0
         
-        hand_status = "✓" if (self.latest_hand_data['right_hand_detected'] or 
-                              self.latest_hand_data['left_hand_detected']) else "✗"
+        hand_status = "Y" if (self.latest_hand_data['right_hand_detected'] or 
+                              self.latest_hand_data['left_hand_detected']) else "N"
         ball_count = len(self.latest_ball_data['balls'])
         
         return {

@@ -14,10 +14,10 @@ class HandTracker:
     def initialize(self):
         """Initialize MediaPipe hands"""
         if not self.enabled:
-            print("⚠️  Hand tracking disabled")
+            print("Hand tracking disabled")
             return
         
-        print("🖐️  Initializing MediaPipe hand tracking...")
+        print("Initializing MediaPipe hand tracking...")
         
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
@@ -27,7 +27,7 @@ class HandTracker:
             model_complexity=HAND_MODEL_COMPLEXITY
         )
         
-        print("✓ MediaPipe ready")
+        print("MediaPipe ready")
     
     def process(self, frame):
         """Process frame and return hand tracking data"""

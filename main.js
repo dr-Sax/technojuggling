@@ -1,33 +1,81 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+/**
+ * Electron Main Process
+ * Launches Python WebSocket server and creates app window
+ */
+
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
-const http = require('http');
 
 let mainWindow;
-let flaskProcess;
-const FLASK_PORT = 5000;
+let pythonProcess;
+const WEBSOCKET_PORT = 5000;
 
-function startFlaskServer() {
+/**
+ * Start Python WebSocket server
+ */
+function startPythonServer() {
+  console.log('🐍 Starting Python WebSocket server...');
+  
   const isWindows = process.platform === 'win32';
+  
+  // Path to virtual environment Python
   const venvPython = isWindows
     ? path.join(__dirname, '.venv', 'Scripts', 'python.exe')
     : path.join(__dirname, '.venv', 'bin', 'python');
   
-  flaskProcess = spawn(venvPython, [path.join(__dirname, 'utils/main.py'), FLASK_PORT.toString()]);
+  // Path to Python main.py in src/python folder
+  const pythonScript = path.join(__dirname, 'src', 'python', 'main.py');
   
-  flaskProcess.stdout.on('data', (data) => {
-    console.log(`Flask: ${data}`);
+  // Spawn Python process with UNBUFFERED output
+  pythonProcess = spawn(venvPython, ['-u', pythonScript, WEBSOCKET_PORT.toString()]);
+  
+  // IMPORTANT: Set encoding to handle output properly
+  pythonProcess.stdout.setEncoding('utf8');
+  pythonProcess.stderr.setEncoding('utf8');
+  
+  // Log Python output (stdout)
+  pythonProcess.stdout.on('data', (data) => {
+    // Split by lines and log each line
+    const lines = data.toString().split('\n');
+    lines.forEach(line => {
+      if (line.trim()) {
+        console.log(`Python: ${line}`);
+      }
+    });
   });
   
-  flaskProcess.stderr.on('data', (data) => {
-    console.error(`Flask Error: ${data}`);
+  // Log Python errors (stderr)
+  pythonProcess.stderr.on('data', (data) => {
+    const lines = data.toString().split('\n');
+    lines.forEach(line => {
+      if (line.trim()) {
+        console.error(`Python Error: ${line}`);
+      }
+    });
   });
   
-  // Wait for server to start
-  setTimeout(() => {}, 2000);
+  // Handle Python process exit
+  pythonProcess.on('close', (code) => {
+    console.log(`Python process exited with code ${code}`);
+  });
+  
+  pythonProcess.on('error', (error) => {
+    console.error(`Failed to start Python server: ${error.message}`);
+  });
+  
+  console.log('✓ Python server starting...');
+  console.log(`  Script: ${pythonScript}`);
+  console.log(`  Python: ${venvPython}`);
+  console.log(`  Port: ${WEBSOCKET_PORT}`);
 }
 
+/**
+ * Create Electron window
+ */
 function createWindow() {
+  console.log('🖼️  Creating Electron window...');
+  
   mainWindow = new BrowserWindow({
     width: 1920,
     height: 1080,
@@ -43,84 +91,149 @@ function createWindow() {
     show: false // Don't show until ready
   });
 
-  mainWindow.loadFile('technojuggling.html');
+  // Load HTML from src folder
+  const htmlPath = path.join(__dirname, 'src', 'technojuggling.html');
+  mainWindow.loadFile(htmlPath);
+  
+  console.log(`  Loading: ${htmlPath}`);
   
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    console.log('✓ Window ready');
+  });
+  
+  // Handle window closed
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
   
   // Optional: Open DevTools for debugging
   // mainWindow.webContents.openDevTools();
 }
 
+/**
+ * Wait for Python server to be ready
+ */
+function waitForServer(retries = 20) {
+  return new Promise((resolve) => {
+    let attempts = 0;
+    
+    const check = () => {
+      attempts++;
+      
+      // Check if server is responding (simple check)
+      const net = require('net');
+      const socket = new net.Socket();
+      
+      socket.setTimeout(1000);
+      
+      socket.on('connect', () => {
+        socket.destroy();
+        console.log('✓ Python server is ready');
+        resolve(true);
+      });
+      
+      socket.on('timeout', () => {
+        socket.destroy();
+        if (attempts < retries) {
+          console.log(`  Waiting for server... (${attempts}/${retries})`);
+          setTimeout(check, 500);
+        } else {
+          console.warn('⚠️  Server check timed out, proceeding anyway...');
+          resolve(false);
+        }
+      });
+      
+      socket.on('error', () => {
+        socket.destroy();
+        if (attempts < retries) {
+          setTimeout(check, 500);
+        } else {
+          console.warn('⚠️  Could not connect to server, proceeding anyway...');
+          resolve(false);
+        }
+      });
+      
+      socket.connect(WEBSOCKET_PORT, '127.0.0.1');
+    };
+    
+    check();
+  });
+}
+
+// ===== APP LIFECYCLE =====
+
 // Disable hardware acceleration to prevent GPU crashes
 app.disableHardwareAcceleration();
 
-app.whenReady().then(() => {
-  startFlaskServer();
+// When Electron is ready
+app.whenReady().then(async () => {
+  console.log('🚀 Tell-A-Vision starting...');
+  console.log(`  Platform: ${process.platform}`);
+  console.log(`  Working directory: ${__dirname}`);
+  
+  // Start Python server
+  startPythonServer();
+  
+  // Wait for server to be ready
+  await waitForServer();
+  
+  // Create window
   createWindow();
   
+  // macOS: Re-create window when dock icon clicked
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+  
+  console.log('✓ Tell-A-Vision ready');
 });
 
+// All windows closed
 app.on('window-all-closed', () => {
-  if (flaskProcess) flaskProcess.kill();
-  app.quit();
+  console.log('👋 Shutting down...');
+  
+  // Kill Python process
+  if (pythonProcess) {
+    console.log('  Stopping Python server...');
+    pythonProcess.kill();
+  }
+  
+  // Quit app (except on macOS)
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
-// ===== IPC HANDLERS =====
-ipcMain.handle('get-video-url', async (event, youtubeUrl) => {
-  return new Promise((resolve) => {
-    const postData = JSON.stringify({ url: youtubeUrl });
-    
-    const req = http.request({
-      hostname: '127.0.0.1',
-      port: FLASK_PORT,
-      path: '/get-video-url',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (error) {
-          resolve({ success: false, error: error.message });
-        }
-      });
-    });
-    
-    req.on('error', (error) => {
-      resolve({ success: false, error: error.message });
-    });
-    
-    req.write(postData);
-    req.end();
-  });
+// App will quit
+app.on('will-quit', () => {
+  console.log('  Cleaning up...');
+  
+  if (pythonProcess) {
+    pythonProcess.kill();
+  }
 });
 
-// Log app readiness
-app.on('ready', () => {
-  console.log('✓ Electron app ready');
-  console.log('✓ Single-window unified interface');
-});
+// ===== GRACEFUL SHUTDOWN =====
 
-// Handle graceful shutdown
 process.on('SIGINT', () => {
-  if (flaskProcess) flaskProcess.kill();
+  console.log('\n👋 SIGINT received, shutting down...');
+  if (pythonProcess) pythonProcess.kill();
   app.quit();
 });
 
 process.on('SIGTERM', () => {
-  if (flaskProcess) flaskProcess.kill();
+  console.log('\n👋 SIGTERM received, shutting down...');
+  if (pythonProcess) pythonProcess.kill();
+  app.quit();
+});
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught exception:', error);
+  if (pythonProcess) pythonProcess.kill();
   app.quit();
 });

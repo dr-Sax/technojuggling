@@ -1,7 +1,10 @@
 """
 Video URL service - fetches YouTube video URLs using yt-dlp
+Runs in thread pool to avoid blocking the event loop
 """
 import yt_dlp
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 class VideoService:
     def __init__(self):
@@ -10,14 +13,12 @@ class VideoService:
             'quiet': True,
             'no_warnings': True,
         }
+        self.executor = ThreadPoolExecutor(max_workers=2)
     
-    async def get_video_url(self, youtube_url):
+    def _fetch_video_url_sync(self, youtube_url):
         """
-        Fetch direct video URL from YouTube URL
-        Returns: dict with 'success', 'url', 'title', or 'error'
+        Synchronous video URL fetch (runs in thread pool)
         """
-        print(f"🎬 Fetching video URL for: {youtube_url}")
-        
         try:
             with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
                 info = ydl.extract_info(youtube_url, download=False)
@@ -48,7 +49,6 @@ class VideoService:
                     video_url = info.get('url')
                 
                 if video_url:
-                    print(f"✓ Video URL fetched: {info.get('title')}")
                     return {
                         'success': True,
                         'url': video_url,
@@ -61,8 +61,27 @@ class VideoService:
                     }
                     
         except Exception as e:
-            print(f"❌ Error fetching video URL: {e}")
             return {
                 'success': False,
                 'error': str(e)
             }
+    
+    async def get_video_url(self, youtube_url):
+        """
+        Async wrapper that runs yt-dlp in thread pool
+        """
+        print(f"[VIDEO] Fetching URL for: {youtube_url}")
+        
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            self.executor,
+            self._fetch_video_url_sync,
+            youtube_url
+        )
+        
+        if result['success']:
+            print(f"[VIDEO] Success: {result.get('title')}")
+        else:
+            print(f"[VIDEO] Failed: {result.get('error')}")
+        
+        return result
