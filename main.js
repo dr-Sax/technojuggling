@@ -15,7 +15,7 @@ const WEBSOCKET_PORT = 5000;
  * Start Python WebSocket server
  */
 function startPythonServer() {
-  console.log('🐍 Starting Python WebSocket server...');
+  console.log('ðŸ Starting Python WebSocket server...');
   
   const isWindows = process.platform === 'win32';
   
@@ -64,7 +64,7 @@ function startPythonServer() {
     console.error(`Failed to start Python server: ${error.message}`);
   });
   
-  console.log('✓ Python server starting...');
+  console.log('âœ“ Python server starting...');
   console.log(`  Script: ${pythonScript}`);
   console.log(`  Python: ${venvPython}`);
   console.log(`  Port: ${WEBSOCKET_PORT}`);
@@ -74,10 +74,10 @@ function startPythonServer() {
  * Create Electron window
  */
 function createWindow() {
-  console.log('🖼️  Creating Electron window...');
+  console.log('ðŸ–¼ï¸  Creating Electron window...');
   
   mainWindow = new BrowserWindow({
-    width: 1920,
+    width: 960,
     height: 1080,
     fullscreen: false, // Set to true for performance mode
     webPreferences: {
@@ -100,7 +100,7 @@ function createWindow() {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    console.log('✓ Window ready');
+    console.log('âœ“ Window ready');
   });
   
   // Handle window closed
@@ -130,7 +130,7 @@ function waitForServer(retries = 20) {
       
       socket.on('connect', () => {
         socket.destroy();
-        console.log('✓ Python server is ready');
+        console.log('âœ“ Python server is ready');
         resolve(true);
       });
       
@@ -140,7 +140,7 @@ function waitForServer(retries = 20) {
           console.log(`  Waiting for server... (${attempts}/${retries})`);
           setTimeout(check, 500);
         } else {
-          console.warn('⚠️  Server check timed out, proceeding anyway...');
+          console.warn('âš ï¸  Server check timed out, proceeding anyway...');
           resolve(false);
         }
       });
@@ -150,7 +150,7 @@ function waitForServer(retries = 20) {
         if (attempts < retries) {
           setTimeout(check, 500);
         } else {
-          console.warn('⚠️  Could not connect to server, proceeding anyway...');
+          console.warn('âš ï¸  Could not connect to server, proceeding anyway...');
           resolve(false);
         }
       });
@@ -169,7 +169,7 @@ app.disableHardwareAcceleration();
 
 // When Electron is ready
 app.whenReady().then(async () => {
-  console.log('🚀 Tell-A-Vision starting...');
+  console.log('ðŸš€ Tell-A-Vision starting...');
   console.log(`  Platform: ${process.platform}`);
   console.log(`  Working directory: ${__dirname}`);
   
@@ -189,12 +189,12 @@ app.whenReady().then(async () => {
     }
   });
   
-  console.log('✓ Tell-A-Vision ready');
+  console.log('âœ“ Tell-A-Vision ready');
 });
 
 // All windows closed
 app.on('window-all-closed', () => {
-  console.log('👋 Shutting down...');
+  console.log('ðŸ‘‹ Shutting down...');
   
   // Kill Python process
   if (pythonProcess) {
@@ -220,20 +220,20 @@ app.on('will-quit', () => {
 // ===== GRACEFUL SHUTDOWN =====
 
 process.on('SIGINT', () => {
-  console.log('\n👋 SIGINT received, shutting down...');
+  console.log('\nðŸ‘‹ SIGINT received, shutting down...');
   if (pythonProcess) pythonProcess.kill();
   app.quit();
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n👋 SIGTERM received, shutting down...');
+  console.log('\nðŸ‘‹ SIGTERM received, shutting down...');
   if (pythonProcess) pythonProcess.kill();
   app.quit();
 });
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught exception:', error);
+  console.error('âŒ Uncaught exception:', error);
   if (pythonProcess) pythonProcess.kill();
   app.quit();
 });

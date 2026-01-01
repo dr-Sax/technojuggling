@@ -96,12 +96,13 @@ export class HandTrackingManager {
   
   // Process hand tracking data
   processHandData(data) {
-    if (data.right_hand_detected && data.right_hand_landmarks?.length === 21) {
-      this.updateHand('right', data.right_hand_landmarks);
+    // Handle new MediaPipe Tasks API structure: {right: {detected, landmarks}, left: {...}}
+    if (data.right?.detected && data.right?.landmarks?.length === 21) {
+      this.updateHand('right', data.right.landmarks);
     }
     
-    if (data.left_hand_detected && data.left_hand_landmarks?.length === 21) {
-      this.updateHand('left', data.left_hand_landmarks);
+    if (data.left?.detected && data.left?.landmarks?.length === 21) {
+      this.updateHand('left', data.left.landmarks);
     }
   }
   

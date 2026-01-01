@@ -114,6 +114,9 @@ export class BallTrackingManager {
     ball.element.volume = params.volume / 100;
     ball.element.playbackRate = params.speed;
     
+    // Apply clip path
+    ball.element.style.clipPath = params.clipPath || 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+    
     const baseScale = this.sceneManager.getPlaneHeight() / 480;
     const finalScale = baseScale * 0.5 * params.scale;
     ball.cssObject.scale.set(finalScale, finalScale, finalScale);

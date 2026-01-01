@@ -8,11 +8,6 @@ export class UIController {
     
     // DOM elements
     this.codeEditor = document.getElementById('code-editor');
-    this.statusText = document.getElementById('statusText');
-    this.currentSceneLabel = document.getElementById('currentScene');
-    this.executeBtn = document.getElementById('executeBtn');
-    this.prevSceneBtn = document.getElementById('prevSceneBtn');
-    this.nextSceneBtn = document.getElementById('nextSceneBtn');
     this.loadingOverlay = document.getElementById('loadingOverlay');
     
     this.calibrationComplete = false;
@@ -22,14 +17,11 @@ export class UIController {
   
   initialize() {
     // Button click handlers
-    this.executeBtn.addEventListener('click', () => this.executeCode());
-    this.prevSceneBtn.addEventListener('click', () => this.previousScene());
-    this.nextSceneBtn.addEventListener('click', () => this.nextScene());
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     
-    console.log('✓ UI controller initialized');
+    console.log('âœ“ UI controller initialized');
   }
   
   handleKeyboard(e) {
@@ -241,12 +233,11 @@ export class UIController {
   }
   
   updateSceneLabel() {
-    const sceneName = this.sceneManager.getCurrentSceneName();
-    this.currentSceneLabel.textContent = sceneName;
+    // No-op: scene label UI removed
   }
   
   setStatus(text) {
-    this.statusText.textContent = text;
+    // No-op: status text UI removed
   }
   
   hideLoadingScreen() {

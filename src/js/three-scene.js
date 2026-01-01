@@ -59,6 +59,13 @@ export class ThreeSceneManager {
     this.cameraTexture.minFilter = THREE.LinearFilter;
     this.cameraTexture.magFilter = THREE.LinearFilter;
     
+    // Crop camera feed to 8:9 aspect ratio (960:1080)
+    // Camera is 320x240 (4:3), need to crop width to 213px centered
+    // UV offset: (320 - 213) / 2 / 320 = 0.167
+    // UV scale: 213 / 320 = 0.666
+    this.cameraTexture.offset.set(0.167, 0);
+    this.cameraTexture.repeat.set(0.666, 1.0);
+    
     const planeGeometry = new THREE.PlaneGeometry(
       CONFIG.PLANE_WIDTH,
       CONFIG.PLANE_HEIGHT
@@ -67,7 +74,7 @@ export class ThreeSceneManager {
     const planeMaterial = new THREE.MeshBasicMaterial({
       map: this.cameraTexture,
       transparent: true,
-      opacity: 0.5
+      opacity: 1.0
     });
     
     this.cameraFeedPlane = new THREE.Mesh(planeGeometry, planeMaterial);

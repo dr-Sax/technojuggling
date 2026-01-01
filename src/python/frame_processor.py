@@ -6,7 +6,7 @@ import time
 import threading
 from collections import deque
 from config import *
-from nvenc_encoder import create_encoder
+from jpeg_encoder import create_encoder
 
 class FrameProcessor:
     def __init__(self, camera, hand_tracker, ball_tracker):
@@ -19,11 +19,8 @@ class FrameProcessor:
         self.encoder = create_encoder(
             width=camera_width,
             height=camera_height,
-            fps=int(camera_fps),
-            use_nvenc=USE_NVENC
+            fps=int(camera_fps)
         )
-        
-        print(f"[ENCODER] Using {'GPU (NVENC)' if self.encoder.is_using_gpu() else 'CPU (JPEG)'}")
         
         # State
         self.latest_frame = None
@@ -109,8 +106,8 @@ class FrameProcessor:
         fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0
         avg_encode = sum(self.encode_times) / len(self.encode_times) if self.encode_times else 0
         
-        hand_status = "Y" if (self.latest_hand_data['right_hand_detected'] or 
-                              self.latest_hand_data['left_hand_detected']) else "N"
+        hand_status = "Y" if (self.latest_hand_data.get('right', {}).get('detected', False) or 
+                              self.latest_hand_data.get('left', {}).get('detected', False)) else "N"
         ball_count = len(self.latest_ball_data['balls'])
         
         return {

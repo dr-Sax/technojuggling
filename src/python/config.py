@@ -6,7 +6,7 @@ Configuration settings for Tell-A-Vision server
 USE_NVENC = True  # Enable NVENC hardware encoding (if available)
 
 # ===== CAMERA SETTINGS =====
-CAMERA_INDEX = 1  # Camera device index (0, 1, 2, etc.)
+CAMERA_INDEX = 0  # Camera device index (0, 1, 2, etc.)
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 480
 CAMERA_FPS = 60
@@ -16,7 +16,7 @@ CAMERA_BUFFER_SIZE = 1
 CAMERA_BRIGHTNESS = 150
 CAMERA_CONTRAST = 140
 CAMERA_SATURATION = 140
-CAMERA_EXPOSURE = -5
+CAMERA_EXPOSURE = -1
 
 # ===== ENCODING SETTINGS =====
 JPEG_QUALITY = 85
