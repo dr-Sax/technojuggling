@@ -29,6 +29,14 @@ export class ThreeSceneManager {
     );
     this.camera.position.z = 12;
     
+    // Add lighting for 3D models
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    this.threeScene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(5, 10, 7.5);
+    this.threeScene.add(directionalLight);
+    
     // WebGL renderer
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,

@@ -8,6 +8,7 @@
   <!-- Three.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   
   <style>
     * {
@@ -185,25 +186,25 @@
   <textarea id="code-editor" spellcheck="false">
 {
   clips: {
-    A: {url: "reds_nightmare.mp4", start: 6, end: 12},
+    A: {url: "vwcar.glb", start: 6, end: 12},
     B: {url: "hackers.png", start: 0, end: 6},
   },
 
   presets: {
     spinning: {
       rotation: "sin(time*10)*10",     // Rotates back and forth
-      scale: 10
+      scale: 1
     },
     pulsing: {
-      scale: "5 + 3*sin(time*2)",      // Pulses between 2 and 8
+      scale: 1,      // Pulses between 2 and 8
       rotation: 0
     },
     growing: {
-      scale: "5 + time*0.5",           // Grows from 5 upward
+      scale: 1,           // Grows from 5 upward
       rotation: "time*20"              // Also spins steadily
     },
     static: {
-      scale: 10,                       // Just a number - no animation
+      scale: 1,                       // Just a number - no animation
       rotation: 0
     }
   },
@@ -220,6 +221,7 @@
   
   showCamera: true
 }
+  
   </textarea>
   
   <!-- Import modular JavaScript -->

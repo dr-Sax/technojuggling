@@ -16,12 +16,16 @@ export class MediaPool {
         const lowerUrl = url.toLowerCase();
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
         const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8'];
+        const modelExtensions = ['.glb', '.gltf'];
         
         if (imageExtensions.some(ext => lowerUrl.includes(ext))) {
             return 'image';
         }
         if (videoExtensions.some(ext => lowerUrl.includes(ext))) {
             return 'video';
+        }
+        if (modelExtensions.some(ext => lowerUrl.includes(ext))) {
+            return 'model';
         }
         // Default to video for URLs without clear extension (like m3u8 streams)
         return 'video';
@@ -115,6 +119,8 @@ export class MediaPool {
         if (this.isLocalFile(url)) {
             if (mediaType === 'image') {
                 mediaUrl = `../../assets/images/${url}`;
+            } else if (mediaType === 'model') {
+                mediaUrl = `../../assets/3d/${url}`;
             } else {
                 mediaUrl = `../../assets/videos/${url}`;
             }
@@ -124,6 +130,8 @@ export class MediaPool {
 
         if (mediaType === 'image') {
             return this.createImageElement(mediaUrl, clipId);
+        } else if (mediaType === 'model') {
+            return this.createModelReference(mediaUrl, clipId);
         } else {
             return this.createVideoElement(mediaUrl, clipId);
         }
@@ -184,6 +192,18 @@ export class MediaPool {
     }
 
     /**
+     * Create model reference (models are loaded by ModelBall, not here)
+     * We just return the URL for ModelBall to load
+     */
+    createModelReference(url, clipId) {
+        return Promise.resolve({
+            element: null,  // No DOM element for models
+            type: 'model',
+            src: url
+        });
+    }
+
+    /**
      * Preload media for smooth playback
      */
     async preloadClips(clips) {
@@ -229,6 +249,7 @@ export class MediaPool {
                 media.element.src = '';
                 media.element.load();
             }
+            // Images and models don't need special cleanup here
             this.media.delete(clipId);
         }
     }

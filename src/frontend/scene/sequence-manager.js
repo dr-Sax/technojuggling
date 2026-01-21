@@ -112,9 +112,13 @@ export class SequenceManager {
   }
   
   updateDynamicParameters() {
-    if (!this.isActive || !this.parameterManager.hasExpressions()) return;
+    if (!this.isActive) return;
     
+    // Always update sequence player (to detect clip changes)
     this.sequencePlayer.update();
+    
+    // Only update dynamic parameters if there are expressions
+    if (!this.parameterManager.hasExpressions()) return;
     
     const time = this.sequencePlayer.getCurrentTime();
     const updates = this.parameterManager.getAllUpdates(time);

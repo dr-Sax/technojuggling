@@ -3,6 +3,7 @@
  */
 import { VideoObject } from '../rendering/video-object.js';
 import { ImageObject } from '../rendering/image-object.js';
+import { ModelBall } from '../rendering/model-ball.js';
 
 export class BallTrackingManager {
   constructor(sceneManager, audioProcessor, visualFX) {
@@ -18,11 +19,14 @@ export class BallTrackingManager {
     
     const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
     const videoExtensions = ['mp4', 'webm', 'ogg', 'mov'];
+    const modelExtensions = ['glb', 'gltf'];
     
     if (imageExtensions.includes(extension)) {
       return 'image';
     } else if (videoExtensions.includes(extension)) {
       return 'video';
+    } else if (modelExtensions.includes(extension)) {
+      return 'model';
     }
     
     // Default to video for unknown types
@@ -68,7 +72,7 @@ export class BallTrackingManager {
   
   /**
    * Unified method to display any media type on a ball
-   * Auto-detects whether it's an image or video and creates appropriate object
+   * Auto-detects whether it's an image, video, or 3D model and creates appropriate object
    */
   async displayBallMedia(ballId, mediaUrl, config = {}) {
     const {
@@ -103,6 +107,18 @@ export class BallTrackingManager {
       
       // Wait for image to load
       await mediaObj.createImage(mediaUrl, zIndex, scale);
+      
+    } else if (mediaType === 'model') {
+      // Create 3D model object
+      mediaObj = new ModelBall(
+        this.sceneManager,
+        this.audioProcessor,
+        this.visualFX,
+        `ball-${ballId}`
+      );
+      
+      // Wait for model to load
+      await mediaObj.createModel(mediaUrl, zIndex, scale);
       
     } else {
       // Create video object

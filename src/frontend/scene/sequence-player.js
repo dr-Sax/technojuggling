@@ -155,6 +155,11 @@ export class SequencePlayer {
       const adjustedTime = currentTime + assignment.offset;
       const currentClip = assignment.streamPlayer.getClipAtTime(adjustedTime);
       
+      // Debug: Log every 3 seconds to see what's happening
+      if (Math.floor(currentTime) % 3 === 0 && currentTime % 1 < 0.05) {
+        console.log(`[${objectId}] t=${currentTime.toFixed(2)}s, currentClip=${currentClip ? currentClip.index + ':' + currentClip.clipName : 'null'}, stored=${assignment.currentClipIndex}`);
+      }
+      
       if (currentClip && currentClip.index !== assignment.currentClipIndex) {
         // Clip changed for this object
         console.log(`[${objectId}] Clip change at t=${currentTime.toFixed(2)}s: index ${assignment.currentClipIndex} → ${currentClip.index} (${currentClip.clipName})`);
