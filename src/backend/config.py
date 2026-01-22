@@ -9,7 +9,7 @@ USE_NVENC = True  # Enable NVENC hardware encoding (if available)
 # ===== CAMERA SETTINGS =====
 CAMERA_INDEX = 0  # Camera device index (0, 1, 2, etc.)
 CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
+CAMERA_HEIGHT = 360
 CAMERA_FPS = 60
 CAMERA_BUFFER_SIZE = 1
 
@@ -35,7 +35,7 @@ MIN_TRACKING_CONFIDENCE = 0.3
 HAND_MODEL_COMPLEXITY = 0  # 0 = lite, 1 = full (lite is faster)
 
 # Ball Tracking
-NUM_BALLS = 2
+NUM_BALLS = 3
 MIN_BALL_RADIUS = 5
 MAX_BALL_RADIUS = 100
 MIN_BALL_AREA = 50

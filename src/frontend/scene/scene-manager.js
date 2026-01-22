@@ -4,6 +4,7 @@
 import { CONFIG } from '../core/config.js';
 import { ParameterAnimator } from './parameter-animator.js';
 import { SequenceManager } from './sequence-manager.js';
+import { BallConnectionsAnimator } from './ball-connections-animator.js';
 
 export class SceneManager {
   constructor(handManager, ballManager, wsClient) {
@@ -14,6 +15,7 @@ export class SceneManager {
     this.currentSceneIndex = 0;
     this.parameterValues = {};
     this.animator = new ParameterAnimator();
+    this.connectionsAnimator = new BallConnectionsAnimator();
     
     this.sequenceManager = new SequenceManager(
       this,
@@ -58,7 +60,12 @@ export class SceneManager {
     const showCamera = sceneData.config.showCamera !== undefined ? sceneData.config.showCamera : true;
     this.handManager.sceneManager.setCameraVisible(showCamera);
     
+    if (sceneData.config.ballConnections) {
+      this.applyBallConnectionSettings(sceneData.config.ballConnections);
+    }
+    
     this.animator.resetTime();
+    this.connectionsAnimator.resetTime();
   }
   
   async loadTraditionalScene(sceneData) {
@@ -84,16 +91,20 @@ export class SceneManager {
     const showCamera = sceneData.config.showCamera !== undefined ? sceneData.config.showCamera : true;
     this.handManager.sceneManager.setCameraVisible(showCamera);
     
+    if (sceneData.config.ballConnections) {
+      this.applyBallConnectionSettings(sceneData.config.ballConnections);
+    }
+    
     this.initializeSceneParameters(sceneData);
     this.animator.registerScene(sceneData.config);
     this.animator.resetTime();
+    this.connectionsAnimator.resetTime();
   }
   
   async loadHandVideo(hand, config) {
     try {
       let videoUrl = config.url;
       
-      // If it's a local file, prepend path
       if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
         videoUrl = `../../assets/videos/${videoUrl}`;
       }
@@ -116,7 +127,6 @@ export class SceneManager {
     try {
       let videoUrl = config.url;
       
-      // If it's a local file, prepend path
       if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
         videoUrl = `../../assets/videos/${videoUrl}`;
       }
@@ -163,10 +173,14 @@ export class SceneManager {
   updateDynamicParameters() {
     if (this.sequenceManager.isActive) {
       this.sequenceManager.updateDynamicParameters();
+      this.updateBallConnections();
       return;
     }
     
-    if (!this.animator.hasExpressions()) return;
+    if (!this.animator.hasExpressions() && !this.hasConnectionExpressions()) {
+      this.updateBallConnections();
+      return;
+    }
     
     const positions = {
       hands: {
@@ -181,6 +195,28 @@ export class SceneManager {
     for (const update of updates) {
       const manager = update.type === 'hand' ? this.handManager : this.ballManager;
       manager.applyParameters(update.id, update.params);
+    }
+    
+    this.updateBallConnections();
+  }
+  
+  hasConnectionExpressions() {
+    const sceneData = this.scenes[this.currentSceneIndex];
+    if (!sceneData || !sceneData.config.ballConnections) return false;
+    return this.connectionsAnimator.hasExpressions(sceneData.config.ballConnections);
+  }
+  
+  updateBallConnections() {
+    const sceneData = this.scenes[this.currentSceneIndex];
+    if (!sceneData || !sceneData.config.ballConnections) return;
+    
+    const connections = sceneData.config.ballConnections;
+    if (!connections.enabled) return;
+    
+    const params = this.connectionsAnimator.evaluateParameters(connections);
+    
+    if (params) {
+      this.ballManager.setConnectionParameters(params);
     }
   }
   
@@ -200,10 +236,33 @@ export class SceneManager {
         this.parameterValues[`ball-${ballId}`] = params;
       }
     }
+    
+    if (config.ballConnections) {
+      this.applyBallConnectionSettings(config.ballConnections);
+    }
   }
   
   updateSequenceParameters(config) {
     this.sequenceManager.updateParameters(config);
+    
+    if (config.ballConnections) {
+      this.applyBallConnectionSettings(config.ballConnections);
+    }
+  }
+  
+  applyBallConnectionSettings(settings) {
+    if (settings.enabled !== undefined) {
+      this.ballManager.setConnectionsEnabled(settings.enabled);
+    }
+    
+    if (settings.mode !== undefined) {
+      this.ballManager.setConnectionMode(settings.mode);
+    }
+    
+    const params = this.connectionsAnimator.evaluateParameters(settings);
+    if (params) {
+      this.ballManager.setConnectionParameters(params);
+    }
   }
   
   mapCameraToWorld(normalizedX, normalizedY) {
@@ -216,5 +275,9 @@ export class SceneManager {
   
   getPlaneHeight() {
     return this.handManager.sceneManager.getPlaneHeight();
+  }
+  
+  getSceneCount() {
+    return this.scenes.length;
   }
 }

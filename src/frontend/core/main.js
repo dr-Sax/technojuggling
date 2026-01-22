@@ -69,9 +69,12 @@ class TellAVision {
 
     this.threeScene.setSceneManager(this.sceneManager);
     
-    // 7. Initialize UI controller
+    // 7. Initialize UI controller with initial code from HTML
+    const codeEditorDiv = document.getElementById('code-editor');
+    const initialCode = codeEditorDiv.dataset.initialCode || '';
+    
     this.uiController = new UIController(this.sceneManager);
-    this.uiController.initialize();
+    await this.uiController.initialize(initialCode);
     
     // 8. Set up WebSocket callbacks
     this.wsClient.onConnectionChange = (connected, message) => {

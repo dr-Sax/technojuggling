@@ -10,6 +10,13 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   
+  <!-- CodeMirror 5 (same as Hydra uses) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/tomorrow-night-eighties.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.js"></script>
+  
   <style>
     * {
       margin: 0;
@@ -32,6 +39,10 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
+    }
+    
+    #webgl-container {
+      z-index: 0;
     }
     
     #css3d-container {
@@ -136,26 +147,15 @@
       transform: none;
     }
     
-    /* Code editor - transparent overlay, resizable from top */
+    /* Code editor container - transparent overlay, full screen */
     #code-editor {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.1);
-      border: none;
-      color: #0f0;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      padding: 10px;
       z-index: 100;
-      resize: vertical;
-      overflow: auto;
       pointer-events: auto;
-      white-space: nowrap;
-      word-wrap: normal;
-      overflow-wrap: normal;
     }
   </style>
 </head>
@@ -183,46 +183,55 @@
   <div id="css3d-container"></div>
   
   <!-- Code editor -->
-  <textarea id="code-editor" spellcheck="false">
-{
+  <!-- Code editor container -->
+  <div id="code-editor" data-initial-code='{
   clips: {
-    A: {url: "vwcar.glb", start: 6, end: 12},
-    B: {url: "hackers.png", start: 0, end: 6},
+    A: {url: "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHozdmN4bWd0aGR5NHZ3OHE4OHdwbHpqZ3UzOGJ2dHFmcGw5amd6aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dl8b48ULQRjBkRcmZZ/giphy.mp4", start: 6, end: 12},
+    B: {url: "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHozdmN4bWd0aGR5NHZ3OHE4OHdwbHpqZ3UzOGJ2dHFmcGw5amd6aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dl8b48ULQRjBkRcmZZ/giphy.mp4", start: 0, end: 6},
   },
 
   presets: {
     spinning: {
       rotation: "sin(time*10)*10",     // Rotates back and forth
-      scale: 1
+      scale: 10
     },
     pulsing: {
-      scale: 1,      // Pulses between 2 and 8
+      scale: 10,      // Pulses between 2 and 8
       rotation: 0
     },
     growing: {
-      scale: 1,           // Grows from 5 upward
+      scale: 10,           // Grows from 5 upward
       rotation: "time*20"              // Also spins steadily
     },
     static: {
-      scale: 1,                       // Just a number - no animation
+      scale: 10,                       // Just a number - no animation
       rotation: 0
     }
   },
   
   streams: {
-    streamA: "A{spinning} B{pulsing}",
-    streamB: "B{growing} A{static}",
+    streamA: "A{spinning} A{pulsing}",
+    streamB: "B{growing} B{static}",
   },
   
   routing: {
     ball_0: {stream: "streamA", offset: 0},
-    ball_1: {stream: "streamB", offset: 0}
+    ball_1: {stream: "streamB", offset: 0},
+    ball_2: {stream: "streamB", offset: 0}
   },
+
+  ballConnections: {
+    enabled: true,
+    mode: "circles",
+    filled: true,
+    perCircleColors: true,
+    colors: [0xffb3ba, 0xbae1ff, 0xffffba],  // Pastel pink, blue, yellow
+    opacity: 0.8  // Higher opacity since colors are already light
+  },
+
   
   showCamera: true
-}
-  
-  </textarea>
+}'></div>
   
   <!-- Import modular JavaScript -->
   <script type="module" src="./core/main.js"></script>

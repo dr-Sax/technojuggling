@@ -4,6 +4,7 @@
 import { VideoObject } from '../rendering/video-object.js';
 import { ImageObject } from '../rendering/image-object.js';
 import { ModelBall } from '../rendering/model-ball.js';
+import { BallConnections } from './ball-connections.js';
 
 export class BallTrackingManager {
   constructor(sceneManager, audioProcessor, visualFX) {
@@ -11,6 +12,7 @@ export class BallTrackingManager {
     this.audioProcessor = audioProcessor;
     this.visualFX = visualFX;
     this.ballVideos = {};
+    this.ballConnections = new BallConnections(sceneManager);
   }
   
   // Detect media type from URL
@@ -53,6 +55,7 @@ export class BallTrackingManager {
       data.balls.forEach(ball => {
         this.updateBall(ball.id, ball);
       });
+      this.ballConnections.updatePositions(this.getAllBallPositions());
     }
   }
   
@@ -65,7 +68,8 @@ export class BallTrackingManager {
         positions[ballId] = pos;
       }
     }
-    
+
+    this.ballConnections.updatePositions(positions);
     return positions;
   }
   
@@ -187,6 +191,21 @@ export class BallTrackingManager {
     if (videoObj) {
       videoObj.setLocked(locked);
     }
+  }
+
+  // Enable/disable connections
+  setConnectionsEnabled(enabled) {
+    this.ballConnections.setEnabled(enabled);
+  }
+
+  // Set connection mode ('mesh' or 'sequential')
+  setConnectionMode(mode) {
+    this.ballConnections.setMode(mode);
+  }
+
+  // Set connection visual parameters
+  setConnectionParameters(params) {
+    this.ballConnections.setParameters(params);
   }
   
   applyParameters(ballId, params) {

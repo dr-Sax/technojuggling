@@ -22,33 +22,46 @@ export class VideoObject extends MediaObject {
     this.videoElement = this._createVideoElement(videoUrl, startTime, endTime, timeOffset);
     this.element = this.videoElement;
     
-    this.visualFX.addVideo(this.videoElement, this.objectId);
-    const baseMaterial = this.visualFX.getMaterial(this.objectId);
-    
-    const fragmentShader = MaskShader.addToShader(baseMaterial.fragmentShader);
-    
-    this.material = new THREE.ShaderMaterial({
-      uniforms: baseMaterial.uniforms,
-      vertexShader: baseMaterial.vertexShader,
-      fragmentShader: fragmentShader,
-      transparent: true
+    // Wait for video metadata to get actual dimensions
+    this.videoElement.addEventListener('loadedmetadata', () => {
+      const videoWidth = this.videoElement.videoWidth || 1920;
+      const videoHeight = this.videoElement.videoHeight || 1080;
+      const aspect = videoWidth / videoHeight;
+      
+      console.log(`[VideoObject] Video dimensions: ${videoWidth}x${videoHeight}, aspect: ${aspect.toFixed(2)}`);
+      
+      this.visualFX.addVideo(this.videoElement, this.objectId);
+      const baseMaterial = this.visualFX.getMaterial(this.objectId);
+      
+      const fragmentShader = MaskShader.addToShader(baseMaterial.fragmentShader);
+      
+      this.material = new THREE.ShaderMaterial({
+        uniforms: baseMaterial.uniforms,
+        vertexShader: baseMaterial.vertexShader,
+        fragmentShader: fragmentShader,
+        transparent: true
+      });
+      
+      MaskShader.initUniforms(this.material);
+      
+      const baseScale = this.sceneManager.getPlaneHeight() / 480;
+      const finalScale = baseScale * scale;
+      
+      // Use actual video aspect ratio instead of hardcoded 16:9
+      const refHeight = finalScale * 9;
+      const width = refHeight * aspect;  // Width based on actual aspect
+      const height = refHeight;
+      
+      const geometry = new THREE.PlaneGeometry(width, height);
+      this.mesh = new THREE.Mesh(geometry, this.material);
+      this.mesh.position.set(0, 0, zIndex);
+      
+      webglScene.add(this.mesh);
+      this.audioProcessor.addVideo(this.videoElement, this.objectId);
+      
+      this.visible = true;
     });
     
-    MaskShader.initUniforms(this.material);
-    
-    const baseScale = this.sceneManager.getPlaneHeight() / 480;
-    const finalScale = baseScale * scale;
-    const width = finalScale * 16;
-    const height = finalScale * 9;
-    
-    const geometry = new THREE.PlaneGeometry(width, height);
-    this.mesh = new THREE.Mesh(geometry, this.material);
-    this.mesh.position.set(0, 0, zIndex);
-    
-    webglScene.add(this.mesh);
-    this.audioProcessor.addVideo(this.videoElement, this.objectId);
-    
-    this.visible = true;
     return this.videoElement;
   }
   

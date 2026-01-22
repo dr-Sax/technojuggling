@@ -22,7 +22,7 @@ export class ThreeSceneManager {
     // WebGL scene
     this.threeScene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
-      75,
+      90,  // Wider FOV to show full frame
       window.innerWidth / window.innerHeight,
       0.1,
       1000
@@ -179,9 +179,14 @@ export class ThreeSceneManager {
   }
   
   // Coordinate mapping
+  // FIXED: Corrected for 90° counter-clockwise rotation
+  // After rotation, the plane dimensions are effectively swapped in screen space
   mapCameraToWorld(normalizedX, normalizedY) {
-    const worldX = -(normalizedY - 0.5) * CONFIG.PLANE_WIDTH;
-    const worldY = -(normalizedX - 0.5) * CONFIG.PLANE_HEIGHT;
+    // Since plane is rotated 90° counter-clockwise:
+    // - Camera's X (0 to 1, left to right) maps to world Y (bottom to top after rotation)
+    // - Camera's Y (0 to 1, top to bottom) maps to world X (right to left after rotation)
+    const worldX = -(normalizedY - 0.5) * CONFIG.PLANE_HEIGHT;
+    const worldY = -(normalizedX - 0.5) * CONFIG.PLANE_WIDTH;
     return { x: worldX, y: worldY };
   }
   
