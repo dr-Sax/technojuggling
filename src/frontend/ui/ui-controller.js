@@ -5,13 +5,16 @@
 import { LiveCodeEditor } from './live-code-editor.js';
 import { CodeExecutor } from './code-executor.js';
 import { SceneDiffer } from './scene-differ.js';
+import { CursorNavigationHandler } from './cursor-navigation.js';
 
 export class UIController {
-  constructor(sceneManager) {
+  constructor(sceneManager, websocketClient) {
     this.sceneManager = sceneManager;
+    this.wsClient = websocketClient;
     this.codeEditor = null;
     this.codeExecutor = new CodeExecutor(sceneManager);
     this.sceneDiffer = new SceneDiffer(sceneManager);
+    this.cursorNav = null;
     this.loadingOverlay = document.getElementById('loadingOverlay');
     this.calibrationComplete = false;
     this.lastExecutedCode = '';
@@ -24,7 +27,11 @@ export class UIController {
     });
     
     await this.codeEditor.initialize(initialCode);
-    console.log('✓ UI controller initialized');
+    
+    // Initialize cursor navigation handler
+    this.cursorNav = new CursorNavigationHandler(this.codeEditor, this.wsClient);
+    
+    console.log('✓ UI controller initialized with cursor navigation');
   }
   
   async executeCode() {
