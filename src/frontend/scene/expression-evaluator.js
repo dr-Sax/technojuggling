@@ -1,6 +1,6 @@
 /**
  * Expression Evaluator - Parse and evaluate mathematical expressions
- * with context (time, x, y) for dynamic parameter animation
+ * with context (time, ball_0.x, ball_1.y, etc.) for dynamic parameter animation
  */
 
 export class ExpressionEvaluator {
@@ -26,26 +26,33 @@ export class ExpressionEvaluator {
   /**
    * Evaluate an expression with given context
    * @param {string} expression - The expression to evaluate
-   * @param {Object} context - Variables available: { time, x, y }
+   * @param {Object} context - Variables available: { time, ball_0: {x, y, vx, vy}, ball_1: {...}, ... }
    * @returns {number} - Evaluated result
    */
   evaluate(expression, context = {}) {
     try {
-      // Create a safe evaluation context
-      const { time = 0, x = 0, y = 0 } = context;
+      // Extract time and ball data from context
+      const { time = 0, ...ballData } = context;
       
-      // Build function with math functions and context variables
+      // Build a safe scope with ball objects and math functions
+      const scope = {
+        time,
+        t: time,
+        ...ballData, // ball_0, ball_1, etc.
+        ...this.mathFunctions
+      };
+      
+      // Create function with all scope variables as parameters
+      const paramNames = Object.keys(scope);
+      const paramValues = Object.values(scope);
+      
       const func = new Function(
-        'time', 'x', 'y',
-        ...Object.keys(this.mathFunctions),
+        ...paramNames,
         `"use strict"; return (${expression});`
       );
       
-      // Call with context values and math functions
-      return func(
-        time, x, y,
-        ...Object.values(this.mathFunctions)
-      );
+      // Call with all scope values
+      return func(...paramValues);
       
     } catch (error) {
       console.error(`Expression evaluation error: ${error.message}`, expression);
@@ -71,7 +78,7 @@ export class ExpressionEvaluator {
     
     // If it contains math operators or function calls, it's likely an expression
     const hasOperators = /[+\-*/%()]/.test(value);
-    const hasFunctions = /\b(sin|cos|tan|abs|sqrt|pow|min|max|floor|ceil|round|PI|E|time|x|y)\b/.test(value);
+    const hasFunctions = /\b(sin|cos|tan|abs|sqrt|pow|min|max|floor|ceil|round|PI|E|time|ball_\d+)\b/.test(value);
     
     return hasOperators || hasFunctions;
   }
@@ -83,7 +90,14 @@ export class ExpressionEvaluator {
    */
   validate(expression) {
     try {
-      this.evaluate(expression, { time: 0, x: 0, y: 0 });
+      // Test with sample ball data
+      const testContext = {
+        time: 0,
+        ball_0: { x: 0.5, y: 0.5, vx: 0, vy: 0 },
+        ball_1: { x: 0.5, y: 0.5, vx: 0, vy: 0 },
+        ball_2: { x: 0.5, y: 0.5, vx: 0, vy: 0 }
+      };
+      this.evaluate(expression, testContext);
       return true;
     } catch (error) {
       return false;

@@ -111,8 +111,10 @@ export class SequenceManager {
     }
   }
   
-  updateDynamicParameters() {
+  updateDynamicParameters(ballData = {}) {
     if (!this.isActive) return;
+    
+
     
     // Always update sequence player (to detect clip changes)
     this.sequencePlayer.update();
@@ -121,7 +123,7 @@ export class SequenceManager {
     if (!this.parameterManager.hasExpressions()) return;
     
     const time = this.sequencePlayer.getCurrentTime();
-    const updates = this.parameterManager.getAllUpdates(time);
+    const updates = this.parameterManager.getAllUpdates(time, ballData);
     
     for (const update of updates) {
       const objectType = update.objectId.includes('hand') ? 'hand' : 'ball';

@@ -13,6 +13,7 @@ export class BallTrackingManager {
     this.visualFX = visualFX;
     this.ballVideos = {};
     this.ballConnections = new BallConnections(sceneManager);
+    this.ballData = {}; // Store latest ball data: {ball_0: {x, y, vx, vy}, ...}
   }
   
   // Detect media type from URL
@@ -54,9 +55,33 @@ export class BallTrackingManager {
     if (data.balls && data.balls.length > 0) {
       data.balls.forEach(ball => {
         this.updateBall(ball.id, ball);
+        
+        // Update ballData for expression evaluation using normalized coordinates
+        const videoObj = this.ballVideos[ball.id];
+        if (videoObj) {
+          const normalizedPos = videoObj.getPosition();
+          if (normalizedPos) {
+            const ballKey = `ball_${ball.id}`;
+            // Swap x and y for expressions so screen movement matches parameter names:
+            // - Vertical movement (bottom to top) affects ball_N.y
+            // - Horizontal movement (left to right) affects ball_N.x
+            this.ballData[ballKey] = {
+              x: normalizedPos.y,      // Screen vertical becomes expression x
+              y: 1 - normalizedPos.x,  // Invert so bottom = 0, top = 1
+              vx: ball.vx || 0,
+              vy: ball.vy || 0
+            };
+          }
+        }
       });
+      
       this.ballConnections.updatePositions(this.getAllBallPositions());
     }
+  }
+  
+  // Get current ball data for expression evaluation
+  getBallData() {
+    return { ...this.ballData };
   }
   
   getAllBallPositions() {
@@ -234,5 +259,6 @@ export class BallTrackingManager {
     });
     
     this.ballVideos = {};
+    this.ballData = {};
   }
 }

@@ -44,10 +44,8 @@ export class ParameterManager {
       })
       .join(', ');
     
-    console.log(`[ParamMgr] ${objectId}: ${paramSummary}`);
     
     if (expressions.size > 0) {
-      console.log(`[ParamMgr] ${objectId} has ${expressions.size} expression(s): ${Array.from(expressions).join(', ')}`);
     }
   }
   
@@ -55,7 +53,7 @@ export class ParameterManager {
    * Get current parameters for an object with expressions evaluated
    * Always returns a COMPLETE parameter set
    */
-  getParameters(objectId, time) {
+  getParameters(objectId, time, ballData = {}) {
     const params = this.parameters[objectId];
     if (!params) return null;
     
@@ -65,7 +63,7 @@ export class ParameterManager {
     // Evaluate expressions in place
     const expressions = this.expressionParams[objectId];
     if (expressions && expressions.size > 0) {
-      const context = { time };
+      const context = { time, ...ballData };
       
       for (const key of expressions) {
         const expression = params[key];
@@ -82,13 +80,13 @@ export class ParameterManager {
    * Get updates for all objects (for updateFrame)
    * Returns complete parameter sets with evaluated expressions
    */
-  getAllUpdates(time) {
+  getAllUpdates(time, ballData = {}) {
     const updates = [];
     
     for (const objectId of Object.keys(this.parameters)) {
       // Only include objects that have expressions (others don't change per frame)
       if (this.expressionParams[objectId]?.size > 0) {
-        const params = this.getParameters(objectId, time);
+        const params = this.getParameters(objectId, time, ballData);
         updates.push({ objectId, params });
       }
     }

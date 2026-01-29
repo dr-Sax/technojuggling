@@ -28,7 +28,6 @@ export class ImageObject extends MediaObject {
         const imgWidth = img.naturalWidth || img.width || 1920;
         const imgHeight = img.naturalHeight || img.height || 1080;
         
-        console.log(`[ImageObject] Image loaded: ${imgWidth}x${imgHeight}`);
         
         // Validate dimensions
         if (!imgWidth || !imgHeight || isNaN(imgWidth) || isNaN(imgHeight)) {
@@ -88,7 +87,6 @@ export class ImageObject extends MediaObject {
         const width = refHeight * aspect;   // Width based on actual aspect ratio
         const height = refHeight;
         
-        console.log(`[ImageObject] Creating geometry: ${width.toFixed(2)} x ${height.toFixed(2)}, aspect: ${aspect.toFixed(2)}, scale: ${scale}`);
         
         // Validate geometry dimensions
         if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
@@ -119,14 +117,12 @@ export class ImageObject extends MediaObject {
   
   applyParameters(params, perspectiveScale = 1.0) {
     if (!this.element || !this.mesh) {
-      console.warn(`[ImageObject] applyParameters called before mesh ready for ${this.objectId}`);
       return;
     }
     
     // Validate and merge with defaults
     const validated = this.validateParameters(params);
     
-    console.log(`[ImageObject] applyParameters for ${this.objectId}: scale=${validated.scale}, rotation=${validated.rotation}`);
     
     // Apply scale - get the base geometry size and apply current scale
     if (validated.scale !== undefined) {
@@ -152,7 +148,6 @@ export class ImageObject extends MediaObject {
       // Apply scale relative to original size
       this.mesh.scale.set(scaleX, scaleY, 1);
       
-      console.log(`[ImageObject] Scale applied: ${validated.scale} → mesh.scale=${scaleX.toFixed(2)}`);
     }
     
     if (validated.rotation !== undefined) {

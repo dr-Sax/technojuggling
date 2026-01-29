@@ -229,9 +229,10 @@ export class BallConnections {
   }
   
   createTubeLine(connId, world1, world2) {
+    // Place at z=0 focal plane to match CSS3D positioning
     const curve = new THREE.LineCurve3(
-      new THREE.Vector3(world1.x, world1.y, this.config.zIndex),
-      new THREE.Vector3(world2.x, world2.y, this.config.zIndex)
+      new THREE.Vector3(world1.x, world1.y, 0),
+      new THREE.Vector3(world2.x, world2.y, 0)
     );
     
     const geometry = new THREE.TubeGeometry(curve, 1, this.config.lineWidth, 8, false);
@@ -272,7 +273,8 @@ export class BallConnections {
     });
     
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(centerX, centerY, this.config.zIndex);
+    // Place at z=0 focal plane to match CSS3D positioning
+    mesh.position.set(centerX, centerY, 0);
     
     this.sceneManager.getWebGLScene().add(mesh);
     

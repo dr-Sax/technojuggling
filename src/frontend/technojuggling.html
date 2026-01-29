@@ -17,6 +17,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.js"></script>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
   <style>
     * {
       margin: 0;
@@ -186,51 +188,65 @@
   <!-- Code editor container -->
   <div id="code-editor" data-initial-code='{
   clips: {
-    A: {url: "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHozdmN4bWd0aGR5NHZ3OHE4OHdwbHpqZ3UzOGJ2dHFmcGw5amd6aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dl8b48ULQRjBkRcmZZ/giphy.mp4", start: 6, end: 12},
-    B: {url: "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaHozdmN4bWd0aGR5NHZ3OHE4OHdwbHpqZ3UzOGJ2dHFmcGw5amd6aiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dl8b48ULQRjBkRcmZZ/giphy.mp4", start: 0, end: 6},
+    A: {url: "frog-ribbet.mp4", start: 0, end: 10},
+    B: {url: "catmull-face.mp4", start: 0, end: 6},
+    C: {url: "frog-scream.png", start: 0, end: 6},
   },
 
   presets: {
-    spinning: {
-      rotation: "sin(time*10)*10",     // Rotates back and forth
-      scale: 10
+    spinning_0: { 
+      scale: "25*ball_0.y + 10",
+      opacity: 0.5,
+      // Volume: Y range 0.091-0.835 → 0-100
+      volume: "100",
+      // Pan: X range 0.007-0.985 → -1 to 1
+      pan: "((ball_0.x - 0.007) / 0.978 - 0.5) * 2",
+      // Lowpass filter: higher juggling = brighter sound (20-20000 Hz)
+      lowpass: "500 + ((ball_0.y - 0.091) / 0.744) * 19500",
+      // Highpass filter: left/right position controls bass cut (0-2000 Hz)
+      highpass: "((ball_0.x - 0.007) / 0.978) * 2000"
     },
-    pulsing: {
-      scale: 10,      // Pulses between 2 and 8
-      rotation: 0
+    spinning_1: { 
+      scale: "25*ball_1.y + 10",
+      opacity: 0.5,
+      volume: "3",
+      pan: "((ball_1.x - 0.007) / 0.978 - 0.5) * 2",
+      // Different filter mapping for variety
+      // Lowpass: X position controls brightness
+      lowpass: "1000 + ((ball_1.x - 0.007) / 0.978) * 19000",
+      // Highpass: Y position controls bass (higher = more bass cut)
+      highpass: "((ball_1.y - 0.091) / 0.744) * 1000",
+      pitch: "((ball_0.y - 0.091) / 0.744) * 48 - 6",
+      speed: 0.2
     },
-    growing: {
-      scale: 10,           // Grows from 5 upward
-      rotation: "time*20"              // Also spins steadily
-    },
-    static: {
-      scale: 10,                       // Just a number - no animation
-      rotation: 0
+    spinning_2:{
+      scale: "sin(time*10)*25",
     }
   },
   
   streams: {
-    streamA: "A{spinning} A{pulsing}",
-    streamB: "B{growing} B{static}",
+    streamA: "A{spinning_0}",
+    streamB: "B{spinning_1}",
+    streamC: "C{spinning_2}",
   },
   
   routing: {
     ball_0: {stream: "streamA", offset: 0},
     ball_1: {stream: "streamB", offset: 0},
-    ball_2: {stream: "streamB", offset: 0}
+    ball_2: {stream: "streamC", offset: 0},
   },
 
   ballConnections: {
     enabled: true,
     mode: "circles",
-    filled: true,
+    filled: false,
     perCircleColors: true,
-    colors: [0xffb3ba, 0xbae1ff, 0xffffba],  // Pastel pink, blue, yellow
-    opacity: 0.8  // Higher opacity since colors are already light
+    colors: [0xff0000, 0x00ff00, 0x0000ff],
+    lineWidth: 12,
+    opacity: 1.0
   },
 
-  
-  showCamera: true
+  showCamera: false
 }'></div>
   
   <!-- Import modular JavaScript -->

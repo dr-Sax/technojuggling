@@ -76,12 +76,20 @@ export class MediaObject {
   getPosition() {
     if (!this.mesh) return null;
     
+    // Get world position from mesh
     const position = this.mesh.position;
-    const planeWidth = CONFIG.PLANE_WIDTH;
-    const planeHeight = CONFIG.PLANE_HEIGHT;
     
-    const normalizedY = -(position.x / planeWidth) + 0.5;
-    const normalizedX = -(position.y / planeHeight) + 0.5;
+    // Invert the mapCameraToWorld() transformation from three-scene.js:
+    // mapCameraToWorld does:
+    //   worldX = -(normalizedY - 0.5) * PLANE_HEIGHT
+    //   worldY = -(normalizedX - 0.5) * PLANE_WIDTH
+    //
+    // So to invert:
+    //   normalizedY = -(worldX / PLANE_HEIGHT) + 0.5
+    //   normalizedX = -(worldY / PLANE_WIDTH) + 0.5
+    
+    const normalizedY = -(position.x / CONFIG.PLANE_HEIGHT) + 0.5;
+    const normalizedX = -(position.y / CONFIG.PLANE_WIDTH) + 0.5;
     
     return {
       x: Math.max(0, Math.min(1, normalizedX)),

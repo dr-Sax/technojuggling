@@ -60,7 +60,7 @@ export class ParameterAnimator {
     const animatableParams = [
       'scale', 'speed', 'blur', 'brightness', 'contrast',
       'saturation', 'hue', 'opacity', 'rotation',
-      'volume', 'pan', 'lowpass', 'highpass',
+      'volume', 'pan', 'lowpass', 'highpass', 'pitch',
       'reverb', 'delay', 'delayTime', 'delayFeedback',
       'chromatic', 'distortion', 'pixelate', 'kaleidoscope',
       'bloom', 'filmGrain', 'vignette', 'crt', 'glitch',
@@ -80,10 +80,10 @@ export class ParameterAnimator {
     }
   }
   
-  updateFrame(positions, parameterValues) {
+  updateFrame(positions, parameterValues, ballData = {}) {
     const updates = [];
     const time = (performance.now() / 1000) - this.startTime;
-    
+       
     for (const [objectKey, expressions] of this.expressionCache.entries()) {
       const position = this.getPosition(objectKey, positions);
       if (!position) continue;
@@ -91,8 +91,7 @@ export class ParameterAnimator {
       const context = {
         time,
         t: time,
-        x: position.x,
-        y: position.y
+        ...ballData  // Add ball_0: {x, y, vx, vy}, ball_1: {...}, etc.
       };
       
       const currentParams = parameterValues[objectKey] || {};

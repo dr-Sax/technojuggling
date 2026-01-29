@@ -8,9 +8,18 @@ USE_NVENC = True  # Enable NVENC hardware encoding (if available)
 
 # ===== CAMERA SETTINGS =====
 CAMERA_INDEX = 0  # Camera device index (0, 1, 2, etc.)
+
+# Resolution fallback order (for 60fps support)
+# Will try these in order until one works at 60fps
+RESOLUTION_ATTEMPTS = [
+    (424, 240),   # Brio native low-res (supports 90fps)
+    (640, 480),   # Standard VGA (supports 60fps)
+    (640, 360),   # Original preference
+]
+
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 360
-CAMERA_FPS = 60
+CAMERA_FPS = 90  # Test higher FPS at 424x240
 CAMERA_BUFFER_SIZE = 1
 
 # Camera Lighting/Exposure
@@ -21,7 +30,7 @@ CAMERA_EXPOSURE = -5
 
 # ===== ENCODING SETTINGS =====
 JPEG_QUALITY = 60  # REDUCED from 85 - faster encoding, still good quality
-TARGET_FPS = 60
+TARGET_FPS = 90  # Match camera FPS for testing
 
 # ===== TRACKING SETTINGS =====
 # Tracking Mode: "hands", "balls", "both", "none"

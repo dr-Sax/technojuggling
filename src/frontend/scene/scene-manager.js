@@ -171,8 +171,11 @@ export class SceneManager {
   }
   
   updateDynamicParameters() {
+    // Get current ball data from ball manager
+    const ballData = this.ballManager.getBallData();
+    
     if (this.sequenceManager.isActive) {
-      this.sequenceManager.updateDynamicParameters();
+      this.sequenceManager.updateDynamicParameters(ballData);
       this.updateBallConnections();
       return;
     }
@@ -190,7 +193,7 @@ export class SceneManager {
       balls: this.ballManager.getAllBallPositions()
     };
     
-    const updates = this.animator.updateFrame(positions, this.parameterValues);
+    const updates = this.animator.updateFrame(positions, this.parameterValues, ballData);
     
     for (const update of updates) {
       const manager = update.type === 'hand' ? this.handManager : this.ballManager;

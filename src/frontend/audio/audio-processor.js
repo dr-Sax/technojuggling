@@ -1,68 +1,71 @@
 /**
- * Audio Processor - Web Audio API integration for dynamic audio effects
- * Handles audio routing: Video → Effect Nodes → Speakers
+ * Audio Processor - Web Audio API + Tone.js integration for dynamic audio effects
+ * Handles audio routing: Video → Tone.js PitchShift → Effect Nodes → Speakers
  */
 
 export class AudioProcessor {
   constructor() {
     this.audioContext = null;
-    this.videos = new Map(); // videoId → { source, nodes, element }
-    this.masterCompressor = null; // Master compressor to prevent clipping
-    this.reverbNode = null; // Shared reverb convolver
-    this.reverbImpulse = null; // Impulse response buffer
+    this.videos = new Map(); // videoId → { source, nodes, element, toneNodes }
+    this.masterCompressor = null;
+    this.reverbImpulse = null;
     this.initialized = false;
+    this.lastParams = new Map();
+    this.toneStarted = false;
   }
   
   /**
-   * Initialize audio context (call once, triggered by user interaction)
+   * Initialize audio context and Tone.js (call once, triggered by user interaction)
    */
-  initialize() {
+  async initialize() {
     if (this.initialized) return;
     
     try {
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      // Check if Tone.js is loaded
+      if (typeof Tone === 'undefined') {
+        console.error('Tone.js not loaded! Add <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script> to your HTML');
+        return;
+      }
+      
+      // Start Tone.js (creates AudioContext internally)
+      await Tone.start();
+      this.toneStarted = true;
+      
+      // Use Tone's AudioContext
+      this.audioContext = Tone.context.rawContext;
       
       // Create master compressor to prevent clipping
       this.masterCompressor = this.audioContext.createDynamicsCompressor();
-      
-      // Configure compressor for aggressive limiting
-      this.masterCompressor.threshold.value = -20;  // Start compressing earlier
-      this.masterCompressor.knee.value = 20;        // Very smooth compression curve
-      this.masterCompressor.ratio.value = 20;       // 20:1 ratio (hard limiting)
-      this.masterCompressor.attack.value = 0.001;   // 1ms attack (very fast)
-      this.masterCompressor.release.value = 0.1;    // 100ms release
+      this.masterCompressor.threshold.value = -20;
+      this.masterCompressor.knee.value = 20;
+      this.masterCompressor.ratio.value = 20;
+      this.masterCompressor.attack.value = 0.001;
+      this.masterCompressor.release.value = 0.1;
       
       // Connect compressor to speakers
       this.masterCompressor.connect(this.audioContext.destination);
       
-      // Create reverb impulse response (simple algorithmic reverb)
+      // Create reverb impulse response
       this.createReverbImpulse();
       
       this.initialized = true;
-      console.log('✓ Audio processor initialized with compressor and reverb');
+      console.log('✓ Audio processor initialized with Tone.js pitch shifting');
     } catch (error) {
-      console.error('Failed to initialize AudioContext:', error);
+      console.error('Failed to initialize AudioContext/Tone.js:', error);
     }
   }
   
-  /**
-   * Create reverb impulse response
-   * Generates a simple algorithmic reverb for convolution
-   */
   createReverbImpulse() {
     const sampleRate = this.audioContext.sampleRate;
-    const duration = 2.0; // 2 second reverb tail
+    const duration = 2.0;
     const length = sampleRate * duration;
     
     this.reverbImpulse = this.audioContext.createBuffer(2, length, sampleRate);
     
-    // Fill both channels with decaying noise
     for (let channel = 0; channel < 2; channel++) {
       const channelData = this.reverbImpulse.getChannelData(channel);
       for (let i = 0; i < length; i++) {
-        // Exponential decay
         const decay = Math.exp(-i / (sampleRate * 0.5));
-        // Random noise
         channelData[i] = (Math.random() * 2 - 1) * decay;
       }
     }
@@ -70,29 +73,41 @@ export class AudioProcessor {
   
   /**
    * Add a video element to audio processing
-   * @param {HTMLVideoElement} videoElement - The video element
-   * @param {string} videoId - Unique identifier for this video
    */
   addVideo(videoElement, videoId) {
     if (!this.initialized) {
       this.initialize();
     }
     
-    if (!this.audioContext) {
-      console.warn('AudioContext not available');
+    if (!this.audioContext || !this.toneStarted) {
+      console.warn('AudioContext/Tone.js not available');
       return;
     }
     
-    // Remove existing if already added
     if (this.videos.has(videoId)) {
       this.removeVideo(videoId);
     }
     
     try {
-      // Create source from video element
+      // Create Web Audio source from video
       const source = this.audioContext.createMediaElementSource(videoElement);
       
-      // Create effect nodes
+      // Create a Tone.js Gain node to act as input bridge
+      const toneInputGain = new Tone.Gain(1.0);
+      
+      // Create Tone.js PitchShift node
+      const pitchShift = new Tone.PitchShift({
+        pitch: 0,  // Semitones (-12 to +12)
+        windowSize: 0.1,
+        delayTime: 0,
+        feedback: 0
+      });
+      
+      // Create output bridge - a Web Audio gain node
+      const outputBridge = this.audioContext.createGain();
+      outputBridge.gain.value = 1.0;
+      
+      // Create Web Audio effect nodes
       const gainNode = this.audioContext.createGain();
       const panNode = this.audioContext.createStereoPanner();
       const lowpassFilter = this.audioContext.createBiquadFilter();
@@ -102,33 +117,39 @@ export class AudioProcessor {
       const reverbConvolver = this.audioContext.createConvolver();
       reverbConvolver.buffer = this.reverbImpulse;
       const reverbGain = this.audioContext.createGain();
-      reverbGain.gain.value = 0; // Start with no reverb
+      reverbGain.gain.value = 0;
       const dryGain = this.audioContext.createGain();
-      dryGain.gain.value = 1; // Full dry signal
+      dryGain.gain.value = 1;
       
       // Delay nodes
-      const delayNode = this.audioContext.createDelay(5.0); // Max 5 seconds
-      delayNode.delayTime.value = 0.5; // Default 500ms
+      const delayNode = this.audioContext.createDelay(5.0);
+      delayNode.delayTime.value = 0.5;
       const delayGain = this.audioContext.createGain();
-      delayGain.gain.value = 0; // Start with no delay
+      delayGain.gain.value = 0;
       const delayFeedback = this.audioContext.createGain();
-      delayFeedback.gain.value = 0.3; // Default feedback
+      delayFeedback.gain.value = 0.3;
       
       // Configure filters
       lowpassFilter.type = 'lowpass';
-      lowpassFilter.frequency.value = 20000; // Default: no filtering
+      lowpassFilter.frequency.value = 20000;
       lowpassFilter.Q.value = 1;
       
       highpassFilter.type = 'highpass';
-      highpassFilter.frequency.value = 0; // Default: no filtering
+      highpassFilter.frequency.value = 0;
       highpassFilter.Q.value = 1;
       
-      // Create mixer node (combines dry, reverb, and delay)
       const mixer = this.audioContext.createGain();
       
-      // Connect audio graph:
-      // source → highpass → lowpass → gain → pan → [split into dry/reverb/delay] → mixer → compressor
-      source.connect(highpassFilter);
+      // Audio graph connections:
+      // Web Audio: source → Tone.js input gain
+      source.connect(toneInputGain.input);
+      
+      // Tone.js chain: inputGain → pitchShift → outputBridge
+      toneInputGain.connect(pitchShift);
+      pitchShift.connect(outputBridge);
+      
+      // Web Audio chain: outputBridge → filters → effects → speakers
+      outputBridge.connect(highpassFilter);
       highpassFilter.connect(lowpassFilter);
       lowpassFilter.connect(gainNode);
       gainNode.connect(panNode);
@@ -147,7 +168,7 @@ export class AudioProcessor {
       delayNode.connect(delayGain);
       delayGain.connect(mixer);
       delayNode.connect(delayFeedback);
-      delayFeedback.connect(delayNode); // Feedback loop
+      delayFeedback.connect(delayNode);
       
       // Final output
       mixer.connect(this.masterCompressor);
@@ -156,6 +177,11 @@ export class AudioProcessor {
       this.videos.set(videoId, {
         element: videoElement,
         source: source,
+        toneNodes: {
+          inputGain: toneInputGain,
+          pitchShift: pitchShift,
+          outputBridge: outputBridge
+        },
         nodes: {
           gain: gainNode,
           pan: panNode,
@@ -170,24 +196,23 @@ export class AudioProcessor {
         }
       });
       
-      console.log(`✓ Audio graph connected for ${videoId}`);
+      console.log(`✓ Audio graph with pitch shift connected for ${videoId}`);
       
     } catch (error) {
       console.error(`Failed to add video ${videoId} to audio processor:`, error);
     }
   }
   
-  /**
-   * Remove a video from audio processing
-   * @param {string} videoId - Video identifier
-   */
   removeVideo(videoId) {
     const video = this.videos.get(videoId);
     if (!video) return;
     
     try {
-      // Disconnect all nodes
+      // Disconnect Web Audio nodes
       video.source.disconnect();
+      if (video.toneNodes.outputBridge) {
+        video.toneNodes.outputBridge.disconnect();
+      }
       video.nodes.highpass.disconnect();
       video.nodes.lowpass.disconnect();
       video.nodes.gain.disconnect();
@@ -199,7 +224,16 @@ export class AudioProcessor {
       video.nodes.delayFeedback.disconnect();
       video.nodes.mixer.disconnect();
       
+      // Dispose Tone.js nodes
+      if (video.toneNodes.inputGain) {
+        video.toneNodes.inputGain.dispose();
+      }
+      if (video.toneNodes.pitchShift) {
+        video.toneNodes.pitchShift.dispose();
+      }
+      
       this.videos.delete(videoId);
+      this.lastParams.delete(videoId);
       console.log(`Removed audio graph for ${videoId}`);
     } catch (error) {
       console.error(`Error removing video ${videoId}:`, error);
@@ -208,88 +242,118 @@ export class AudioProcessor {
   
   /**
    * Apply audio parameters to a video
-   * @param {string} videoId - Video identifier
-   * @param {Object} params - Audio parameters {volume, pan, lowpass, highpass, reverb, delay, delayTime, delayFeedback}
+   * @param {Object} params - Audio parameters {volume, pan, lowpass, highpass, reverb, delay, delayTime, delayFeedback, pitch}
    */
   applyParameters(videoId, params) {
     const video = this.videos.get(videoId);
     if (!video) return;
     
+    const cached = this.lastParams.get(videoId) || {};
+    
+    const audioParams = ['volume', 'pan', 'lowpass', 'highpass', 'reverb', 'delay', 'delayTime', 'delayFeedback', 'pitch'];
+    const hasAudioParams = audioParams.some(key => params[key] !== undefined);
+    if (!hasAudioParams && Object.keys(cached).length === 0) {
+      return;
+    }
+    
     try {
+      // Pitch shift (semitones: -12 to +12)
+      const pitchValue = (params.pitch !== undefined && !isNaN(params.pitch)) ? params.pitch : 0;
+      if (cached.pitch !== pitchValue) {
+        const pitch = Math.max(-12, Math.min(12, pitchValue));
+        video.toneNodes.pitchShift.pitch = pitch;
+        cached.pitch = pitchValue;
+      }
+      
       // Volume (0-100) → Gain (0-1)
-      // Default to 100 if undefined or invalid
       const volume = (params.volume !== undefined && !isNaN(params.volume)) ? params.volume : 100;
-      const gain = Math.max(0, Math.min(100, volume)) / 100;
-      video.nodes.gain.gain.value = gain;
+      if (cached.volume !== volume) {
+        const gain = Math.max(0, Math.min(100, volume)) / 100;
+        video.nodes.gain.gain.value = gain;
+        cached.volume = volume;
+      }
       
       // Pan (-1 to 1)
-      // Default to 0 (center) if undefined or invalid
       const panValue = (params.pan !== undefined && !isNaN(params.pan)) ? params.pan : 0;
-      const pan = Math.max(-1, Math.min(1, panValue));
-      video.nodes.pan.pan.value = pan;
+      if (cached.pan !== panValue) {
+        const pan = Math.max(-1, Math.min(1, panValue));
+        video.nodes.pan.pan.value = pan;
+        cached.pan = panValue;
+      }
       
       // Lowpass filter (Hz)
-      // Default to 20000 (no filtering) if undefined or invalid
       const lowpassValue = (params.lowpass !== undefined && !isNaN(params.lowpass)) ? params.lowpass : 20000;
-      const lowpassFreq = Math.max(20, Math.min(20000, lowpassValue));
-      video.nodes.lowpass.frequency.value = lowpassFreq;
+      if (cached.lowpass !== lowpassValue) {
+        const lowpassFreq = Math.max(20, Math.min(20000, lowpassValue));
+        video.nodes.lowpass.frequency.value = lowpassFreq;
+        cached.lowpass = lowpassValue;
+      }
       
       // Highpass filter (Hz)
-      // Default to 0 (no filtering) if undefined or invalid
       const highpassValue = (params.highpass !== undefined && !isNaN(params.highpass)) ? params.highpass : 0;
-      const highpassFreq = Math.max(0, Math.min(20000, highpassValue));
-      video.nodes.highpass.frequency.value = highpassFreq;
+      if (cached.highpass !== highpassValue) {
+        const highpassFreq = Math.max(0, Math.min(20000, highpassValue));
+        video.nodes.highpass.frequency.value = highpassFreq;
+        cached.highpass = highpassValue;
+      }
       
-      // Reverb (0-100) - dry/wet mix
-      // 0 = no reverb (full dry), 100 = full reverb
+      // Reverb (0-100)
       const reverbValue = (params.reverb !== undefined && !isNaN(params.reverb)) ? params.reverb : 0;
-      const reverbMix = Math.max(0, Math.min(100, reverbValue)) / 100;
-      video.nodes.reverbGain.gain.value = reverbMix;
-      video.nodes.dryGain.gain.value = 1 - (reverbMix * 0.5); // Reduce dry as reverb increases
+      if (cached.reverb !== reverbValue) {
+        const reverbMix = Math.max(0, Math.min(100, reverbValue)) / 100;
+        video.nodes.reverbGain.gain.value = reverbMix;
+        video.nodes.dryGain.gain.value = 1 - (reverbMix * 0.5);
+        cached.reverb = reverbValue;
+      }
       
-      // Delay (0-100) - dry/wet mix
+      // Delay (0-100)
       const delayValue = (params.delay !== undefined && !isNaN(params.delay)) ? params.delay : 0;
-      const delayMix = Math.max(0, Math.min(100, delayValue)) / 100;
-      video.nodes.delayGain.gain.value = delayMix * 0.5; // Scale down to prevent clipping
+      if (cached.delay !== delayValue) {
+        const delayMix = Math.max(0, Math.min(100, delayValue)) / 100;
+        video.nodes.delayGain.gain.value = delayMix * 0.5;
+        cached.delay = delayValue;
+      }
       
-      // Delay time (0.1-2.0 seconds)
+      // Delay time (0.01-5.0 seconds)
       const delayTimeValue = (params.delayTime !== undefined && !isNaN(params.delayTime)) ? params.delayTime : 0.5;
-      const delayTime = Math.max(0.01, Math.min(5.0, delayTimeValue));
-      video.nodes.delayNode.delayTime.value = delayTime;
+      if (cached.delayTime !== delayTimeValue) {
+        const delayTime = Math.max(0.01, Math.min(5.0, delayTimeValue));
+        video.nodes.delayNode.delayTime.value = delayTime;
+        cached.delayTime = delayTimeValue;
+      }
       
       // Delay feedback (0-0.9)
       const feedbackValue = (params.delayFeedback !== undefined && !isNaN(params.delayFeedback)) ? params.delayFeedback : 0.3;
-      const feedback = Math.max(0, Math.min(0.9, feedbackValue));
-      video.nodes.delayFeedback.gain.value = feedback;
+      if (cached.delayFeedback !== feedbackValue) {
+        const feedback = Math.max(0, Math.min(0.9, feedbackValue));
+        video.nodes.delayFeedback.gain.value = feedback;
+        cached.delayFeedback = feedbackValue;
+      }
+      
+      this.lastParams.set(videoId, cached);
       
     } catch (error) {
       console.error(`Error applying audio parameters to ${videoId}:`, error);
     }
   }
   
-  /**
-   * Resume audio context (needed after user interaction)
-   */
   resume() {
     if (this.audioContext && this.audioContext.state === 'suspended') {
       this.audioContext.resume();
     }
+    if (this.toneStarted && Tone.context.state === 'suspended') {
+      Tone.context.resume();
+    }
   }
   
-  /**
-   * Get audio context state
-   * @returns {string} - 'running', 'suspended', or 'closed'
-   */
   getState() {
     return this.audioContext ? this.audioContext.state : 'not initialized';
   }
   
-  /**
-   * Clear all videos
-   */
   clearAll() {
     for (const videoId of this.videos.keys()) {
       this.removeVideo(videoId);
     }
+    this.lastParams.clear();
   }
 }

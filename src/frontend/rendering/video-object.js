@@ -26,10 +26,7 @@ export class VideoObject extends MediaObject {
     this.videoElement.addEventListener('loadedmetadata', () => {
       const videoWidth = this.videoElement.videoWidth || 1920;
       const videoHeight = this.videoElement.videoHeight || 1080;
-      const aspect = videoWidth / videoHeight;
-      
-      console.log(`[VideoObject] Video dimensions: ${videoWidth}x${videoHeight}, aspect: ${aspect.toFixed(2)}`);
-      
+      const aspect = videoWidth / videoHeight;      
       this.visualFX.addVideo(this.videoElement, this.objectId);
       const baseMaterial = this.visualFX.getMaterial(this.objectId);
       
@@ -107,42 +104,52 @@ export class VideoObject extends MediaObject {
     return video;
   }
   
+  // Add this to video-object.js applyParameters method:
   applyParameters(params, perspectiveScale = 1.0) {
-    if (!this.element || !this.mesh || !this.videoElement) return;
-    
-    // Update time bounds
-    if (params.start !== undefined && this.videoElement._startTime !== params.start) {
-      this.videoElement._startTime = params.start;
-      if (this.videoElement.currentTime < params.start) {
-        this.videoElement.currentTime = params.start;
+      if (!this.element || !this.mesh || !this.videoElement) return;
+      
+      const start = performance.now();
+      
+      // Update time bounds
+      if (params.start !== undefined && this.videoElement._startTime !== params.start) {
+        this.videoElement._startTime = params.start;
+        if (this.videoElement.currentTime < params.start) {
+          this.videoElement.currentTime = params.start;
+        }
       }
-    }
-    
-    if (params.end !== undefined) {
-      this.videoElement._endTime = params.end;
-    }
-    
-    if (params.speed !== undefined) {
-      this.videoElement.playbackRate = Math.max(0.25, Math.min(4.0, params.speed));
-    }
-    
-    // CSS filters
-    const filters = [];
-    if (params.hue !== undefined) filters.push(`hue-rotate(${params.hue}deg)`);
-    if (params.saturation !== undefined) filters.push(`saturate(${params.saturation}%)`);
-    if (params.brightness !== undefined) filters.push(`brightness(${params.brightness}%)`);
-    if (params.contrast !== undefined) filters.push(`contrast(${params.contrast}%)`);
-    if (params.blur !== undefined && params.blur > 0) filters.push(`blur(${params.blur}px)`);
-    if (params.grayscale !== undefined && params.grayscale > 0) filters.push(`grayscale(${params.grayscale}%)`);
-    if (params.sepia !== undefined && params.sepia > 0) filters.push(`sepia(${params.sepia}%)`);
-    this.videoElement.style.filter = filters.join(' ');
-    
-    this.audioProcessor.applyParameters(this.objectId, params);
-    this.visualFX.applyParameters(this.objectId, params, Date.now() / 1000);
-    
-    this._applyTransforms(params, perspectiveScale);
+      
+      if (params.end !== undefined) {
+        this.videoElement._endTime = params.end;
+      }
+      
+      // Update playback speed
+      if (params.speed !== undefined) {
+        this.videoElement.playbackRate = Math.max(0.25, Math.min(4.0, params.speed));
+      }
+      
+      const filterStart = performance.now();
+      // CSS filters
+      const filters = [];
+      if (params.hue !== undefined) filters.push(`hue-rotate(${params.hue}deg)`);
+      if (params.saturation !== undefined) filters.push(`saturate(${params.saturation}%)`);
+      if (params.brightness !== undefined) filters.push(`brightness(${params.brightness}%)`);
+      if (params.contrast !== undefined) filters.push(`contrast(${params.contrast}%)`);
+      if (params.blur !== undefined && params.blur > 0) filters.push(`blur(${params.blur}px)`);
+      if (params.grayscale !== undefined && params.grayscale > 0) filters.push(`grayscale(${params.grayscale}%)`);
+      if (params.sepia !== undefined && params.sepia > 0) filters.push(`sepia(${params.sepia}%)`);
+      this.videoElement.style.filter = filters.join(' ');
+      
+      const audioStart = performance.now();
+      this.audioProcessor.applyParameters(this.objectId, params);
+      
+      const vfxStart = performance.now();
+      this.visualFX.applyParameters(this.objectId, params, Date.now() / 1000);
+      
+      const transformStart = performance.now();
+      this._applyTransforms(params, perspectiveScale);
+      
   }
-  
+
   _applyTransforms(params, perspectiveScale) {
     const baseScale = this.sceneManager.getPlaneHeight() / 480;
     const finalScale = baseScale * perspectiveScale * (params.scale || 1.0);
