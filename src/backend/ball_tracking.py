@@ -1,10 +1,62 @@
 """
-Ball tracking using OpenCV color detection with optional optical flow
+Ball tracking using OpenCV color detection - OPTIMIZED FOR SPEED
+With Kalman filtering for smooth prediction
 """
 import cv2
 import numpy as np
 from config import *
 from startup_calibration_async import run_async_calibration
+
+class KalmanBallTracker:
+    """Simple Kalman filter for tracking ball position and velocity"""
+    def __init__(self):
+        # State: [x, y, vx, vy] - position and velocity
+        self.kf = cv2.KalmanFilter(4, 2)  # 4 state vars, 2 measurements (x, y)
+        
+        # Transition matrix (constant velocity model)
+        dt = 1.0 / 30.0  # Assume 30fps
+        self.kf.transitionMatrix = np.array([
+            [1, 0, dt, 0],
+            [0, 1, 0, dt],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+        
+        # Measurement matrix (we only measure x, y)
+        self.kf.measurementMatrix = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0]
+        ], dtype=np.float32)
+        
+        # Process noise (how much we trust the model)
+        self.kf.processNoiseCov = np.eye(4, dtype=np.float32) * 0.03
+        
+        # Measurement noise (how much we trust the measurements)
+        self.kf.measurementNoiseCov = np.eye(2, dtype=np.float32) * 0.1
+        
+        self.last_measurement = None
+        self.frames_since_detection = 0
+        self.max_prediction_frames = 5  # Predict for max 5 frames without detection
+        
+    def update(self, x, y):
+        """Update with new measurement"""
+        measurement = np.array([[x], [y]], dtype=np.float32)
+        self.kf.correct(measurement)
+        self.last_measurement = (x, y)
+        self.frames_since_detection = 0
+        
+    def predict(self):
+        """Predict next position"""
+        prediction = self.kf.predict()
+        return float(prediction[0]), float(prediction[1]), float(prediction[2]), float(prediction[3])
+        
+    def get_predicted_position(self):
+        """Get predicted position when no detection"""
+        self.frames_since_detection += 1
+        if self.frames_since_detection > self.max_prediction_frames:
+            return None  # Lost track
+        x, y, vx, vy = self.predict()
+        return x, y, vx, vy
 
 class BallTracker:
     def __init__(self, camera):
@@ -15,17 +67,11 @@ class BallTracker:
         self.hsv_maxs = []
         self.calibration_settings = {}
         
-        # Optical flow tracking
-        self.use_optical_flow = USE_OPTICAL_FLOW and self.enabled
-        self.prev_gray = None
-        self.prev_positions = {}  # {ball_id: (x, y)}
+        # Kalman filters for each ball
+        self.kalman_trackers = {}  # {ball_id: KalmanBallTracker}
         
-        # Optical flow parameters
-        self.lk_params = dict(
-            winSize=(15, 15),
-            maxLevel=2,
-            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)
-        )
+        # OPTIMIZATION: Pre-create morphology kernels
+        self.morph_kernel = np.ones((5, 5), np.uint8)
         
     async def initialize(self):
         """Initialize ball tracking with async calibration"""
@@ -55,74 +101,96 @@ class BallTracker:
             for i in range(self.num_balls)
         ]
         
-        status = f"Ball tracking enabled for {self.num_balls} balls"
-        if self.use_optical_flow:
-            status += " (with optical flow)"
-        print(status)
+        print(f"Ball tracking enabled for {self.num_balls} balls")
         
         return self.calibration_settings
     
     def detect(self, frame):
-        """Detect balls in frame with optional optical flow velocity"""
+        """Detect balls in frame - OPTIMIZED FOR SPEED with Kalman prediction"""
         if not self.enabled or self.num_balls == 0:
             return []
         
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        h, w = frame.shape[:2]
-        detected = []
+        # OPTIMIZATION 1: Resize frame for faster processing
+        # Process at half resolution, then scale coordinates back up
+        small_frame = cv2.resize(frame, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
         
-        # Optical flow setup
-        if self.use_optical_flow:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        hsv = cv2.cvtColor(small_frame, cv2.COLOR_BGR2HSV)
+        h, w = small_frame.shape[:2]
+        detected = []
+        detected_ids = set()
         
         for i in range(self.num_balls):
+            # OPTIMIZATION 2: Simpler morphology - just one close operation
             mask = cv2.inRange(hsv, self.hsv_mins[i], self.hsv_maxs[i])
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5,5), np.uint8))
-            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5), np.uint8))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.morph_kernel)
             
+            # OPTIMIZATION 3: Use CHAIN_APPROX_SIMPLE for faster contour detection
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
             if contours:
+                # Find largest contour
                 largest = max(contours, key=cv2.contourArea)
                 area = cv2.contourArea(largest)
-                (x, y), r = cv2.minEnclosingCircle(largest)
                 
-                if area > MIN_BALL_AREA and MIN_BALL_RADIUS < r < MAX_BALL_RADIUS:
-                    ball_data = {
-                        'id': i,
-                        'x': x / w,
-                        'y': y / h,
-                        'radius': int(r)
-                    }
+                # Adjust thresholds for half-resolution
+                min_area = MIN_BALL_AREA / 4  # Area scales by 0.5^2 = 0.25
+                min_r = MIN_BALL_RADIUS / 2
+                max_r = MAX_BALL_RADIUS / 2
+                
+                if area > min_area:
+                    (x, y), r = cv2.minEnclosingCircle(largest)
                     
-                    # Add velocity if optical flow enabled
-                    if self.use_optical_flow:
-                        vx, vy = self._calculate_velocity(i, x, y, gray)
-                        ball_data['vx'] = vx
-                        ball_data['vy'] = vy
-                    
-                    detected.append(ball_data)
+                    if min_r < r < max_r:
+                        # Normalize coordinates to [0, 1]
+                        norm_x = (x * 2) / (w * 2)
+                        norm_y = (y * 2) / (h * 2)
+                        
+                        # Initialize Kalman tracker if needed
+                        if i not in self.kalman_trackers:
+                            self.kalman_trackers[i] = KalmanBallTracker()
+                            self.kalman_trackers[i].kf.statePost = np.array([
+                                [norm_x], [norm_y], [0], [0]
+                            ], dtype=np.float32)
+                        
+                        # Update Kalman filter with detection
+                        self.kalman_trackers[i].update(norm_x, norm_y)
+                        
+                        # Get predicted state (smoothed position + velocity)
+                        pred_x, pred_y, vx, vy = self.kalman_trackers[i].predict()
+                        
+                        ball_data = {
+                            'id': i,
+                            'x': pred_x,  # Use Kalman prediction (smoother)
+                            'y': pred_y,
+                            'radius': int(r * 2),
+                            'vx': vx,  # Velocity from Kalman filter
+                            'vy': vy
+                        }
+                        
+                        detected.append(ball_data)
+                        detected_ids.add(i)
         
-        # Update previous frame for optical flow
-        if self.use_optical_flow:
-            self.prev_gray = gray
-            self.prev_positions = {b['id']: (b['x'] * w, b['y'] * h) for b in detected}
+        # For balls not detected, use Kalman prediction
+        for i in range(self.num_balls):
+            if i not in detected_ids and i in self.kalman_trackers:
+                prediction = self.kalman_trackers[i].get_predicted_position()
+                if prediction is not None:
+                    pred_x, pred_y, vx, vy = prediction
+                    
+                    # Only include prediction if within bounds
+                    if 0 <= pred_x <= 1 and 0 <= pred_y <= 1:
+                        ball_data = {
+                            'id': i,
+                            'x': pred_x,
+                            'y': pred_y,
+                            'radius': 20,  # Estimated radius
+                            'vx': vx,
+                            'vy': vy,
+                            'predicted': True  # Flag for frontend
+                        }
+                        detected.append(ball_data)
         
         return detected
-    
-    def _calculate_velocity(self, ball_id, x, y, gray):
-        """Calculate velocity using optical flow"""
-        if self.prev_gray is None or ball_id not in self.prev_positions:
-            return 0.0, 0.0
-        
-        prev_x, prev_y = self.prev_positions[ball_id]
-        
-        # Simple velocity: current - previous position
-        # Normalized to [-1, 1] range based on frame dimensions
-        h, w = gray.shape
-        vx = (x - prev_x) / w
-        vy = (y - prev_y) / h
-        
-        return float(vx), float(vy)
     
     def get_calibration_settings(self):
         """Get calibration settings for client"""

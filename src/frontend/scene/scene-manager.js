@@ -60,6 +60,11 @@ export class SceneManager {
     const showCamera = sceneData.config.showCamera !== undefined ? sceneData.config.showCamera : true;
     this.handManager.sceneManager.setCameraVisible(showCamera);
     
+    // Pass routing and streams to ball connections if available
+    if (sceneData.config.routing && sceneData.config.streams) {
+      this.ballManager.setConnectionRouting(sceneData.config.routing, sceneData.config.streams);
+    }
+
     if (sceneData.config.ballConnections) {
       this.applyBallConnectionSettings(sceneData.config.ballConnections);
     }
@@ -91,6 +96,11 @@ export class SceneManager {
     const showCamera = sceneData.config.showCamera !== undefined ? sceneData.config.showCamera : true;
     this.handManager.sceneManager.setCameraVisible(showCamera);
     
+    // Pass routing and streams to ball connections if available
+    if (sceneData.config.routing && sceneData.config.streams) {
+      this.ballManager.setConnectionRouting(sceneData.config.routing, sceneData.config.streams);
+    }
+
     if (sceneData.config.ballConnections) {
       this.applyBallConnectionSettings(sceneData.config.ballConnections);
     }

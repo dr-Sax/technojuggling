@@ -1,5 +1,5 @@
 """
-Camera initialization and management with smart fallback for 60fps
+Camera initialization and management with aggressive MJPEG forcing for 60fps
 """
 import cv2
 from config import *
@@ -12,14 +12,19 @@ class Camera:
         self.actual_fps = 0
         
     def _try_camera_setup(self, backend, width, height, fps):
-        """Try to initialize camera with specific settings"""
+        """Try to initialize camera with MJPEG forced FIRST"""
         cap = cv2.VideoCapture(CAMERA_INDEX, backend)
         
-        # Set camera properties
+        # CRITICAL: Set MJPEG BEFORE resolution/fps
+        # This prevents fallback to uncompressed YUY2/NV12
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
+        
+        # Now set resolution and FPS
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         cap.set(cv2.CAP_PROP_FPS, fps)
+        
+        # Set buffer size
         cap.set(cv2.CAP_PROP_BUFFERSIZE, CAMERA_BUFFER_SIZE)
         
         # Adjust lighting/exposure settings
@@ -32,46 +37,53 @@ class Camera:
         actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         actual_fps = cap.get(cv2.CAP_PROP_FPS)
+        actual_fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
         
-        return cap, actual_width, actual_height, actual_fps
+        # Decode fourcc to verify MJPEG
+        fourcc_str = "".join([chr((actual_fourcc >> 8 * i) & 0xFF) for i in range(4)])
+        
+        return cap, actual_width, actual_height, actual_fps, fourcc_str
         
     def initialize(self):
-        """Initialize camera with smart fallback for 60fps"""
+        """Initialize camera with smart fallback for 60fps, MJPEG forced"""
         print("Initializing Camera...")
         
+        # Try DSHOW first (works better with Brio)
         backends_to_try = [
-            (cv2.CAP_MSMF, "MSMF"),
             (cv2.CAP_DSHOW, "DSHOW"),
+            (cv2.CAP_MSMF, "MSMF"),
         ]
         
         # Try each backend with each resolution
         for backend, backend_name in backends_to_try:
             for width, height in RESOLUTION_ATTEMPTS:
-                print(f"  Trying {backend_name} @ {width}x{height}...")
+                print(f"  Trying {backend_name} @ {width}x{height} (MJPEG forced)...")
                 
-                cap, actual_width, actual_height, actual_fps = self._try_camera_setup(
+                cap, actual_width, actual_height, actual_fps, fourcc = self._try_camera_setup(
                     backend, width, height, CAMERA_FPS
                 )
                 
-                # Check if we got target fps (or close enough)
-                if actual_fps >= CAMERA_FPS - 5:  # Allow 5fps tolerance
+                print(f"    Got: {actual_width}x{actual_height} @ {actual_fps:.0f}fps [{fourcc}]")
+                
+                # Check if we got target FPS (allow 5fps tolerance)
+                if actual_fps >= CAMERA_FPS - 5:
                     self.camera = cap
                     self.actual_width = actual_width
                     self.actual_height = actual_height
                     self.actual_fps = actual_fps
                     
-                    print(f"SUCCESS: Camera ready: {actual_width}x{actual_height} @ {actual_fps:.0f}fps ({backend_name})")
+                    print(f"SUCCESS: Camera ready: {actual_width}x{actual_height} @ {actual_fps:.0f}fps ({backend_name}, {fourcc})")
                     return self.camera
                 else:
-                    print(f"  Only got {actual_fps:.0f}fps, trying next...")
+                    print(f"    Only {actual_fps:.0f}fps, trying next...")
                     cap.release()
         
         # If nothing worked, fall back to original settings
-        print("  Warning: Could not achieve 60fps, using fallback...")
-        self.camera, self.actual_width, self.actual_height, self.actual_fps = self._try_camera_setup(
+        print("  Warning: Could not achieve target FPS, using fallback...")
+        self.camera, self.actual_width, self.actual_height, self.actual_fps, fourcc = self._try_camera_setup(
             cv2.CAP_DSHOW, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS
         )
-        print(f"Camera ready: {self.actual_width}x{self.actual_height} @ {self.actual_fps:.0f}fps (fallback)")
+        print(f"Camera ready: {self.actual_width}x{self.actual_height} @ {self.actual_fps:.0f}fps ({fourcc}, fallback)")
         
         return self.camera
     

@@ -195,28 +195,15 @@
 
   presets: {
     spinning_0: { 
-      scale: "25*ball_0.y + 10",
+      scale: "25",
       opacity: 0.5,
       // Volume: Y range 0.091-0.835 → 0-100
       volume: "100",
-      // Pan: X range 0.007-0.985 → -1 to 1
-      pan: "((ball_0.x - 0.007) / 0.978 - 0.5) * 2",
-      // Lowpass filter: higher juggling = brighter sound (20-20000 Hz)
-      lowpass: "500 + ((ball_0.y - 0.091) / 0.744) * 19500",
-      // Highpass filter: left/right position controls bass cut (0-2000 Hz)
-      highpass: "((ball_0.x - 0.007) / 0.978) * 2000"
     },
     spinning_1: { 
-      scale: "25*ball_1.y + 10",
+      scale: "25",
       opacity: 0.5,
       volume: "3",
-      pan: "((ball_1.x - 0.007) / 0.978 - 0.5) * 2",
-      // Different filter mapping for variety
-      // Lowpass: X position controls brightness
-      lowpass: "1000 + ((ball_1.x - 0.007) / 0.978) * 19000",
-      // Highpass: Y position controls bass (higher = more bass cut)
-      highpass: "((ball_1.y - 0.091) / 0.744) * 1000",
-      pitch: "((ball_0.y - 0.091) / 0.744) * 48 - 6",
       speed: 0.2
     },
     spinning_2:{
@@ -225,9 +212,9 @@
   },
   
   streams: {
-    streamA: "A{spinning_0}",
-    streamB: "B{spinning_1}",
-    streamC: "C{spinning_2}",
+    streamA: "A{spinning_0} B{spinning_0}",
+    streamB: "A{spinning_1} B{spinning_1}",
+    streamC: "A{spinning_2} B{spinning_2}",
   },
   
   routing: {
@@ -239,11 +226,11 @@
   ballConnections: {
     enabled: true,
     mode: "circles",
-    filled: false,
-    perCircleColors: true,
-    colors: [0xff0000, 0x00ff00, 0x0000ff],
+    filled: true,
+    perCircleColors: true, // Enable per-circle content
+    circleContents: ["streamA", "streamB", "streamC"], // First circle shows clip A, second shows clip B, third shows blue
     lineWidth: 12,
-    opacity: 1.0
+    opacity: 0.8 // Controls blend strength
   },
 
   showCamera: false

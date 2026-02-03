@@ -51,8 +51,8 @@ export class BallConnectionsAnimator {
       params.perCircleColors = connectionConfig.perCircleColors;
     }
     
-    if (connectionConfig.colors !== undefined) {
-      params.colors = connectionConfig.colors;
+    if (connectionConfig.circleContents !== undefined) {
+      params.circleContents = connectionConfig.circleContents;
     }
     
     if (connectionConfig.colorMode !== undefined) {

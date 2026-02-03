@@ -10,7 +10,7 @@ class WebSocketHandler:
         self.frame_processor = frame_processor
         self.video_service = video_service
         self.camera_dimensions = camera_dimensions
-        self.camera_width, self.camera_height, _ = camera_dimensions
+        self.camera_width, self.camera_height, self.actual_fps = camera_dimensions
         self.connected_clients = set()
         self.calibration_settings = None
         self.first_connection = True
@@ -80,6 +80,7 @@ class WebSocketHandler:
         set_calibration_choice(use_last)
     
     async def _handle_stream(self, websocket):
+        """OPTIMIZED: Only send new frames, match camera FPS"""
         timeout = 120
         start_time = time.time()
         
@@ -94,6 +95,10 @@ class WebSocketHandler:
         
         frame_count = 0
         last_stats_time = time.time()
+        last_frame_id = -1  # Track last sent frame ID
+        
+        # Calculate sleep time based on actual camera FPS
+        frame_interval = 1.0 / self.actual_fps if self.actual_fps > 0 else 1.0 / 30
         
         while websocket in self.connected_clients:
             if self.frame_processor is None:
@@ -102,9 +107,12 @@ class WebSocketHandler:
                 
             frame_data = self.frame_processor.get_latest_frame_data()
             
-            if frame_data['encoded_frame'] is None:
-                await asyncio.sleep(0.01)
+            # Skip if no frame or if it's the same frame we already sent
+            if frame_data['encoded_frame'] is None or frame_data['frame_id'] == last_frame_id:
+                await asyncio.sleep(0.001)  # Small sleep to prevent tight loop
                 continue
+            
+            last_frame_id = frame_data['frame_id']
             
             frame_b64 = base64.b64encode(frame_data['encoded_frame']).decode('utf-8')
             
@@ -115,16 +123,20 @@ class WebSocketHandler:
                 'height': self.camera_height,
                 'hands': frame_data['hands'],
                 'balls': frame_data['balls'],
-                'timestamp': time.time()
+                'timestamp': time.time(),
+                'frame_id': frame_data['frame_id']
             }
             
             await websocket.send(json.dumps(combined_data))
             frame_count += 1
             
+            # Print stats every 2 seconds
             if time.time() - last_stats_time > 2.0:
                 stats = self.frame_processor.get_performance_stats()
+                stream_fps = frame_count / 2.0
+                
                 print(f"Camera: {stats['fps']:.1f} FPS | "
-                      f"Stream: {frame_count/2:.1f} FPS | "
+                      f"Stream: {stream_fps:.1f} FPS | "
                       f"Encode: {stats['encode_time']:.1f}ms | "
                       f"Hands: {stats['hand_status']} | "
                       f"Balls: {stats['ball_count']}")
@@ -132,7 +144,8 @@ class WebSocketHandler:
                 frame_count = 0
                 last_stats_time = time.time()
             
-            await asyncio.sleep(1.0 / TARGET_FPS)
+            # Sleep to match camera frame rate (prevents duplicate sends)
+            await asyncio.sleep(frame_interval)
     
     async def _handle_video_url(self, websocket, data):
         youtube_url = data.get('url')

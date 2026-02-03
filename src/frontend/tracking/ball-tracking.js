@@ -12,8 +12,9 @@ export class BallTrackingManager {
     this.audioProcessor = audioProcessor;
     this.visualFX = visualFX;
     this.ballVideos = {};
-    this.ballConnections = new BallConnections(sceneManager);
+    this.ballConnections = new BallConnections(sceneManager, this);
     this.ballData = {}; // Store latest ball data: {ball_0: {x, y, vx, vy}, ...}
+    this.hideVideosForCircles = false; // Flag to keep videos hidden when using filled circles
   }
   
   // Detect media type from URL
@@ -43,7 +44,13 @@ export class BallTrackingManager {
       return;
     }
     
-    if (!videoObj.visible) {
+    if (!videoObj.visible && !this.hideVideosForCircles) {
+      videoObj.setVisible(true);
+    }
+    if (!videoObj.visible && !this.hideVideosForCircles) {
+      videoObj.setVisible(true);
+    }
+    if (!videoObj.visible && !this.hideVideosForCircles) {
       videoObj.setVisible(true);
     }
     
@@ -167,6 +174,11 @@ export class BallTrackingManager {
     
     this.ballVideos[ballId] = mediaObj;
     
+    // Force update circles to pick up new video element
+    if (this.ballConnections) {
+      this.ballConnections.forceUpdateCircles();
+    }
+    
     return mediaObj;
   }
   
@@ -260,5 +272,30 @@ export class BallTrackingManager {
     
     this.ballVideos = {};
     this.ballData = {};
+  }
+
+  // Set routing and streams for clip-to-ball mapping
+  setConnectionRouting(routing, streams) {
+    this.ballConnections.setRouting(routing, streams);
+  }
+
+  // Hide all ball videos (for when using circles mode)
+  hideBallVideos() {
+    this.hideVideosForCircles = true;
+    for (const videoObj of Object.values(this.ballVideos)) {
+      if (videoObj) {
+        videoObj.setVisible(false);
+      }
+    }
+  }
+
+  // Show all ball videos
+  showBallVideos() {
+    this.hideVideosForCircles = false;
+    for (const videoObj of Object.values(this.ballVideos)) {
+      if (videoObj) {
+        videoObj.setVisible(true);
+      }
+    }
   }
 }

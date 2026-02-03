@@ -1,14 +1,18 @@
 /**
  * Ball Connections - Render lines or circles connecting tracked balls
  * Lines: Uses TubeGeometry for proper line width
- * Circles: Uses RingGeometry for outlines or CircleGeometry for filled circles
+ * Circles: Uses RingGeometry for outlines or CircleGeometry for filled circles with video textures
  */
 
 export class BallConnections {
-  constructor(sceneManager) {
+  constructor(sceneManager, ballManager = null) {
     this.sceneManager = sceneManager;
+    this.ballManager = ballManager;
     this.connections = new Map();
     this.ballPositions = {};
+    this.routing = {}; // Maps ball IDs to streams: {ball_0: {stream: "streamA"}}
+    this.streams = {}; // Maps stream names to clip defs: {streamA: "A{spinning_0}"}
+    this.needsCircleUpdate = false; // Flag to force circle recreation
     
     this.config = {
       enabled: false,
@@ -20,14 +24,55 @@ export class BallConnections {
       zIndex: 0.05,
       segments: 32,
       perCircleColors: false,
-      colors: [0xff0000, 0x00ff00, 0x0000ff],
+      circleContents: [0xff0000, 0x00ff00, 0x0000ff], // Can be hex colors or stream names
       colorMode: 'cycle'
     };
   }
   
+  setRouting(routing, streams) {
+    this.routing = routing || {};
+    this.streams = streams || {};
+  }
+  
+  updateBallVisibility() {
+    if (!this.ballManager) return;
+    
+    // Hide balls if circles mode AND filled
+    if (this.config.enabled && this.config.mode === 'circles' && this.config.filled) {
+      if (this.ballManager.hideBallVideos) {
+        this.ballManager.hideBallVideos();
+      }
+    } else {
+      // Show balls in all other cases
+      if (this.ballManager.showBallVideos) {
+        this.ballManager.showBallVideos();
+      }
+    }
+  }
+  
+  forceUpdateCircles() {
+    if (this.config.mode === 'circles' && this.config.enabled) {
+      console.log('[BallConnections] forceUpdateCircles called - setting needsCircleUpdate flag');
+      // Force recreate all circles to pick up new video elements
+      // Use a flag to force recreation on next position update
+      this.needsCircleUpdate = true;
+    } else {
+      console.log('[BallConnections] forceUpdateCircles called but circles not active:', {mode: this.config.mode, enabled: this.config.enabled});
+    }
+  }
+  
   setEnabled(enabled) {
     this.config.enabled = enabled;
-    if (!enabled) this.clearAll();
+    if (!enabled) {
+      this.clearAll();
+      // Re-show ball videos when connections disabled
+      if (this.ballManager && this.ballManager.showBallVideos) {
+        this.ballManager.showBallVideos();
+      }
+    } else {
+      // Hide ball videos if in filled circles mode
+      this.updateBallVisibility();
+    }
   }
   
   setMode(mode) {
@@ -38,13 +83,14 @@ export class BallConnections {
     }
     this.config.mode = mode;
     this.clearAll();
+    this.updateBallVisibility();
   }
   
   setParameters(params) {
     let needsRecreate = false;
     
     if (params.color !== undefined) this.config.color = params.color;
-    if (params.colors !== undefined) this.config.colors = params.colors;
+    if (params.circleContents !== undefined) this.config.circleContents = params.circleContents;
     if (params.perCircleColors !== undefined) this.config.perCircleColors = params.perCircleColors;
     if (params.colorMode !== undefined) this.config.colorMode = params.colorMode;
     if (params.opacity !== undefined) this.config.opacity = Math.max(0, Math.min(1, params.opacity));
@@ -69,6 +115,7 @@ export class BallConnections {
     
     this.updateMaterials();
     if (needsRecreate) this.recreateAll();
+    this.updateBallVisibility();
   }
   
   updatePositions(positions) {
@@ -129,14 +176,21 @@ export class BallConnections {
       return;
     }
     
+    // If forced update is needed, clear everything first
+    if (this.needsCircleUpdate) {
+      console.log('[BallConnections] needsCircleUpdate flag detected - clearing all circles');
+      this.clearAll();
+      this.needsCircleUpdate = false;
+    }
+    
     const pairs = [];
     let circleIndex = 0;
     
     for (let i = 0; i < ballIds.length; i++) {
       for (let j = i + 1; j < ballIds.length; j++) {
         const connId = `circle-${ballIds[i]}-${ballIds[j]}`;
-        const circleColor = this.getColorForCircle(circleIndex);
-        const radius = this.updateCircle(connId, ballIds[i], ballIds[j], circleColor);
+        const circleContent = this.getContentForCircle(circleIndex);
+        const radius = this.updateCircle(connId, ballIds[i], ballIds[j], circleContent, circleIndex);
         pairs.push({ connId, radius });
         circleIndex++;
       }
@@ -152,9 +206,30 @@ export class BallConnections {
     this.cleanup(ballIds);
   }
   
-  getColorForCircle(index) {
-    if (!this.config.perCircleColors) return this.config.color;
-    return this.config.colors[index % this.config.colors.length];
+  getContentForCircle(index) {
+    if (!this.config.perCircleColors) {
+      return this.config.color;
+    }
+    return this.config.circleContents[index % this.config.circleContents.length];
+  }
+  
+  getVideoObjectForStream(streamName) {
+    if (!this.ballManager || !this.ballManager.ballVideos) return null;
+    
+    // Find which ball is displaying this stream
+    for (const [ballId, routeConfig] of Object.entries(this.routing)) {
+      if (routeConfig.stream === streamName) {
+        // Remove "ball_" prefix if present to get ballId for ballVideos lookup
+        const ballKey = ballId.replace('ball_', '');
+        const videoObj = this.ballManager.ballVideos[ballKey];
+        if (videoObj && videoObj.element) {
+          return videoObj;
+        }
+      }
+    }
+    
+    console.warn(`[BallConnections] No ball found displaying stream: ${streamName}`);
+    return null;
   }
   
   updateLine(connId, ballId1, ballId2) {
@@ -187,7 +262,7 @@ export class BallConnections {
     }
   }
   
-  updateCircle(connId, ballId1, ballId2, circleColor) {
+  updateCircle(connId, ballId1, ballId2, circleContent, circleIndex) {
     const pos1 = this.ballPositions[ballId1];
     const pos2 = this.ballPositions[ballId2];
     
@@ -217,12 +292,12 @@ export class BallConnections {
       
       if (moved1 || moved2) {
         this.remove(connId);
-        this.createCircle(connId, centerX, centerY, radius, world1, world2, circleColor);
-      } else if (this.config.perCircleColors && existing.material.color.getHex() !== circleColor) {
-        existing.material.color.setHex(circleColor);
+        this.createCircle(connId, centerX, centerY, radius, world1, world2, circleContent, circleIndex);
+      } else if (this.config.perCircleColors && typeof circleContent === 'number' && existing.material.color.getHex() !== circleContent) {
+        existing.material.color.setHex(circleContent);
       }
     } else {
-      this.createCircle(connId, centerX, centerY, radius, world1, world2, circleColor);
+      this.createCircle(connId, centerX, centerY, radius, world1, world2, circleContent, circleIndex);
     }
     
     return radius;
@@ -255,46 +330,168 @@ export class BallConnections {
     });
   }
   
-  createCircle(connId, centerX, centerY, radius, world1, world2, circleColor) {
-    let geometry;
+  createCircle(connId, centerX, centerY, radius, world1, world2, circleContent, circleIndex) {
+    const webglScene = this.sceneManager.getWebGLScene();
+    const isVideoContent = typeof circleContent === 'string';
     
     if (this.config.filled) {
-      geometry = new THREE.CircleGeometry(radius, this.config.segments);
-    } else {
+      // Determine if we're using video texture or solid color
+      let fillMaterial;
+      let videoObj = null;
+      
+      if (isVideoContent && this.ballManager) {
+        // Try to get media object for this stream
+        videoObj = this.getVideoObjectForStream(circleContent);
+        
+        if (videoObj && videoObj.element) {
+          console.log(`[BallConnections] Creating circle for stream ${circleContent} with element:`, videoObj.element.src || videoObj.element.tagName);
+          
+          // Ensure video is playing before creating texture
+          if (videoObj.element instanceof HTMLVideoElement) {
+            if (videoObj.element.paused) {
+              console.warn(`[BallConnections] Video element is paused for ${circleContent}, playing now`);
+              videoObj.element.play().catch(e => console.error('Failed to play video:', e));
+            }
+          }
+          
+          let texture;
+          
+          if (videoObj.element instanceof HTMLVideoElement) {
+            // Create video texture
+            texture = new THREE.VideoTexture(videoObj.element);
+          } else if (videoObj.element instanceof HTMLImageElement) {
+            // Create image texture
+            texture = new THREE.Texture(videoObj.element);
+            texture.needsUpdate = true;
+          }
+          
+          if (texture) {
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            fillMaterial = new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true,
+              opacity: this.config.opacity,
+              side: THREE.DoubleSide,
+              blending: THREE.AdditiveBlending
+            });
+          } else {
+            console.warn(`[BallConnections] Unsupported element type for stream: ${circleContent}`);
+            fillMaterial = new THREE.MeshBasicMaterial({
+              color: 0xff00ff, // Magenta to indicate unsupported type
+              transparent: true,
+              opacity: this.config.opacity,
+              side: THREE.DoubleSide,
+              blending: THREE.AdditiveBlending
+            });
+          }
+        } else {
+          console.warn(`[BallConnections] Could not find media for stream: ${circleContent}`);
+          // Fallback to color
+          fillMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff00ff, // Magenta to indicate missing media
+            transparent: true,
+            opacity: this.config.opacity,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending
+          });
+        }
+      } else {
+        // Use solid color
+        const color = typeof circleContent === 'number' ? circleContent : this.config.color;
+        fillMaterial = new THREE.MeshBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: this.config.opacity,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending
+        });
+      }
+      
+      // Create filled circle geometry
+      const fillGeometry = new THREE.CircleGeometry(radius, this.config.segments);
+      const fillMesh = new THREE.Mesh(fillGeometry, fillMaterial);
+      fillMesh.position.set(centerX, centerY, 0);
+      webglScene.add(fillMesh);
+      
+      // Create white perimeter (fully opaque)
       const innerRadius = Math.max(0.01, radius - this.config.lineWidth);
-      geometry = new THREE.RingGeometry(innerRadius, radius, this.config.segments);
+      const perimeterGeometry = new THREE.RingGeometry(innerRadius, radius, this.config.segments);
+      const perimeterMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: false,
+        opacity: 1.0,
+        side: THREE.DoubleSide
+      });
+      
+      const perimeterMesh = new THREE.Mesh(perimeterGeometry, perimeterMaterial);
+      perimeterMesh.position.set(centerX, centerY, 0.001); // Slightly in front
+      webglScene.add(perimeterMesh);
+      
+      this.connections.set(connId, { 
+        mesh: fillMesh,
+        perimeterMesh: perimeterMesh,
+        material: fillMaterial,
+        perimeterMaterial: perimeterMaterial,
+        lastPos1: { x: world1.x, y: world1.y },
+        lastPos2: { x: world2.x, y: world2.y },
+        radius: radius,
+        content: circleContent,
+        videoObj: videoObj,
+        circleIndex: circleIndex
+      });
+    } else {
+      // Unfilled mode - just the ring
+      const innerRadius = Math.max(0.01, radius - this.config.lineWidth);
+      const geometry = new THREE.RingGeometry(innerRadius, radius, this.config.segments);
+      
+      const color = typeof circleContent === 'number' ? circleContent : this.config.color;
+      const material = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: this.config.opacity < 1.0,
+        opacity: this.config.opacity,
+        side: THREE.DoubleSide
+      });
+      
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(centerX, centerY, 0);
+      webglScene.add(mesh);
+      
+      this.connections.set(connId, { 
+        mesh, 
+        material,
+        lastPos1: { x: world1.x, y: world1.y },
+        lastPos2: { x: world2.x, y: world2.y },
+        radius: radius,
+        content: circleContent,
+        circleIndex: circleIndex
+      });
     }
-    
-    const material = new THREE.MeshBasicMaterial({
-      color: circleColor || this.config.color,
-      transparent: this.config.opacity < 1.0,
-      opacity: this.config.opacity,
-      side: THREE.DoubleSide
-    });
-    
-    const mesh = new THREE.Mesh(geometry, material);
-    // Place at z=0 focal plane to match CSS3D positioning
-    mesh.position.set(centerX, centerY, 0);
-    
-    this.sceneManager.getWebGLScene().add(mesh);
-    
-    this.connections.set(connId, { 
-      mesh, 
-      material,
-      lastPos1: { x: world1.x, y: world1.y },
-      lastPos2: { x: world2.x, y: world2.y },
-      radius: radius,
-      color: circleColor || this.config.color
-    });
   }
   
   remove(connId) {
     const conn = this.connections.get(connId);
     if (!conn) return;
     
-    this.sceneManager.getWebGLScene().remove(conn.mesh);
+    const webglScene = this.sceneManager.getWebGLScene();
+    
+    webglScene.remove(conn.mesh);
     conn.mesh.geometry.dispose();
     conn.material.dispose();
+    
+    // Dispose video texture if present
+    if (conn.material.map) {
+      conn.material.map.dispose();
+    }
+    
+    // Clean up perimeter mesh if it exists (filled mode)
+    if (conn.perimeterMesh) {
+      webglScene.remove(conn.perimeterMesh);
+      conn.perimeterMesh.geometry.dispose();
+      conn.perimeterMaterial.dispose();
+    }
+    
     this.connections.delete(connId);
   }
   
@@ -315,17 +512,22 @@ export class BallConnections {
   
   updateMaterials() {
     if (this.config.perCircleColors) {
-      // Only update opacity (preserve per-circle colors)
+      // Only update opacity (preserve per-circle contents)
       for (const conn of this.connections.values()) {
         conn.material.opacity = this.config.opacity;
         conn.material.transparent = this.config.opacity < 1.0;
+        // Perimeter stays fully opaque white in filled mode
       }
     } else {
       // Update all with same color and opacity
       for (const conn of this.connections.values()) {
-        conn.material.color.setHex(this.config.color);
+        // Only update if it's a color material (not video texture)
+        if (!conn.material.map && typeof conn.content === 'number') {
+          conn.material.color.setHex(this.config.color);
+        }
         conn.material.opacity = this.config.opacity;
         conn.material.transparent = this.config.opacity < 1.0;
+        // Perimeter stays fully opaque white in filled mode
       }
     }
   }
@@ -353,6 +555,18 @@ export class BallConnections {
       webglScene.remove(conn.mesh);
       conn.mesh.geometry.dispose();
       conn.material.dispose();
+      
+      // Dispose video texture if present
+      if (conn.material.map) {
+        conn.material.map.dispose();
+      }
+      
+      // Clean up perimeter mesh if it exists (filled mode)
+      if (conn.perimeterMesh) {
+        webglScene.remove(conn.perimeterMesh);
+        conn.perimeterMesh.geometry.dispose();
+        conn.perimeterMaterial.dispose();
+      }
     }
     
     this.connections.clear();

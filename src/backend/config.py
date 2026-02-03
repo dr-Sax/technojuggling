@@ -19,7 +19,7 @@ RESOLUTION_ATTEMPTS = [
 
 CAMERA_WIDTH = 640
 CAMERA_HEIGHT = 360
-CAMERA_FPS = 90  # Test higher FPS at 424x240
+CAMERA_FPS = 30  # Match actual camera capability (30fps for direct Brio)
 CAMERA_BUFFER_SIZE = 1
 
 # Camera Lighting/Exposure
@@ -30,7 +30,7 @@ CAMERA_EXPOSURE = -5
 
 # ===== ENCODING SETTINGS =====
 JPEG_QUALITY = 60  # REDUCED from 85 - faster encoding, still good quality
-TARGET_FPS = 90  # Match camera FPS for testing
+TARGET_FPS = 30  # Match camera FPS - don't try to send faster than capture
 
 # ===== TRACKING SETTINGS =====
 # Tracking Mode: "hands", "balls", "both", "none"

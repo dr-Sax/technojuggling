@@ -1,5 +1,6 @@
 """
 Frame processing thread - captures, tracks, and encodes frames
+OPTIMIZED FOR LOW LATENCY
 """
 import cv2
 import time
@@ -31,6 +32,7 @@ class FrameProcessor:
         self.latest_encoded_frame = None
         self.latest_hand_data = self._empty_hand_data()
         self.latest_ball_data = {'balls': []}
+        self.frame_id = 0  # Track unique frames
         
         # Performance tracking
         self.frame_times = deque(maxlen=FRAME_BUFFER_SIZE)
@@ -62,7 +64,7 @@ class FrameProcessor:
             self.encoder.release()
     
     def _process_loop(self):
-        """Main processing loop"""
+        """Main processing loop - OPTIMIZED"""
         while self.running:
             ret, frame = self.camera.read()
             if not ret:
@@ -71,13 +73,14 @@ class FrameProcessor:
             
             self.latest_frame = frame
             self.frame_counter += 1
+            self.frame_id += 1  # Increment unique frame ID
             
-            # Hand tracking (skip frames for performance)
+            # Hand tracking (skip frames for performance if needed)
             if self.hand_tracking_enabled and self.frame_counter % HAND_TRACKING_SKIP == 0:
                 self.latest_hand_data = self.hand_tracker.process(frame)
             
-            # Ball tracking (every 3rd frame)
-            if self.ball_tracking_enabled and self.frame_counter % 3 == 0:
+            # Ball tracking - EVERY FRAME for low latency
+            if self.ball_tracking_enabled:
                 balls = self.ball_tracker.detect(frame)
                 self.latest_ball_data = {'balls': balls}
             
@@ -94,7 +97,7 @@ class FrameProcessor:
             self.frame_times.append(current_time - self.last_frame_time)
             self.last_frame_time = current_time
             
-            time.sleep(0.001)
+            # No sleep - process frames as fast as camera delivers them
     
     def _encode_frame(self, frame):
         """Encode frame using NVENC or JPEG"""
@@ -108,11 +111,12 @@ class FrameProcessor:
         }
     
     def get_latest_frame_data(self):
-        """Get latest frame and tracking data"""
+        """Get latest frame and tracking data with frame ID"""
         return {
             'encoded_frame': self.latest_encoded_frame,
             'hands': self.latest_hand_data,
-            'balls': self.latest_ball_data
+            'balls': self.latest_ball_data,
+            'frame_id': self.frame_id  # Add frame ID to detect duplicates
         }
     
     def get_performance_stats(self):
