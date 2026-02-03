@@ -1,5 +1,5 @@
 """
-Frame processing thread - captures, tracks, and encodes frames
+Frame processing thread - Ball tracking only
 OPTIMIZED FOR LOW LATENCY
 """
 import cv2
@@ -10,14 +10,9 @@ from config import *
 from encoder import create_encoder
 
 class FrameProcessor:
-    def __init__(self, camera, hand_tracker=None, ball_tracker=None):
+    def __init__(self, camera, ball_tracker=None):
         self.camera = camera
-        self.hand_tracker = hand_tracker
         self.ball_tracker = ball_tracker
-        
-        # Check which trackers are active
-        self.hand_tracking_enabled = hand_tracker is not None and hand_tracker.enabled
-        self.ball_tracking_enabled = ball_tracker is not None and ball_tracker.enabled
         
         # Initialize encoder
         camera_width, camera_height, camera_fps = camera.get_dimensions()
@@ -30,9 +25,8 @@ class FrameProcessor:
         # State
         self.latest_frame = None
         self.latest_encoded_frame = None
-        self.latest_hand_data = self._empty_hand_data()
         self.latest_ball_data = {'balls': []}
-        self.frame_id = 0  # Track unique frames
+        self.frame_id = 0
         
         # Performance tracking
         self.frame_times = deque(maxlen=FRAME_BUFFER_SIZE)
@@ -44,9 +38,7 @@ class FrameProcessor:
         self.running = False
         self.thread = None
         
-        print(f"Frame processor initialized:")
-        print(f"  Hand tracking: {'Enabled' if self.hand_tracking_enabled else 'Disabled'}")
-        print(f"  Ball tracking: {'Enabled' if self.ball_tracking_enabled else 'Disabled'}")
+        print(f"Frame processor initialized (ball tracking only)")
     
     def start(self):
         """Start frame processing thread"""
@@ -73,14 +65,10 @@ class FrameProcessor:
             
             self.latest_frame = frame
             self.frame_counter += 1
-            self.frame_id += 1  # Increment unique frame ID
-            
-            # Hand tracking (skip frames for performance if needed)
-            if self.hand_tracking_enabled and self.frame_counter % HAND_TRACKING_SKIP == 0:
-                self.latest_hand_data = self.hand_tracker.process(frame)
+            self.frame_id += 1
             
             # Ball tracking - EVERY FRAME for low latency
-            if self.ball_tracking_enabled:
+            if self.ball_tracker:
                 balls = self.ball_tracker.detect(frame)
                 self.latest_ball_data = {'balls': balls}
             
@@ -96,27 +84,17 @@ class FrameProcessor:
             current_time = time.time()
             self.frame_times.append(current_time - self.last_frame_time)
             self.last_frame_time = current_time
-            
-            # No sleep - process frames as fast as camera delivers them
     
     def _encode_frame(self, frame):
-        """Encode frame using NVENC or JPEG"""
+        """Encode frame using JPEG"""
         return self.encoder.encode(frame, JPEG_QUALITY)
-    
-    def _empty_hand_data(self):
-        """Return empty hand data structure"""
-        return {
-            'right': {'detected': False, 'position': {'x':0,'y':0,'z':0}, 'landmarks': []},
-            'left': {'detected': False, 'position': {'x':0,'y':0,'z':0}, 'landmarks': []}
-        }
     
     def get_latest_frame_data(self):
         """Get latest frame and tracking data with frame ID"""
         return {
             'encoded_frame': self.latest_encoded_frame,
-            'hands': self.latest_hand_data,
             'balls': self.latest_ball_data,
-            'frame_id': self.frame_id  # Add frame ID to detect duplicates
+            'frame_id': self.frame_id
         }
     
     def get_performance_stats(self):
@@ -125,13 +103,10 @@ class FrameProcessor:
         fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0
         avg_encode = sum(self.encode_times) / len(self.encode_times) if self.encode_times else 0
         
-        hand_status = "Y" if (self.latest_hand_data.get('right', {}).get('detected', False) or 
-                              self.latest_hand_data.get('left', {}).get('detected', False)) else "N"
         ball_count = len(self.latest_ball_data['balls'])
         
         return {
             'fps': fps,
             'encode_time': avg_encode,
-            'hand_status': hand_status,
             'ball_count': ball_count
         }

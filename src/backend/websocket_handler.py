@@ -6,9 +6,8 @@ from config import *
 from startup_calibration_async import set_calibration_choice
 
 class WebSocketHandler:
-    def __init__(self, frame_processor, video_service, camera_dimensions):
+    def __init__(self, frame_processor, camera_dimensions):
         self.frame_processor = frame_processor
-        self.video_service = video_service
         self.camera_dimensions = camera_dimensions
         self.camera_width, self.camera_height, self.actual_fps = camera_dimensions
         self.connected_clients = set()
@@ -65,8 +64,6 @@ class WebSocketHandler:
                 elif msg_type == 'start_stream':
                     if stream_task is None:
                         stream_task = asyncio.create_task(self._handle_stream(websocket))
-                elif msg_type == 'get_video_url':
-                    await self._handle_video_url(websocket, data)
                 
         except:
             pass
@@ -80,7 +77,7 @@ class WebSocketHandler:
         set_calibration_choice(use_last)
     
     async def _handle_stream(self, websocket):
-        """OPTIMIZED: Only send new frames, match camera FPS"""
+        """Stream frames and ball tracking data"""
         timeout = 120
         start_time = time.time()
         
@@ -95,9 +92,8 @@ class WebSocketHandler:
         
         frame_count = 0
         last_stats_time = time.time()
-        last_frame_id = -1  # Track last sent frame ID
+        last_frame_id = -1
         
-        # Calculate sleep time based on actual camera FPS
         frame_interval = 1.0 / self.actual_fps if self.actual_fps > 0 else 1.0 / 30
         
         while websocket in self.connected_clients:
@@ -107,9 +103,8 @@ class WebSocketHandler:
                 
             frame_data = self.frame_processor.get_latest_frame_data()
             
-            # Skip if no frame or if it's the same frame we already sent
             if frame_data['encoded_frame'] is None or frame_data['frame_id'] == last_frame_id:
-                await asyncio.sleep(0.001)  # Small sleep to prevent tight loop
+                await asyncio.sleep(0.001)
                 continue
             
             last_frame_id = frame_data['frame_id']
@@ -121,7 +116,6 @@ class WebSocketHandler:
                 'frame': frame_b64,
                 'width': self.camera_width,
                 'height': self.camera_height,
-                'hands': frame_data['hands'],
                 'balls': frame_data['balls'],
                 'timestamp': time.time(),
                 'frame_id': frame_data['frame_id']
@@ -130,7 +124,6 @@ class WebSocketHandler:
             await websocket.send(json.dumps(combined_data))
             frame_count += 1
             
-            # Print stats every 2 seconds
             if time.time() - last_stats_time > 2.0:
                 stats = self.frame_processor.get_performance_stats()
                 stream_fps = frame_count / 2.0
@@ -138,23 +131,12 @@ class WebSocketHandler:
                 print(f"Camera: {stats['fps']:.1f} FPS | "
                       f"Stream: {stream_fps:.1f} FPS | "
                       f"Encode: {stats['encode_time']:.1f}ms | "
-                      f"Hands: {stats['hand_status']} | "
                       f"Balls: {stats['ball_count']}")
                 
                 frame_count = 0
                 last_stats_time = time.time()
             
-            # Sleep to match camera frame rate (prevents duplicate sends)
             await asyncio.sleep(frame_interval)
-    
-    async def _handle_video_url(self, websocket, data):
-        youtube_url = data.get('url')
-        result = await self.video_service.get_video_url(youtube_url)
-        
-        await websocket.send(json.dumps({
-            'type': 'video_url',
-            **result
-        }))
     
     def get_client_count(self):
         return len(self.connected_clients)

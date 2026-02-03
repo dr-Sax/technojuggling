@@ -1,5 +1,6 @@
 /**
- * Sequence Configuration - Storage and validation for video sequences
+ * Sequence Core - Configuration and parsing for video sequences
+ * Replaces: sequence-parser.js + sequence-config.js
  */
 
 export class SequenceConfig {
@@ -20,7 +21,6 @@ export class SequenceConfig {
   }
 
   validate() {
-    // Validate clips have required fields
     for (const [name, clip] of Object.entries(this.clips)) {
       if (!clip.url) {
         console.warn(`Clip ${name} missing url`);
@@ -30,7 +30,6 @@ export class SequenceConfig {
       }
     }
 
-    // Validate streams reference existing clips
     for (const [streamName, pattern] of Object.entries(this.streams)) {
       const clipRefs = this.extractClipReferences(pattern);
       for (const clipRef of clipRefs) {
@@ -40,7 +39,6 @@ export class SequenceConfig {
       }
     }
 
-    // Validate routing references existing streams
     for (const [objectId, routeConfig] of Object.entries(this.routing)) {
       const streamName = typeof routeConfig === 'string' ? routeConfig : routeConfig.stream;
       if (!this.streams[streamName]) {
@@ -50,7 +48,6 @@ export class SequenceConfig {
   }
 
   extractClipReferences(pattern) {
-    // Extract clip names from pattern like "A{heavy} B*2 C"
     const matches = pattern.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
     return [...new Set(matches.filter(m => this.clips[m]))];
   }
@@ -59,7 +56,6 @@ export class SequenceConfig {
     const config = this.routing[objectId];
     if (!config) return null;
 
-    // Normalize to object format
     if (typeof config === 'string') {
       return { stream: config, offset: 0 };
     }
@@ -76,5 +72,67 @@ export class SequenceConfig {
 
   getStream(streamName) {
     return this.streams[streamName];
+  }
+}
+
+export class SequenceParser {
+  constructor(config) {
+    this.config = config;
+  }
+
+  parsePattern(patternString) {
+    const tokens = this.tokenize(patternString);
+    const timeline = [];
+    let currentTime = 0;
+
+    for (const token of tokens) {
+      const clip = this.config.getClip(token.clipName);
+      if (!clip) {
+        console.warn(`Unknown clip: ${token.clipName}`);
+        continue;
+      }
+
+      const clipDuration = clip.end - clip.start;
+      const repeatCount = token.repeat || 1;
+
+      for (let i = 0; i < repeatCount; i++) {
+        timeline.push({
+          clipName: token.clipName,
+          url: clip.url,
+          videoStart: clip.start,
+          videoEnd: clip.end,
+          duration: clipDuration,
+          startTime: currentTime,
+          endTime: currentTime + clipDuration,
+          effectsString: token.effectsString
+        });
+        currentTime += clipDuration;
+      }
+    }
+
+    return {
+      timeline,
+      totalDuration: currentTime
+    };
+  }
+
+  tokenize(patternString) {
+    const regex = /([A-Z])(?:\*(\d+))?(?:\{([^}]+)\})?/g;
+    const tokens = [];
+    let match;
+
+    while ((match = regex.exec(patternString)) !== null) {
+      tokens.push({
+        clipName: match[1],
+        repeat: match[2] ? parseInt(match[2]) : 1,
+        effectsString: match[3] || ''
+      });
+    }
+    
+    if (tokens.length === 0) {
+      console.warn('No clips found in pattern:', patternString);
+    }
+
+    return tokens;
   }
 }

@@ -1,10 +1,10 @@
 /**
  * UI Controller - orchestrates code execution and UI state
+ * Updated to remove scene-differ (just reload on changes)
  */
 
 import { LiveCodeEditor } from './live-code-editor.js';
 import { CodeExecutor } from './code-executor.js';
-import { SceneDiffer } from './scene-differ.js';
 import { CursorNavigationHandler } from './cursor-navigation.js';
 
 export class UIController {
@@ -13,7 +13,6 @@ export class UIController {
     this.wsClient = websocketClient;
     this.codeEditor = null;
     this.codeExecutor = new CodeExecutor(sceneManager);
-    this.sceneDiffer = new SceneDiffer(sceneManager);
     this.cursorNav = null;
     this.loadingOverlay = document.getElementById('loadingOverlay');
     this.calibrationComplete = false;
@@ -41,10 +40,7 @@ export class UIController {
     try {
       const newScenes = await this.codeExecutor.execute(newCode, isFirstRun, this.lastScenes);
       
-      if (!isFirstRun && newScenes.length > 0) {
-        await this.sceneDiffer.applyDifferentialUpdate(newScenes, this.lastScenes);
-      }
-      
+      // No differential updates - just track scenes
       this.lastScenes = newScenes;
       this.lastExecutedCode = newCode;
       

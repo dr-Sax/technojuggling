@@ -1,34 +1,30 @@
 #!/usr/bin/env python3
 """
-Tell-A-Vision Server - Main Entry Point (VERBOSE DEBUG VERSION)
+Tell-A-Vision Server - Simplified (Ball tracking only)
 """
 import asyncio
 import websockets
 import sys
 
-# Import all modules
 from config import *
 from camera import Camera
-from hand_tracking import HandTracker
 from ball_tracking import BallTracker
 from frame_processor import FrameProcessor
-from video_service import VideoService
 from websocket_handler import WebSocketHandler
 from bigtrack_handler import BigTrackHandler
 
 def print_banner():
-    """Print startup banner"""
     print("=" * 70)
-    print("TELL-A-VISION SERVER")
+    print("TELL-A-VISION SERVER (Ball Tracking)")
     print("=" * 70)
     print()
 
 def print_config():
-    """Print current configuration"""
     print("Configuration:")
     print(f"   Camera Index: {CAMERA_INDEX}")
     print(f"   Resolution: {CAMERA_WIDTH}x{CAMERA_HEIGHT}")
     print(f"   Target FPS: {TARGET_FPS}")
+    print(f"   Tracking: Ball tracking ({NUM_BALLS} balls)")
     print()
 
 # Global objects
@@ -37,7 +33,7 @@ ball_tracker = None
 calibration_settings = None
 
 async def initialize_system():
-    """Initialize camera and hand tracking"""
+    """Initialize camera and ball tracking"""
     global ball_tracker, calibration_settings
     
     print_banner()
@@ -50,25 +46,19 @@ async def initialize_system():
     camera_dimensions = camera.get_dimensions()
     print("[INIT] Camera initialized")
     
-    # Initialize hand tracking
-    print("[INIT] Initializing hand tracking...")
-    hand_tracker = HandTracker()
-    hand_tracker.initialize()
-    print("[INIT] Hand tracking initialized")
-    
-    # Create ball tracker (but don't initialize yet)
+    # Create ball tracker (calibration happens later)
     print("[INIT] Creating ball tracker...")
     ball_tracker = BallTracker(camera_device)
-    print("[INIT] Ball tracker created (not initialized)")
+    print("[INIT] Ball tracker created (not calibrated yet)")
     
-    return camera, camera_device, camera_dimensions, hand_tracker
+    return camera, camera_device, camera_dimensions
 
 async def run_calibration():
     """Run calibration after client connects"""
     global ball_tracker, calibration_settings
     
     print("\n[CALIBRATION] Starting calibration...")
-    print("[CALIBRATION] This will wait for user choice from WebSocket...")
+    print("[CALIBRATION] Waiting for user choice from WebSocket...")
     
     calibration_settings = await ball_tracker.initialize()
     
@@ -83,15 +73,12 @@ async def main():
     
     print("[MAIN] Starting initialization...")
     
-    # Initialize system (camera, hand tracking)
-    camera, camera_device, camera_dimensions, hand_tracker = await initialize_system()
+    # Initialize system (camera only)
+    camera, camera_device, camera_dimensions = await initialize_system()
     
     print("[MAIN] Creating WebSocket handler...")
-    # Create WebSocket handler
-    video_service = VideoService()
     ws_handler = WebSocketHandler(
-        frame_processor=None,  # Will set after calibration
-        video_service=video_service,
+        frame_processor=None,
         camera_dimensions=camera_dimensions
     )
     
@@ -130,7 +117,7 @@ async def main():
     print("\n[MAIN] Starting frame processor...")
     
     # Now initialize frame processor with calibrated tracker
-    frame_processor = FrameProcessor(camera, hand_tracker, ball_tracker)
+    frame_processor = FrameProcessor(camera, ball_tracker=ball_tracker)
     frame_processor.start()
     print("[MAIN] Frame processor started")
     
@@ -145,14 +132,11 @@ async def main():
     print()
     
     try:
-        # Run forever
         await asyncio.Future()
     except KeyboardInterrupt:
         print("\n[MAIN] Shutting down...")
     finally:
-        # Cleanup
         frame_processor.stop()
-        hand_tracker.release()
         camera.release()
         print("[MAIN] Server stopped")
 

@@ -1,15 +1,15 @@
 /**
  * Sequence Manager - Handles sequence-based video playback
+ * Updated to use sequence-core.js
  */
-import { SequenceConfig } from './sequence-config.js';
+import { SequenceConfig } from './sequence-core.js';
 import { SequencePlayer } from './sequence-player.js';
 import { MediaPool } from './media-pool.js';
 import { ParameterManager } from './parameter-manager.js';
 
 export class SequenceManager {
-  constructor(sceneManager, handManager, ballManager, parameterAnimator) {
+  constructor(sceneManager, ballManager, parameterAnimator) {
     this.sceneManager = sceneManager;
-    this.handManager = handManager;
     this.ballManager = ballManager;
     this.parameterAnimator = parameterAnimator;
     
@@ -55,48 +55,24 @@ export class SequenceManager {
                               .replace('left_hand', 'left')
                               .replace('ball_', '');
     
-    const manager = objectType === 'hand' ? this.handManager : this.ballManager;
+    const manager = this.ballManager;
     const timeOffset = clipData.startTime - clipData.videoStart;
     
     // Always dispose old object before creating new one
-    // This ensures clean transitions between video <-> image
-    if (objectType === 'ball') {
-      manager.clearBall(objectName);
-    } else {
-      // For hands, would need a clearHand method
-      console.warn('Hand clearing not implemented');
-    }
+    manager.clearBall(objectName);
     
     // Create new media object (auto-detects type from URL)
-    if (objectType === 'ball') {
-      const config = {
-        startTime: clipData.videoStart,
-        endTime: clipData.videoEnd,
-        locked: false,
-        zIndex: clipData.effects.zIndex || 0.1,
-        scale: 1.0,  // Base scale - actual scale applied via applyParameters below
-        timeOffset: timeOffset
-      };
-      
-      // Unified method handles both images and videos
-      await manager.displayBallMedia(objectName, media.src, config);
-      
-    } else if (objectType === 'hand') {
-      // Hands still use old method (can be unified later)
-      if (media.type === 'image') {
-        console.warn(`Images not supported for hands yet`);
-        return;
-      }
-      
-      manager.displayHandVideo(
-        objectName,
-        media.src,
-        clipData.videoStart,
-        clipData.videoEnd,
-        clipData.effects.zIndex || 0.1,
-        timeOffset
-      );
-    }
+    const config = {
+      startTime: clipData.videoStart,
+      endTime: clipData.videoEnd,
+      locked: false,
+      zIndex: clipData.effects.zIndex || 0.1,
+      scale: 1.0,  // Base scale - actual scale applied via applyParameters below
+      timeOffset: timeOffset
+    };
+    
+    // Unified method handles both images and videos
+    await manager.displayBallMedia(objectName, media.src, config);
     
     const mergedParams = { ...clipData.effects };
     
@@ -114,8 +90,6 @@ export class SequenceManager {
   updateDynamicParameters(ballData = {}) {
     if (!this.isActive) return;
     
-
-    
     // Always update sequence player (to detect clip changes)
     this.sequencePlayer.update();
     
@@ -131,7 +105,7 @@ export class SequenceManager {
                                       .replace('left_hand', 'left')
                                       .replace('ball_', '');
       
-      const manager = objectType === 'hand' ? this.handManager : this.ballManager;
+      const manager = this.ballManager;
       
       // ParameterManager already returns COMPLETE parameter sets with evaluated expressions
       manager.applyParameters(objectName, update.params);
@@ -172,7 +146,7 @@ export class SequenceManager {
                                 .replace('left_hand', 'left')
                                 .replace('ball_', '');
       
-      const manager = objectType === 'hand' ? this.handManager : this.ballManager;
+      const manager = this.ballManager;
       const params = this.parameterManager.getRawParameters(objectId);
       
       manager.applyParameters(objectName, params);

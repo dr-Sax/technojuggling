@@ -1,11 +1,11 @@
 /**
  * Tell-A-Vision Client - Main Entry Point
  * Coordinates all modules and initializes the application
+ * Updated to remove hand tracking
  */
 
 import { ThreeSceneManager } from '../rendering/three-scene.js';
 import { WebSocketClient } from './websocket-client.js';
-import { HandTrackingManager } from '../tracking/hand-tracking-webgl.js';
 import { BallTrackingManager } from '../tracking/ball-tracking.js';
 import { SceneManager } from '../scene/scene-manager.js';
 import { UIController } from '../ui/ui-controller.js';
@@ -18,7 +18,6 @@ class TellAVision {
     this.wsClient = null;
     this.audioProcessor = null;
     this.visualFX = null;
-    this.handManager = null;
     this.ballManager = null;
     this.sceneManager = null;
     this.uiController = null;
@@ -49,20 +48,17 @@ class TellAVision {
     this.visualFX = new VisualEffectsProcessor();
     this.visualFX.initialize();
     
-    // 4. Initialize tracking managers with audio and visual processors
-    this.handManager = new HandTrackingManager(this.threeScene, this.audioProcessor, this.visualFX);
+    // 4. Initialize ball tracking manager
     this.ballManager = new BallTrackingManager(this.threeScene, this.audioProcessor, this.visualFX);
     
     // 5. Initialize WebSocket client with callbacks
     this.wsClient = new WebSocketClient(
       (frameData) => this.onFrameData(frameData),
-      (handData) => this.onHandData(handData),
       (ballData) => this.onBallData(ballData)
     );
     
     // 6. Initialize scene manager
     this.sceneManager = new SceneManager(
-      this.handManager,
       this.ballManager,
       this.wsClient
     );
@@ -166,11 +162,6 @@ class TellAVision {
   // Callback: Handle frame data from WebSocket
   onFrameData(frameData) {
     this.threeScene.updateCameraFrame(frameData);
-  }
-  
-  // Callback: Handle hand tracking data
-  onHandData(handData) {
-    this.handManager.processHandData(handData);
   }
   
   // Callback: Handle ball tracking data

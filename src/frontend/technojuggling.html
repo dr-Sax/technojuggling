@@ -190,37 +190,20 @@
   clips: {
     A: {url: "frog-ribbet.mp4", start: 0, end: 10},
     B: {url: "catmull-face.mp4", start: 0, end: 6},
-    C: {url: "frog-scream.png", start: 0, end: 6},
   },
 
   presets: {
-    spinning_0: { 
-      scale: "25",
-      opacity: 0.5,
-      // Volume: Y range 0.091-0.835 → 0-100
-      volume: "100",
-    },
-    spinning_1: { 
-      scale: "25",
-      opacity: 0.5,
-      volume: "3",
-      speed: 0.2
-    },
-    spinning_2:{
-      scale: "sin(time*10)*25",
-    }
   },
   
   streams: {
-    streamA: "A{spinning_0} B{spinning_0}",
-    streamB: "A{spinning_1} B{spinning_1}",
-    streamC: "A{spinning_2} B{spinning_2}",
+    streamA: "A B"
   },
   
   routing: {
     ball_0: {stream: "streamA", offset: 0},
-    ball_1: {stream: "streamB", offset: 0},
-    ball_2: {stream: "streamC", offset: 0},
+    ball_1: {stream: "streamA", offset: 0},
+    ball_2: {stream: "streamA", offset: 0},
+    ball_3: {stream: "streamA", offset: 0},
   },
 
   ballConnections: {
@@ -228,9 +211,10 @@
     mode: "circles",
     filled: true,
     perCircleColors: true, // Enable per-circle content
-    circleContents: ["streamA", "streamB", "streamC"], // First circle shows clip A, second shows clip B, third shows blue
-    lineWidth: 12,
-    opacity: 0.8 // Controls blend strength
+    circleContents: ["streamA", "streamA", "streamA", "streamA"], // First circle shows clip A, second shows clip B, third shows blue
+    lineWidth: 5,
+    segments: 3,
+    opacity: 0.2 // Controls blend strength
   },
 
   showCamera: false

@@ -1,8 +1,9 @@
 /**
  * ParameterManager - Single source of truth for all object parameters
  * Handles both static values and dynamic expressions
+ * Updated to use expression-system.js
  */
-import { ExpressionEvaluator } from './expression-evaluator.js';
+import { ExpressionEvaluator } from './expression-system.js';
 
 export class ParameterManager {
   constructor() {

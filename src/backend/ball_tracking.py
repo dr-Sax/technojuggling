@@ -61,8 +61,8 @@ class KalmanBallTracker:
 class BallTracker:
     def __init__(self, camera):
         self.camera = camera
-        self.enabled = TRACKING_MODE in ["balls", "both"]
-        self.num_balls = NUM_BALLS if self.enabled else 0
+        self.enabled = True 
+        self.num_balls = NUM_BALLS
         self.hsv_mins = []
         self.hsv_maxs = []
         self.calibration_settings = {}
@@ -72,7 +72,7 @@ class BallTracker:
         
         # OPTIMIZATION: Pre-create morphology kernels
         self.morph_kernel = np.ones((5, 5), np.uint8)
-        
+            
     async def initialize(self):
         """Initialize ball tracking with async calibration"""
         if not self.enabled:

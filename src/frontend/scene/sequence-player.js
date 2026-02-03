@@ -1,7 +1,8 @@
 /**
  * Sequence Player - Manages playback of video sequences with central clock
+ * Updated to use sequence-core.js
  */
-import { SequenceParser } from './sequence-parser.js';
+import { SequenceParser } from './sequence-core.js';
 
 class StreamPlayer {
   constructor(streamName, pattern, config, offset = 0) {

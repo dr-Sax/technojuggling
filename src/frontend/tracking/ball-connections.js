@@ -94,7 +94,7 @@ export class BallConnections {
     if (params.perCircleColors !== undefined) this.config.perCircleColors = params.perCircleColors;
     if (params.colorMode !== undefined) this.config.colorMode = params.colorMode;
     if (params.opacity !== undefined) this.config.opacity = Math.max(0, Math.min(1, params.opacity));
-    if (params.segments !== undefined) this.config.segments = Math.max(8, Math.min(64, params.segments));
+    if (params.segments !== undefined) this.config.segments = Math.max(3, Math.min(64, params.segments));  // CHANGED: 8 → 3
     
     if (params.lineWidth !== undefined) {
       const newWidth = Math.max(0.05, Math.min(1.0, params.lineWidth / 20));
@@ -117,7 +117,7 @@ export class BallConnections {
     if (needsRecreate) this.recreateAll();
     this.updateBallVisibility();
   }
-  
+
   updatePositions(positions) {
     if (!this.config.enabled) return;
     

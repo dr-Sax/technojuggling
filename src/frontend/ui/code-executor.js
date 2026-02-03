@@ -1,5 +1,6 @@
 /**
- * Code Executor - parses and executes user code (sequence or scene format)
+ * Code Executor - parses and executes user code (sequence format only)
+ * Simplified to always use sequence format
  */
 
 export class CodeExecutor {
@@ -9,15 +10,9 @@ export class CodeExecutor {
   
   async execute(code, isFirstRun, lastScenes) {
     const trimmed = code.trim();
-    const isSequenceFormat = trimmed.startsWith('{');
     
-    console.log('Detected format:', isSequenceFormat ? 'SEQUENCE' : 'SCENE');
-    
-    if (isSequenceFormat) {
-      return await this.executeSequence(trimmed, isFirstRun, lastScenes);
-    } else {
-      return await this.executeScene(code, isFirstRun);
-    }
+    // Always treat as sequence format
+    return await this.executeSequence(trimmed, isFirstRun, lastScenes);
   }
   
   async executeSequence(code, isFirstRun, lastScenes) {
@@ -95,22 +90,5 @@ export class CodeExecutor {
     }
     
     return false;
-  }
-  
-  async executeScene(code, isFirstRun) {
-    const newScenes = [];
-    window.scene = (id, name, config) => newScenes.push({ id, name, config });
-    eval(code);
-    
-    if (newScenes.length === 0) return [];
-    
-    if (isFirstRun) {
-      console.log('First run - loading all scenes');
-      this.sceneManager.clearScenes();
-      newScenes.forEach(s => this.sceneManager.registerScene(s.id, s.name, s.config));
-      await this.sceneManager.loadScene(0);
-    }
-    
-    return JSON.parse(JSON.stringify(newScenes));
   }
 }

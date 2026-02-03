@@ -1,10 +1,11 @@
 /**
  * WebSocket client for server communication
+ * Updated to remove hand tracking
  */
 import { CONFIG } from './config.js';
 
 export class WebSocketClient {
-  constructor(onFrameData, onHandData, onBallData) {
+  constructor(onFrameData, onBallData) {
     this.ws = null;
     this.reconnectAttempts = 0;
     this.isReady = false;
@@ -12,11 +13,10 @@ export class WebSocketClient {
     
     // Callbacks
     this.onFrameData = onFrameData;
-    this.onHandData = onHandData;
     this.onBallData = onBallData;
     this.onConnectionChange = null;
     this.onCalibrationRequest = null;
-    this.onCalibrationComplete = null; // NEW: Called when calibration data received
+    this.onCalibrationComplete = null;
     
     // Performance tracking
     this.frameCount = 0;
@@ -69,7 +69,6 @@ export class WebSocketClient {
       
       switch(data.type) {
         case 'calibration_request':
-          // Server is waiting for calibration choice
           console.log('Server requesting calibration choice');
           if (this.onCalibrationRequest) {
             this.onCalibrationRequest();
@@ -78,11 +77,9 @@ export class WebSocketClient {
           
         case 'calibration':
           console.log('Received calibration data');
-          // Calibration complete - notify app
           if (this.onCalibrationComplete) {
             this.onCalibrationComplete();
           }
-          // Also auto-start streaming
           this.send({ type: 'start_stream' });
           break;
           
@@ -90,20 +87,10 @@ export class WebSocketClient {
           this.handleFrame(data);
           break;
           
-        case 'hand_data':
-          if (this.onHandData) {
-            this.onHandData(data.data);
-          }
-          break;
-          
         case 'ball_data':
           if (this.onBallData) {
             this.onBallData(data.data);
           }
-          break;
-          
-        case 'video_url':
-          this.resolveVideoRequest(data);
           break;
           
         case 'cursor_navigate':
@@ -133,11 +120,7 @@ export class WebSocketClient {
       this.onFrameData(data.frame);
     }
     
-    // Update tracking data
-    if (this.onHandData && data.hands) {
-      this.onHandData(data.hands);
-    }
-    
+    // Update ball tracking data
     if (this.onBallData && data.balls) {
       this.onBallData(data.balls);
     }
@@ -186,52 +169,12 @@ export class WebSocketClient {
     return true;
   }
   
-  // Send calibration choice to server
   sendCalibrationChoice(useLast) {
     console.log(`Sending calibration choice: ${useLast ? 'use last' : 'calibrate now'}`);
     this.send({
       type: 'calibration_choice',
       use_last: useLast
     });
-  }
-  
-  async requestVideoUrl(youtubeUrl) {
-    return new Promise((resolve, reject) => {
-      const requestId = Date.now();
-      
-      // Store resolver
-      this.pendingRequests.set(requestId, { resolve, reject });
-      
-      // Send request
-      this.send({
-        type: 'get_video_url',
-        url: youtubeUrl,
-        requestId
-      });
-      
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        if (this.pendingRequests.has(requestId)) {
-          this.pendingRequests.delete(requestId);
-          reject(new Error('Video URL request timeout'));
-        }
-      }, 30000);
-    });
-  }
-  
-  resolveVideoRequest(data) {
-    // Find pending request (for now, resolve first one)
-    const [requestId, pending] = Array.from(this.pendingRequests.entries())[0] || [];
-    
-    if (pending) {
-      this.pendingRequests.delete(requestId);
-      
-      if (data.success) {
-        pending.resolve(data);
-      } else {
-        pending.reject(new Error(data.error || 'Failed to fetch video URL'));
-      }
-    }
   }
   
   isConnected() {
