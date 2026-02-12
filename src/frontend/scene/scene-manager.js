@@ -1,10 +1,13 @@
 /**
- * Scene Manager - Core scene loading and parameter management
- * Updated to use expression-system.js only
+ * Scene Manager (Refactored) - Uses EffectRegistry
+ * 
+ * Now automatically handles any registered effect!
+ * No need to add applyXxxSettings methods for each effect.
  */
 import { CONFIG } from '../core/config.js';
 import { ParameterAnimator } from './expression-system.js';
 import { SequenceManager } from './sequence-manager.js';
+import { effectRegistry } from '../tracking/effect-registry.js';
 
 export class SceneManager {
   constructor(ballManager, wsClient) {
@@ -38,7 +41,6 @@ export class SceneManager {
     this.currentSceneIndex = index;
     console.log(`Loading scene: ${sceneData.name}`);
     
-    // Always load as sequence
     await this.loadSequenceScene(sceneData);
     
     return sceneData;
@@ -58,15 +60,61 @@ export class SceneManager {
       this.ballManager.setConnectionRouting(sceneData.config.routing, sceneData.config.streams);
     }
 
+    // Apply ball connections (special case - not in registry)
     if (sceneData.config.ballConnections) {
       this.applyBallConnectionSettings(sceneData.config.ballConnections);
     }
     
+    // *** AUTO-APPLY ALL REGISTERED EFFECTS ***
+    // This will enable effects in config and disable others
+    this.applyAllEffects(sceneData.config);
+    
     this.animator.resetTime();
   }
   
+  /**
+   * Automatically apply settings for all registered effects
+   * Looks for config keys matching effect names (e.g., 'ballTrails', 'ballRipples')
+   * IMPORTANT: Disables effects that are not in the config!
+   */
+  applyAllEffects(config) {
+    // Get all registered effect names
+    const effectNames = effectRegistry.getAllNames();
+    
+    for (const effectName of effectNames) {
+      // Check for both 'effectName' and 'ballEffectName' keys
+      const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
+      const settings = config[configKey] || config[effectName];
+      
+      if (settings) {
+        console.log(`[SceneManager] Applying ${effectName} settings:`, settings);
+        this.applyEffectSettings(effectName, settings);
+      } else {
+        // Effect not in config - explicitly disable it
+        console.log(`[SceneManager] Disabling ${effectName} (not in config)`);
+        this.ballManager.setEffectEnabled(effectName, false);
+      }
+    }
+  }
+  
+  /**
+   * Generic effect settings application
+   * Works for ANY registered effect!
+   */
+  applyEffectSettings(effectName, settings) {
+    // First, enable/disable the effect
+    if (settings.enabled !== undefined) {
+      this.ballManager.setEffectEnabled(effectName, settings.enabled);
+    }
+    
+    // Then apply configuration (whether enabling or just updating)
+    // This ensures fresh config when re-enabling an effect
+    if (effectRegistry.has(effectName)) {
+      effectRegistry.applyConfig(effectName, settings);
+    }
+  }
+  
   updateDynamicParameters() {
-    // Get current ball data from ball manager
     const ballData = this.ballManager.getBallData();
     
     if (this.sequenceManager.isActive) {
@@ -153,6 +201,9 @@ export class SceneManager {
     if (config.ballConnections) {
       this.applyBallConnectionSettings(config.ballConnections);
     }
+    
+    // *** AUTO-UPDATE ALL REGISTERED EFFECTS ***
+    this.applyAllEffects(config);
   }
   
   applyBallConnectionSettings(settings) {
@@ -170,15 +221,29 @@ export class SceneManager {
     }
   }
   
+  // ============================================================================
+  // LEGACY COMPATIBILITY - Keep old methods working
+  // ============================================================================
+  
+  applyBallTrailSettings(settings) {
+    this.applyEffectSettings('trails', settings);
+  }
+  
+  applyBallRippleSettings(settings) {
+    this.applyEffectSettings('ripples', settings);
+  }
+  
+  // ============================================================================
+  // SCENE UTILITIES
+  // ============================================================================
+  
   setCameraVisible(visible) {
-    // Delegate to ThreeSceneManager
     if (this.threeSceneRef) {
       this.threeSceneRef.setCameraVisible(visible);
     }
   }
   
   mapCameraToWorld(normalizedX, normalizedY) {
-    // Delegate to ThreeSceneManager
     if (this.threeSceneRef) {
       return this.threeSceneRef.mapCameraToWorld(normalizedX, normalizedY);
     }

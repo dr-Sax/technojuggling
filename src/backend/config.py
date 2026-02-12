@@ -8,8 +8,6 @@ CAMERA_INDEX = 0
 
 # Resolution fallback order (for 60fps support)
 RESOLUTION_ATTEMPTS = [
-    (424, 240),
-    (640, 480),
     (640, 360),
 ]
 
@@ -29,7 +27,7 @@ JPEG_QUALITY = 60
 TARGET_FPS = 30
 
 # ===== BALL TRACKING SETTINGS =====
-NUM_BALLS = 4
+NUM_BALLS = 3
 MIN_BALL_RADIUS = 5
 MAX_BALL_RADIUS = 100
 MIN_BALL_AREA = 50

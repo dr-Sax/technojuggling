@@ -189,34 +189,31 @@
   <div id="code-editor" data-initial-code='{
   clips: {
     A: {url: "frog-ribbet.mp4", start: 0, end: 10},
-    B: {url: "catmull-face.mp4", start: 0, end: 6},
   },
 
   presets: {
   },
   
   streams: {
-    streamA: "A B"
+    streamA: "A"
   },
   
   routing: {
     ball_0: {stream: "streamA", offset: 0},
     ball_1: {stream: "streamA", offset: 0},
-    ball_2: {stream: "streamA", offset: 0},
-    ball_3: {stream: "streamA", offset: 0},
+    ball_2: {stream: "streamA", offset: 0}
   },
-
-  ballConnections: {
-    enabled: true,
-    mode: "circles",
-    filled: true,
-    perCircleColors: true, // Enable per-circle content
-    circleContents: ["streamA", "streamA", "streamA", "streamA"], // First circle shows clip A, second shows clip B, third shows blue
-    lineWidth: 5,
-    segments: 3,
-    opacity: 0.2 // Controls blend strength
+  ballRipples: {
+      enabled: true,
+      maxRipples: 2,            // Just a couple
+      rippleInterval: 1.5,       // Slow, zen-like
+      expansionSpeed: 1.0,       // Slow expansion
+      maxRadius: 10.0,          // Large ripples
+      ringWidth: 0.3,           // Thick rings
+      color: 0x4444ff,          // Soft blue
+      segments: 64,             // Very smooth
+      zIndex: 0.01
   },
-
   showCamera: false
 }'></div>
   
