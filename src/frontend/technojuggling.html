@@ -195,7 +195,7 @@
   },
   
   streams: {
-    streamA: "A"
+    streamA: "A{scale: 7, useMask: 1, maskShape: triangle, maskRadius: .5}",
   },
   
   routing: {
@@ -203,16 +203,18 @@
     ball_1: {stream: "streamA", offset: 0},
     ball_2: {stream: "streamA", offset: 0}
   },
-  ballRipples: {
-      enabled: true,
-      maxRipples: 2,            // Just a couple
-      rippleInterval: 1.5,       // Slow, zen-like
-      expansionSpeed: 1.0,       // Slow expansion
-      maxRadius: 10.0,          // Large ripples
-      ringWidth: 0.3,           // Thick rings
-      color: 0x4444ff,          // Soft blue
-      segments: 64,             // Very smooth
-      zIndex: 0.01
+  ballTrails: {
+    enabled: true,
+    count: 5,
+    maxDelay: .1,
+    radiusRange: [0.5, 2.0],
+    sides: 20,
+    perBallColors: true,
+    ballColors: {
+      0: [0xff0000, 0xff00ff],  // Ball 0: Red → Magenta
+      1: [0x00ff00, 0x00ffff],  // Ball 1: Green → Cyan
+      2: [0xffff00, 0xff8800]   // Ball 3: Yellow → Orange
+    }
   },
   showCamera: false
 }'></div>

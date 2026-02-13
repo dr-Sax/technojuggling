@@ -1,3 +1,11 @@
+"""
+WebSocket Handler - Streams frames and ball data to the frontend.
+
+Performance optimizations:
+- Frame sent as binary WebSocket message (no base64, no JSON wrapping)
+- Ball data sent as separate small JSON message
+- No fixed sleep between sends — sends as fast as new frames arrive
+"""
 import asyncio
 import json
 import base64
@@ -77,7 +85,7 @@ class WebSocketHandler:
         set_calibration_choice(use_last)
     
     async def _handle_stream(self, websocket):
-        """Stream frames and ball tracking data"""
+        """Stream frames and ball tracking data — optimized for throughput."""
         timeout = 120
         start_time = time.time()
         
@@ -94,7 +102,9 @@ class WebSocketHandler:
         last_stats_time = time.time()
         last_frame_id = -1
         
-        frame_interval = 1.0 / self.actual_fps if self.actual_fps > 0 else 1.0 / 30
+        # Minimum time between sends to avoid busy-spinning
+        # Slightly less than frame interval to not miss frames
+        min_interval = (1.0 / self.actual_fps) * 0.5 if self.actual_fps > 0 else 0.010
         
         while websocket in self.connected_clients:
             if self.frame_processor is None:
@@ -104,29 +114,33 @@ class WebSocketHandler:
             frame_data = self.frame_processor.get_latest_frame_data()
             
             if frame_data['encoded_frame'] is None or frame_data['frame_id'] == last_frame_id:
-                await asyncio.sleep(0.001)
+                await asyncio.sleep(0.002)
                 continue
             
             last_frame_id = frame_data['frame_id']
             
-            frame_b64 = base64.b64encode(frame_data['encoded_frame']).decode('utf-8')
+            try:
+                # Send frame as binary (no base64, no JSON overhead)
+                await websocket.send(frame_data['encoded_frame'])
+                
+                # Send ball data as small JSON
+                ball_msg = json.dumps({
+                    'type': 'balls',
+                    'balls': frame_data['balls'],
+                    'frame_id': frame_data['frame_id'],
+                    'timestamp': time.time()
+                })
+                await websocket.send(ball_msg)
+                
+                frame_count += 1
+            except:
+                break
             
-            combined_data = {
-                'type': 'frame',
-                'frame': frame_b64,
-                'width': self.camera_width,
-                'height': self.camera_height,
-                'balls': frame_data['balls'],
-                'timestamp': time.time(),
-                'frame_id': frame_data['frame_id']
-            }
-            
-            await websocket.send(json.dumps(combined_data))
-            frame_count += 1
-            
-            if time.time() - last_stats_time > 2.0:
+            # Stats logging
+            now = time.time()
+            if now - last_stats_time > 2.0:
                 stats = self.frame_processor.get_performance_stats()
-                stream_fps = frame_count / 2.0
+                stream_fps = frame_count / (now - last_stats_time)
                 
                 print(f"Camera: {stats['fps']:.1f} FPS | "
                       f"Stream: {stream_fps:.1f} FPS | "
@@ -134,9 +148,10 @@ class WebSocketHandler:
                       f"Balls: {stats['ball_count']}")
                 
                 frame_count = 0
-                last_stats_time = time.time()
+                last_stats_time = now
             
-            await asyncio.sleep(frame_interval)
+            # Yield to event loop briefly — don't sleep a full frame interval
+            await asyncio.sleep(min_interval)
     
     def get_client_count(self):
         return len(self.connected_clients)

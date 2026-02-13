@@ -7,6 +7,8 @@ export class VisualEffectsProcessor {
   constructor() {
     this.videos = new Map(); // videoId → { canvas, texture, material, uniforms }
     this.initialized = false;
+    this.TARGET_VIDEO_FPS = 10; // Texture upload rate for ball videos (saves GPU bandwidth)
+    this.textureUpdateInterval = 1000 / this.TARGET_VIDEO_FPS;
   }
   
   initialize() {
@@ -28,10 +30,13 @@ export class VisualEffectsProcessor {
     }
     
     try {
-      // Create video texture
-      const texture = new THREE.VideoTexture(videoElement);
+      // Use regular Texture instead of VideoTexture for manual update control.
+      // VideoTexture updates every render frame (~60fps), which is wasteful
+      // for small masked ball videos. We throttle to TARGET_VIDEO_FPS instead.
+      const texture = new THREE.Texture(videoElement);
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
       
       // Create shader material with all effects
       const uniforms = {
@@ -73,7 +78,8 @@ export class VisualEffectsProcessor {
         texture: texture,
         material: material,
         uniforms: uniforms,
-        element: videoElement
+        element: videoElement,
+        lastTextureUpdate: 0
       });
       
       console.log(`✓ Visual FX added for ${videoId}`);
@@ -148,6 +154,23 @@ export class VisualEffectsProcessor {
   getMaterial(videoId) {
     const video = this.videos.get(videoId);
     return video ? video.material : null;
+  }
+  
+  /**
+   * Throttled texture update — call from render loop.
+   * Only uploads video frames to GPU at TARGET_VIDEO_FPS instead of every render frame.
+   */
+  updateTextures() {
+    const now = performance.now();
+    for (const video of this.videos.values()) {
+      if (now - video.lastTextureUpdate >= this.textureUpdateInterval) {
+        // Only update if video is actually playing and has data
+        if (video.element && video.element.readyState >= 2 && !video.element.paused) {
+          video.texture.needsUpdate = true;
+          video.lastTextureUpdate = now;
+        }
+      }
+    }
   }
   
   /**

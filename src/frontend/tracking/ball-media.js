@@ -1,6 +1,6 @@
 /**
- * BallMedia - Just handles media (video/image) on balls
- * No geometry management - that's in separate classes
+ * BallMedia - Manages media (video/image) display on tracked balls.
+ * Accepts pre-loaded elements from MediaPool via attachFromPool().
  */
 import { MediaObject } from '../rendering/media-object.js';
 
@@ -12,11 +12,17 @@ export class BallMedia {
     this.media = {}; // ballId -> MediaObject
   }
   
-  async attach(ballId, url, config = {}) {
+  /**
+   * Attach a pre-loaded media element from MediaPool to a ball.
+   * @param {string} ballId 
+   * @param {object} poolMedia - {element, type, src} from MediaPool
+   * @param {object} config - {startTime, endTime, zIndex, scale, timeOffset, locked}
+   */
+  async attachFromPool(ballId, poolMedia, config = {}) {
     if (this.media[ballId]) this.media[ballId].dispose();
     
     const mediaObj = new MediaObject(this.sceneManager, this.audioProcessor, this.visualFX, `ball-${ballId}`);
-    await mediaObj.createMedia(url, config.startTime || 0, config.endTime || null, config.zIndex || 0.1, config.scale || 1.0, config.timeOffset || 0);
+    await mediaObj.attachElement(poolMedia.element, poolMedia.type, config);
     mediaObj.setLocked(config.locked || false);
     mediaObj.setVisible(false);
     

@@ -64,6 +64,7 @@ class TellAVision {
     );
 
     this.threeScene.setSceneManager(this.sceneManager);
+    this.threeScene.setVisualFX(this.visualFX);
     
     // 7. Initialize UI controller with WebSocket client (for cursor navigation)
     const codeEditorDiv = document.getElementById('code-editor');

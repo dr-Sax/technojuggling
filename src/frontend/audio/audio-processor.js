@@ -90,7 +90,15 @@ export class AudioProcessor {
     
     try {
       // Create Web Audio source from video
-      const source = this.audioContext.createMediaElementSource(videoElement);
+      // Guard: a video element can only be connected to one MediaElementSourceNode ever.
+      // If it was already connected (e.g. reused from MediaPool), reuse the existing source.
+      let source;
+      if (videoElement._audioSource) {
+        source = videoElement._audioSource;
+      } else {
+        source = this.audioContext.createMediaElementSource(videoElement);
+        videoElement._audioSource = source;
+      }
       
       // Create a Tone.js Gain node to act as input bridge
       const toneInputGain = new Tone.Gain(1.0);

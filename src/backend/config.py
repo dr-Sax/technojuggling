@@ -1,12 +1,10 @@
 """
 Configuration settings for Tell-A-Vision server
-Ball tracking only, optimized for low latency
 """
 
 # ===== CAMERA SETTINGS =====
 CAMERA_INDEX = 0
 
-# Resolution fallback order (for 60fps support)
 RESOLUTION_ATTEMPTS = [
     (640, 360),
 ]
@@ -38,11 +36,3 @@ HOST = "127.0.0.1"
 
 # ===== PERFORMANCE SETTINGS =====
 FRAME_BUFFER_SIZE = 30
-
-# ===== BIGTRACK FOOT MOUSE =====
-BIGTRACK_VENDOR_ID = 0x2046
-BIGTRACK_PRODUCT_ID = 0x0126
-BIGTRACK_SENSITIVITY = 0.005
-BIGTRACK_VERTICAL_MULTIPLIER = 3.0
-BIGTRACK_NAV_THRESHOLD = 0.3
-BIGTRACK_DOUBLE_CLICK_THRESHOLD = 0.5

@@ -1,7 +1,5 @@
 /**
  * ConnectionCircles - Draws circles at midpoints between balls
- * 
- * Updated to use GeometryPrimitives, MaterialFactory and plugin system
  */
 import { GeometryBase } from '../rendering/geometry-base.js';
 import { GeometryPrimitives } from '../rendering/geometry-primitives.js';
@@ -11,7 +9,7 @@ export class ConnectionCircles extends GeometryBase {
   constructor(sceneManager, ballMedia = null) {
     super(sceneManager);
     this.ballMedia = ballMedia;
-    this.routing = {}; // ball_id -> stream name
+    this.routing = {};
     this.config = {
       color: 0xffffff,
       opacity: 1.0,
@@ -37,18 +35,13 @@ export class ConnectionCircles extends GeometryBase {
   }
   
   _createFilled(cx, cy, radius, content, p1, p2, index) {
-    // Get material (video texture or color)
     const fillMat = this._getMaterial(content);
-    
-    // Use GeometryPrimitives for circle with perimeter
     const geometries = GeometryPrimitives.circle(radius, this.config.segments, this.config.lineWidth);
     
-    // Fill circle
     const fillMesh = new THREE.Mesh(geometries.fill, fillMat);
     fillMesh.position.set(cx, cy, 0);
     this.scene.add(fillMesh);
     
-    // White perimeter (if exists)
     let perimMesh = null;
     if (geometries.perimeter) {
       const perimMat = MaterialFactory.basic({ color: 0xffffff, side: THREE.DoubleSide });
@@ -58,27 +51,18 @@ export class ConnectionCircles extends GeometryBase {
     }
     
     return {
-      mesh: fillMesh,
-      geometry: geometries.fill,
-      material: fillMat,
-      perimeterMesh: perimMesh,
-      perimeterGeometry: geometries.perimeter,
+      mesh: fillMesh, geometry: geometries.fill, material: fillMat,
+      perimeterMesh: perimMesh, perimeterGeometry: geometries.perimeter,
       perimeterMaterial: perimMesh?.material,
-      lastPos: { p1, p2 },
-      radius,
-      content,
-      index
+      lastPos: { p1, p2 }, radius, content, index
     };
   }
   
   _createRing(cx, cy, radius, content, p1, p2, index) {
-    // Use GeometryPrimitives for ring
     const innerRad = Math.max(0.01, radius - this.config.lineWidth);
     const geo = GeometryPrimitives.ring(innerRad, radius, this.config.segments);
     
     const color = typeof content === 'number' ? content : this.config.color;
-    
-    // Use MaterialBuilder
     const mat = new MaterialBuilder()
       .color(color)
       .opacity(this.config.opacity)
@@ -93,11 +77,9 @@ export class ConnectionCircles extends GeometryBase {
   }
   
   _getMaterial(content) {
-    // Check if content is a stream name
     if (typeof content === 'string' && this.ballMedia) {
       const element = this._getElementForStream(content);
       if (element) {
-        // Use MaterialFactory for texture
         try {
           return MaterialFactory.texture(element, {
             opacity: this.config.opacity,
@@ -109,7 +91,6 @@ export class ConnectionCircles extends GeometryBase {
       }
     }
     
-    // Fallback to color with MaterialBuilder
     const color = typeof content === 'number' ? content : this.config.color;
     return new MaterialBuilder()
       .color(color)
@@ -142,6 +123,48 @@ export class ConnectionCircles extends GeometryBase {
     if (moved) this.add(id, { p1, p2, content, index });
   }
   
+  /**
+   * Update circle connections from ball positions
+   */
+  updateFromPositions(positions) {
+    const ids = Object.keys(positions);
+    if (ids.length < 2) {
+      this.clear();
+      return;
+    }
+    
+    let index = 0;
+    
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const connId = `circle-${ids[i]}-${ids[j]}`;
+        const p1 = this.sceneManager.mapCameraToWorld(positions[ids[i]].x, positions[ids[i]].y);
+        const p2 = this.sceneManager.mapCameraToWorld(positions[ids[j]].x, positions[ids[j]].y);
+        const content = this.config.perCircleColors 
+          ? this.config.circleContents[index % this.config.circleContents.length]
+          : this.config.color;
+        
+        if (this.has(connId)) {
+          this.update(connId, { p1, p2, content, index });
+        } else {
+          this.add(connId, { p1, p2, content, index });
+        }
+        index++;
+      }
+    }
+    
+    this.layerByRadius();
+    
+    // Remove circles for balls that no longer exist
+    const validIds = new Set(ids);
+    for (const id of this.objects.keys()) {
+      const parts = id.replace('circle-', '').split('-');
+      if (!validIds.has(parts[0]) || !validIds.has(parts[1])) {
+        this.remove(id);
+      }
+    }
+  }
+  
   remove(id) {
     const obj = this.objects.get(id);
     if (!obj) return;
@@ -169,11 +192,7 @@ export class ConnectionCircles extends GeometryBase {
     
     if (needsRecreate) {
       const snapshot = Array.from(this.objects.entries()).map(([id, obj]) => ({
-        id,
-        p1: obj.lastPos.p1,
-        p2: obj.lastPos.p2,
-        content: obj.content,
-        index: obj.index
+        id, p1: obj.lastPos.p1, p2: obj.lastPos.p2, content: obj.content, index: obj.index
       }));
       this.clear();
       snapshot.forEach(s => this.add(s.id, { p1: s.p1, p2: s.p2, content: s.content, index: s.index }));
@@ -196,7 +215,6 @@ export class ConnectionCircles extends GeometryBase {
     this.routing = routing;
   }
   
-  // Layer circles by radius
   layerByRadius() {
     const objs = Array.from(this.objects.entries())
       .map(([id, obj]) => ({ id, obj }))

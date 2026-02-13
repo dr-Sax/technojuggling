@@ -39,13 +39,39 @@ export class MediaPool {
     }
 
     /**
-     * Assign a clip to an object
+     * Assign a clip to an object.
+     * Each object gets its own video element (cloned from the pool's master copy)
+     * so multiple balls can independently play the same clip.
      */
     async assignClipToObject(objectId, clipId, url) {
         try {
-            const media = await this.getMedia(clipId, url);
+            const master = await this.getMedia(clipId, url);
             this.assignments.set(objectId, clipId);
-            return media;
+            
+            // Each object needs its own element for independent playback
+            if (master.type === 'video') {
+                const clone = master.element.cloneNode(false);
+                clone.src = master.src;
+                clone.crossOrigin = 'anonymous';
+                clone.muted = true;
+                clone.playsInline = true;
+                
+                // Wait for clone to be ready
+                await new Promise((resolve, reject) => {
+                    if (clone.readyState >= 2) {
+                        resolve();
+                    } else {
+                        clone.addEventListener('loadeddata', resolve, { once: true });
+                        clone.addEventListener('error', reject, { once: true });
+                        clone.load();
+                    }
+                });
+                
+                return { element: clone, type: 'video', src: master.src };
+            }
+            
+            // Images can be safely shared (stateless)
+            return master;
         } catch (error) {
             console.error(`[MediaPool] Failed to assign ${clipId} to ${objectId}:`, error);
             throw error;

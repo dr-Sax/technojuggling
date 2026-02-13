@@ -1,7 +1,7 @@
 /**
- * BallTrackingManager (Refactored) - Uses EffectRegistry
+ * BallTrackingManager - Uses EffectRegistry for extensible ball effects
  * 
- * Now adding a new effect is simple:
+ * Adding a new effect:
  * 1. Import the effect class
  * 2. Register it with effectRegistry.register()
  * 3. Done! No other code changes needed.
@@ -22,93 +22,53 @@ import { VectorField } from './vector-field.js';
 import { BallSincWaves } from './ball-sinc-waves.js';
 import { effectRegistry } from './effect-registry.js';
 
-// Auto-debug flag
-const AUTO_DEBUG = true;
-
-function log(...args) {
-  if (AUTO_DEBUG) console.log('[BallTracking DEBUG]', ...args);
-}
-
 // ============================================================================
-// REGISTER ALL EFFECTS HERE
+// REGISTER ALL EFFECTS HERE — this is the ONLY place you need to add new ones
 // ============================================================================
-// This is the ONLY place you need to add new effects!
 
 effectRegistry.register('trails', BallTrails, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
-
 effectRegistry.register('ripples', BallRipples, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
-
 effectRegistry.register('particles', BallParticles, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
-
 effectRegistry.register('3Dshapes', Ball3DShapes, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
-
 effectRegistry.register('3Dtrails', Ball3DTrails, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
 effectRegistry.register('3DShapesThick', Ball3DShapesThick, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
 effectRegistry.register('spiderweb', BallSpiderweb, {
-  updateMethod: null,  // We'll handle this manually
-  clearMethod: 'clear'
+  updateMethod: null, clearMethod: 'clear'
 });
 effectRegistry.register('3DField', Ball3DField, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
 effectRegistry.register('vortex', BallVortex, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear'
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
 effectRegistry.register('vectorField', VectorField, {
-  updateMethod: null,        // We handle manually
-  clearMethod: 'clear',
-  removeBallMethod: null     // Doesn't need per-ball removal
+  updateMethod: null, clearMethod: 'clear', removeBallMethod: null
 });
 effectRegistry.register('sincwaves', BallSincWaves, {
-    updateMethod: 'updateBall',
-    requiresWorldPos: true,
-    hasEnabled: true,
-    hasConfig: true,
-    clearMethod: 'clear',
-    removeBallMethod: 'removeBall'
-  });
-
-// Add more effects here in the future - that's it!
-// effectRegistry.register('particles', BallParticles);
-// effectRegistry.register('aura', BallAura);
+  updateMethod: 'updateBall', requiresWorldPos: true,
+  hasEnabled: true, hasConfig: true,
+  clearMethod: 'clear', removeBallMethod: 'removeBall'
+});
 
 // ============================================================================
 
 export class BallTrackingManager {
   constructor(sceneManager, audioProcessor, visualFX) {
-    log('Constructor called');
-    
     this.sceneManager = sceneManager;
     
-    // Core media and connections (not in registry - special behavior)
+    // Core media and connections (not in registry — special behavior)
     this.media = new BallMedia(sceneManager, audioProcessor, visualFX);
     this.lines = new ConnectionLines(sceneManager);
     this.circles = new ConnectionCircles(sceneManager, this.media);
@@ -116,88 +76,44 @@ export class BallTrackingManager {
     // Initialize all registered effects
     effectRegistry.initialize(sceneManager, audioProcessor, visualFX);
     
-    log('All geometry classes initialized');
-    
     // Track which effects are enabled
-    this.enabledEffects = new Set(); // Set of effect names
+    this.enabledEffects = new Set();
     
-    // Connection mode (special case - not an effect)
+    // Connection mode (special case — not an effect)
     this.connectionMode = 'none';
     
     // Data for external consumers
     this.ballData = {};
-    
-    // Auto-print debug
-    this.debugInterval = setInterval(() => {
-      this.autoPrintDebug();
-    }, 3000);
-    
-    log('Initialization complete');
-    
-    // Expose to window
-    if (typeof window !== 'undefined') {
-      window.ballTrackingManager = this;
-      window.effectRegistry = effectRegistry;
-      log('Exposed to window.ballTrackingManager and window.effectRegistry');
-    }
-  }
-  
-  autoPrintDebug() {
-    const info = this.getDebugInfo();
-    
-    console.log('╔════════════════════════════════════════════════╗');
-    console.log('║        BALL TRACKING AUTO-DEBUG                ║');
-    console.log('╠════════════════════════════════════════════════╣');
-    console.log('║ Connection Mode:', info.connectionMode.padEnd(30), '║');
-    console.log('║ Enabled Effects:', Array.from(this.enabledEffects).join(', ').padEnd(29), '║');
-    console.log('║ Ball Count:', String(info.ballCount).padEnd(35), '║');
-    
-    // Show effect object counts
-    for (const [name, effectInfo] of Object.entries(info.effects)) {
-      const label = `${name} Objects:`;
-      console.log('║', label.padEnd(15), String(effectInfo.objectCount).padEnd(32), '║');
-    }
-    
-    console.log('║ Line Objects:', String(info.lineCount).padEnd(33), '║');
-    console.log('║ Circle Objects:', String(info.circleCount).padEnd(30), '║');
-    console.log('╚════════════════════════════════════════════════╝');
   }
   
   // ============================================================================
-  // BALL MEDIA (unchanged)
+  // BALL MEDIA
   // ============================================================================
   
-  async displayBallMedia(ballId, mediaUrl, config = {}) {
-    log(`displayBallMedia(${ballId}, ${mediaUrl})`);
-    const result = await this.media.attach(ballId, mediaUrl, config);
-    log(`✓ Ball ${ballId} media attached`);
-    return result;
+  async displayBallMedia(ballId, poolMedia, config = {}) {
+    return await this.media.attachFromPool(ballId, poolMedia, config);
   }
   
   applyParameters(ballId, params) {
-    log(`applyParameters(${ballId})`, params);
     this.media.applyParams(ballId, params);
   }
   
   setBallLocked(ballId, locked) {
-    log(`setBallLocked(${ballId}, ${locked})`);
     const m = this.media.media[ballId];
     if (m) m.setLocked(locked);
   }
   
   clearBall(ballId) {
-    log(`clearBall(${ballId})`);
     this.media.remove(ballId);
-    effectRegistry.removeBall(ballId); // Auto-removes from all effects
+    effectRegistry.removeBall(ballId);
     delete this.ballData[`ball_${ballId}`];
   }
   
   clearAll() {
-    log('clearAll()');
     this.media.clear();
     this.lines.clear();
     this.circles.clear();
-    effectRegistry.clearAll(); // Auto-clears all effects
+    effectRegistry.clearAll();
     this.ballData = {};
   }
   
@@ -210,166 +126,59 @@ export class BallTrackingManager {
     
     const positions = {};
     
-    // Update each ball
     data.balls.forEach(ball => {
-      // Update media position
       this.media.updatePosition(ball.id, ball.x, ball.y);
       
-      // Get normalized position from media
       const pos = this.media.getPosition(ball.id);
       if (pos) {
         positions[ball.id] = pos;
         
-        // Store data
         this.ballData[`ball_${ball.id}`] = {
-          x: pos.y,
-          y: 1 - pos.x,
-          vx: ball.vx || 0,
-          vy: ball.vy || 0
+          x: pos.y, y: 1 - pos.x,
+          vx: ball.vx || 0, vy: ball.vy || 0
         };
         
-        // Update all enabled effects automatically
+        // Update all enabled effects
         const mediaObj = this.media.media[ball.id];
         if (mediaObj && mediaObj.mesh) {
           const worldPos = {
             x: mediaObj.mesh.position.x,
             y: mediaObj.mesh.position.y
           };
-          
-          // Registry handles updating all enabled effects
           effectRegistry.updateBall(ball.id, worldPos, this.enabledEffects);
         }
       }
     });
-    // Update connections (still special case)
+
+    // Update connections (delegated to connection classes)
     this._updateConnections(positions);
+
+    // Special-case effects that need all positions at once
     if (this.enabledEffects.has('spiderweb')) {
       const spiderweb = effectRegistry.get('spiderweb');
-      if (spiderweb) {
-        spiderweb.updateConnections(positions);
-      }
+      if (spiderweb) spiderweb.updateConnections(positions);
     }
-    
-    // ← ADD THIS
-    // Update vector field if enabled
     if (this.enabledEffects.has('vectorField')) {
       const vectorField = effectRegistry.get('vectorField');
-      if (vectorField) {
-        vectorField.updateField(positions);
-      }
+      if (vectorField) vectorField.updateField(positions);
     }
   }
   
   _updateConnections(positions) {
-    const ids = Object.keys(positions);
-    
     if (this.connectionMode === 'mesh') {
-      this._updateMesh(positions, ids);
+      this.lines.updateMesh(positions);
     } else if (this.connectionMode === 'sequential') {
-      this._updateSequential(positions, ids);
+      this.lines.updateSequential(positions);
     } else if (this.connectionMode === 'circles') {
-      this._updateCircles(positions, ids);
-    }
-  }
-  
-  _updateMesh(positions, ids) {
-    const validConnIds = new Set();
-    
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const connId = `${ids[i]}-${ids[j]}`;
-        const p1 = this.sceneManager.mapCameraToWorld(positions[ids[i]].x, positions[ids[i]].y);
-        const p2 = this.sceneManager.mapCameraToWorld(positions[ids[j]].x, positions[ids[j]].y);
-        
-        if (this.lines.has(connId)) {
-          this.lines.update(connId, { p1, p2 });
-        } else {
-          this.lines.add(connId, { p1, p2 });
-        }
-        validConnIds.add(connId);
-      }
-    }
-    
-    for (const id of this.lines.objects.keys()) {
-      if (!validConnIds.has(id)) this.lines.remove(id);
-    }
-  }
-  
-  _updateSequential(positions, ids) {
-    if (ids.length < 2) {
-      this.lines.clear();
-      return;
-    }
-    
-    const sorted = ids.sort();
-    const validConnIds = new Set();
-    
-    for (let i = 0; i < sorted.length; i++) {
-      const next = (i + 1) % sorted.length;
-      const connId = `${sorted[i]}-${sorted[next]}`;
-      const p1 = this.sceneManager.mapCameraToWorld(positions[sorted[i]].x, positions[sorted[i]].y);
-      const p2 = this.sceneManager.mapCameraToWorld(positions[sorted[next]].x, positions[sorted[next]].y);
-      
-      if (this.lines.has(connId)) {
-        this.lines.update(connId, { p1, p2 });
-      } else {
-        this.lines.add(connId, { p1, p2 });
-      }
-      validConnIds.add(connId);
-    }
-    
-    for (const id of this.lines.objects.keys()) {
-      if (!validConnIds.has(id)) this.lines.remove(id);
-    }
-  }
-  
-  _updateCircles(positions, ids) {
-    if (ids.length < 2) {
-      this.circles.clear();
-      return;
-    }
-    
-    const pairs = [];
-    let index = 0;
-    
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const connId = `circle-${ids[i]}-${ids[j]}`;
-        const p1 = this.sceneManager.mapCameraToWorld(positions[ids[i]].x, positions[ids[i]].y);
-        const p2 = this.sceneManager.mapCameraToWorld(positions[ids[j]].x, positions[ids[j]].y);
-        const content = this.circles.config.perCircleColors 
-          ? this.circles.config.circleContents[index % this.circles.config.circleContents.length]
-          : this.circles.config.color;
-        
-        if (this.circles.has(connId)) {
-          this.circles.update(connId, { p1, p2, content, index });
-        } else {
-          this.circles.add(connId, { p1, p2, content, index });
-        }
-        
-        const obj = this.circles.get(connId);
-        if (obj) pairs.push({ id: connId, radius: obj.radius });
-        index++;
-      }
-    }
-    
-    this.circles.layerByRadius();
-    
-    const validIds = new Set(ids);
-    for (const id of this.circles.objects.keys()) {
-      const parts = id.replace('circle-', '').split('-');
-      if (!validIds.has(parts[0]) || !validIds.has(parts[1])) {
-        this.circles.remove(id);
-      }
+      this.circles.updateFromPositions(positions);
     }
   }
   
   // ============================================================================
-  // MODE CONTROL (connections - still special)
+  // CONNECTION CONTROL
   // ============================================================================
   
   setConnectionsEnabled(enabled) {
-    log('setConnectionsEnabled:', enabled);
     if (!enabled) {
       this.connectionMode = 'none';
       this.lines.clear();
@@ -379,7 +188,6 @@ export class BallTrackingManager {
   }
   
   setConnectionMode(mode) {
-    log('setConnectionMode:', mode);
     this.connectionMode = mode;
     this.lines.clear();
     this.circles.clear();
@@ -392,10 +200,8 @@ export class BallTrackingManager {
   }
   
   setConnectionParameters(params) {
-    log('setConnectionParameters:', params);
     if (this.connectionMode === 'circles') {
       this.circles.setConfig(params);
-      
       if (params.filled !== undefined) {
         this.media.setAllVisible(!params.filled);
       }
@@ -405,116 +211,28 @@ export class BallTrackingManager {
   }
   
   setConnectionRouting(routing, streams) {
-    log('setConnectionRouting:', { routing, streams });
     this.circles.setRouting(routing);
   }
   
   // ============================================================================
-  // GENERIC EFFECT CONTROL - Works for ANY registered effect!
+  // GENERIC EFFECT CONTROL — works for ANY registered effect
   // ============================================================================
   
-  /**
-   * Enable/disable any effect by name
-   */
   setEffectEnabled(effectName, enabled) {
-    console.log(`╔═══════════════════════════════════════╗`);
-    console.log(`║  ${effectName.toUpperCase()} ENABLED:`, enabled ? 'TRUE ✅' : 'FALSE ❌'.padEnd(19), '║');
-    console.log(`╚═══════════════════════════════════════╝`);
-    
     if (enabled) {
       this.enabledEffects.add(effectName);
     } else {
       this.enabledEffects.delete(effectName);
-      // Clear the effect when disabled
       const effect = effectRegistry.get(effectName);
-      if (effect && effect.clear) {
-        effect.clear();
-      }
+      if (effect && effect.clear) effect.clear();
     }
-  }
-  
-  /**
-   * Set parameters for any effect
-   */
-  setEffectParameters(effectName, params) {
-    console.log(`╔═══════════════════════════════════════╗`);
-    console.log(`║  ${effectName.toUpperCase()} PARAMETERS SET`.padEnd(41), '║');
-    console.log(`╚═══════════════════════════════════════╝`);
-    
-    effectRegistry.applyConfig(effectName, params);
-  }
-  
-  // ============================================================================
-  // LEGACY COMPATIBILITY - Keep old method names working
-  // ============================================================================
-  
-  setTrailsEnabled(enabled) {
-    this.setEffectEnabled('trails', enabled);
-  }
-  
-  setTrailParameters(params) {
-    this.setEffectParameters('trails', params);
-  }
-  
-  setRipplesEnabled(enabled) {
-    this.setEffectEnabled('ripples', enabled);
-  }
-  
-  setRippleParameters(params) {
-    this.setEffectParameters('ripples', params);
   }
   
   // ============================================================================
   // DATA ACCESS
   // ============================================================================
   
-  getAllBallPositions() {
-    const positions = {};
-    for (const [ballId, mediaObj] of Object.entries(this.media.media)) {
-      const pos = mediaObj.getPosition();
-      if (pos) positions[ballId] = pos;
-    }
-    return positions;
-  }
-  
   getBallData() {
     return { ...this.ballData };
   }
-  
-  // ============================================================================
-  // DEBUG INFO
-  // ============================================================================
-  
-  getDebugInfo() {
-    return {
-      connectionMode: this.connectionMode,
-      enabledEffects: Array.from(this.enabledEffects),
-      ballCount: Object.keys(this.media.media).length,
-      lineCount: this.lines.objects.size,
-      circleCount: this.circles.objects.size,
-      effects: effectRegistry.getDebugInfo()
-    };
-  }
-  
-  stopAutoDebug() {
-    if (this.debugInterval) {
-      clearInterval(this.debugInterval);
-      this.debugInterval = null;
-      console.log('[BallTracking DEBUG] Auto-debug stopped');
-    }
-  }
-  
-  startAutoDebug() {
-    if (!this.debugInterval) {
-      this.debugInterval = setInterval(() => {
-        this.autoPrintDebug();
-      }, 3000);
-      console.log('[BallTracking DEBUG] Auto-debug started');
-    }
-  }
-  
-  // Legacy compatibility
-  hideBallVideos() { this.media.setAllVisible(false); }
-  showBallVideos() { this.media.setAllVisible(true); }
-  get ballVideos() { return this.media.media; }
 }

@@ -1,6 +1,6 @@
 /**
  * Code Executor - parses and executes user code (sequence format only)
- * Simplified to always use sequence format
+ * Updated to use SceneManager's simplified loadConfig/updateConfig API
  */
 
 export class CodeExecutor {
@@ -8,55 +8,30 @@ export class CodeExecutor {
     this.sceneManager = sceneManager;
   }
   
-  async execute(code, isFirstRun, lastScenes) {
+  async execute(code, isFirstRun, lastConfig) {
     const trimmed = code.trim();
-    
-    // Always treat as sequence format
-    return await this.executeSequence(trimmed, isFirstRun, lastScenes);
-  }
-  
-  async executeSequence(code, isFirstRun, lastScenes) {
-    const config = eval(`(${code})`);
+    const config = eval(`(${trimmed})`);
     
     if (!config.clips && !config.streams && !config.routing) {
       console.warn('No sequence properties found in config');
-      return lastScenes;
+      return lastConfig;
     }
     
-    console.log('Loading sequence configuration with clips:', Object.keys(config.clips || {}));
-    
-    const scene = {
-      id: 1,
-      name: 'Sequence Scene',
-      config: config
-    };
-    
     if (isFirstRun) {
-      console.log('First run - full sequence load');
-      this.sceneManager.clearScenes();
-      this.sceneManager.registerScene(scene.id, scene.name, scene.config);
-      await this.sceneManager.loadScene(0);
+      await this.sceneManager.loadConfig(config);
     } else {
-      const oldScene = lastScenes[0];
-      
-      if (this.hasSequenceStructuralChanges(oldScene, scene)) {
-        console.log('Structural changes detected - full reload');
-        this.sceneManager.clearScenes();
-        this.sceneManager.registerScene(scene.id, scene.name, scene.config);
-        await this.sceneManager.loadScene(0);
+      if (this.hasStructuralChanges(lastConfig, config)) {
+        await this.sceneManager.loadConfig(config);
       } else {
-        console.log('Parameter-only changes - updating without reload');
-        this.sceneManager.scenes[0] = scene;
-        this.sceneManager.updateSequenceParameters(scene.config);
+        this.sceneManager.updateConfig(config);
       }
     }
     
-    return [scene];
+    return config;
   }
   
-  hasSequenceStructuralChanges(oldScene, newScene) {
-    const oldConfig = oldScene.config;
-    const newConfig = newScene.config;
+  hasStructuralChanges(oldConfig, newConfig) {
+    if (!oldConfig) return true;
     
     const oldClips = Object.keys(oldConfig.clips || {}).sort();
     const newClips = Object.keys(newConfig.clips || {}).sort();
@@ -73,15 +48,11 @@ export class CodeExecutor {
       }
     }
     
-    const oldStreams = JSON.stringify(oldConfig.streams || {});
-    const newStreams = JSON.stringify(newConfig.streams || {});
-    if (oldStreams !== newStreams) {
+    if (JSON.stringify(oldConfig.streams || {}) !== JSON.stringify(newConfig.streams || {})) {
       return true;
     }
     
-    const oldRouting = JSON.stringify(oldConfig.routing || {});
-    const newRouting = JSON.stringify(newConfig.routing || {});
-    if (oldRouting !== newRouting) {
+    if (JSON.stringify(oldConfig.routing || {}) !== JSON.stringify(newConfig.routing || {})) {
       return true;
     }
     

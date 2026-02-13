@@ -1,6 +1,5 @@
 /**
  * UI Controller - orchestrates code execution and UI state
- * Updated to remove scene-differ (just reload on changes)
  */
 
 import { LiveCodeEditor } from './live-code-editor.js';
@@ -17,7 +16,7 @@ export class UIController {
     this.loadingOverlay = document.getElementById('loadingOverlay');
     this.calibrationComplete = false;
     this.lastExecutedCode = '';
-    this.lastScenes = [];
+    this.lastConfig = null;
   }
   
   async initialize(initialCode = '') {
@@ -27,7 +26,6 @@ export class UIController {
     
     await this.codeEditor.initialize(initialCode);
     
-    // Initialize cursor navigation handler
     this.cursorNav = new CursorNavigationHandler(this.codeEditor, this.wsClient);
     
     console.log('✓ UI controller initialized with cursor navigation');
@@ -38,12 +36,8 @@ export class UIController {
     const isFirstRun = this.lastExecutedCode === '';
     
     try {
-      const newScenes = await this.codeExecutor.execute(newCode, isFirstRun, this.lastScenes);
-      
-      // No differential updates - just track scenes
-      this.lastScenes = newScenes;
+      this.lastConfig = await this.codeExecutor.execute(newCode, isFirstRun, this.lastConfig);
       this.lastExecutedCode = newCode;
-      
     } catch (error) {
       console.error('Code execution error:', error);
       this.showError(error.message);

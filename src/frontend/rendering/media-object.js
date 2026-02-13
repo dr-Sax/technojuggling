@@ -1,5 +1,9 @@
 /**
- * MediaObject - Unified video and image rendering
+ * MediaObject - Unified video and image rendering on tracked balls.
+ * 
+ * Accepts a pre-loaded DOM element (from MediaPool) via attachElement(),
+ * or can create its own from a URL via createMedia() as fallback.
+ * One creation path — no double-creation.
  */
 import { CONFIG } from '../core/config.js';
 import { MaskShader } from './mask-shader.js';
@@ -20,50 +24,79 @@ export class MediaObject {
     this.lastPosition = { x: 0, y: 0 };
   }
   
-  async createMedia(url, startTime = 0, endTime = null, zIndex = 0.1, scale = 1.0, timeOffset = 0) {
+  /**
+   * Primary creation path: attach a pre-loaded element from MediaPool.
+   * Configures playback (start/end/loop) and builds the Three.js mesh.
+   */
+  async attachElement(element, type, config = {}) {
     this.dispose();
     
-    const ext = url.split('.').pop().toLowerCase().split('?')[0];
-    this.mediaType = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext) ? 'image' : 'video';
+    this.mediaType = type; // 'video' | 'image'
+    this.element = element;
     
-    if (this.mediaType === 'video') {
-      this.element = this._makeVideoElement(url, startTime, endTime, timeOffset);
-      this.element.addEventListener('loadedmetadata', () => {
-        this._createMesh(this.element.videoWidth || 1920, this.element.videoHeight || 1080, zIndex, scale, true);
+    const { startTime = 0, endTime = null, zIndex = 0.1, scale = 1.0, timeOffset = 0 } = config;
+    
+    if (type === 'video') {
+      this._configureVideoPlayback(element, startTime, endTime, timeOffset);
+      
+      // If metadata already loaded, create mesh immediately
+      if (element.readyState >= 1) {
+        this._createMesh(element.videoWidth || 1920, element.videoHeight || 1080, zIndex, scale, true);
         this.visible = true;
-      });
-      return this.element;
+      } else {
+        await new Promise((resolve) => {
+          element.addEventListener('loadedmetadata', () => {
+            this._createMesh(element.videoWidth || 1920, element.videoHeight || 1080, zIndex, scale, true);
+            this.visible = true;
+            resolve();
+          }, { once: true });
+        });
+      }
     } else {
-      return new Promise((resolve, reject) => {
-        this.element = document.createElement('img');
-        this.element.src = url;
-        this.element.crossOrigin = 'anonymous';
-        this.element.onload = () => {
-          this._createMesh(this.element.naturalWidth || 1920, this.element.naturalHeight || 1080, zIndex, scale, false);
-          this.visible = true;
-          resolve();
-        };
-        this.element.onerror = () => reject(new Error(`Failed to load: ${url}`));
-      });
+      // Image — should already be loaded from MediaPool
+      if (element.complete && element.naturalWidth) {
+        this._createMesh(element.naturalWidth || 1920, element.naturalHeight || 1080, zIndex, scale, false);
+        this.visible = true;
+      } else {
+        await new Promise((resolve, reject) => {
+          element.onload = () => {
+            this._createMesh(element.naturalWidth || 1920, element.naturalHeight || 1080, zIndex, scale, false);
+            this.visible = true;
+            resolve();
+          };
+          element.onerror = () => reject(new Error(`Failed to load image`));
+        });
+      }
     }
   }
   
-  _makeVideoElement(url, start, end, offset) {
-    const v = document.createElement('video');
-    Object.assign(v, { crossOrigin: 'anonymous', loop: false, muted: false, playsInline: true, src: url, _startTime: start, _endTime: end, _timeOffset: offset, _hasSeenData: false });
+  /**
+   * Configure video playback: start/end times, looping, offset.
+   * Applied to an existing video element (from MediaPool).
+   */
+  _configureVideoPlayback(v, start, end, offset) {
+    v.muted = false;
+    v._startTime = start;
+    v._endTime = end;
+    v._timeOffset = offset;
     
-    v.addEventListener('loadedmetadata', () => v.currentTime = start + offset);
-    v.addEventListener('loadeddata', () => {
-      if (!v._hasSeenData) {
-        v._hasSeenData = true;
-        if (Math.abs(v.currentTime - (start + offset)) > 0.1) v.currentTime = start + offset;
-        v.play().catch(() => {});
-      }
-    });
+    // Loop within start/end range
     v.ontimeupdate = () => {
       if (end !== null && v.currentTime >= end + offset) v.currentTime = start + offset;
     };
-    return v;
+    
+    // Seek and play — handle both fresh and already-loaded elements
+    if (v.readyState >= 2) {
+      // Already loaded (cloned element) — seek and play immediately
+      v.currentTime = start + offset;
+      v.play().catch(() => {});
+    } else {
+      // Not yet loaded — wait for data
+      v.addEventListener('loadeddata', () => {
+        v.currentTime = start + offset;
+        v.play().catch(() => {});
+      }, { once: true });
+    }
   }
   
   _createMesh(width, height, zIndex, scale, isVideo) {
@@ -139,8 +172,9 @@ export class MediaObject {
     if (params.rotation !== undefined) this.mesh.rotation.z = params.rotation * (Math.PI / 180);
     
     this.material.opacity = params.opacity ?? 1.0;
-    this.material.transparent = this.material.opacity < 1.0;
     if (this.material.uniforms) MaskShader.applyParameters(this.material, params);
+    const hasMask = this.material.uniforms?.useMask?.value > 0.5;
+    this.material.transparent = this.material.opacity < 1.0 || hasMask;
   }
   
   setPosition(worldX, worldY) {
@@ -182,6 +216,7 @@ export class MediaObject {
     }
     if (this.mediaType === 'video' && this.element) {
       this.element.pause();
+      this.element.ontimeupdate = null;
       this.element.src = '';
     }
     if (this.texture) {

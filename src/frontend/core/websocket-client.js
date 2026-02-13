@@ -1,6 +1,9 @@
 /**
- * WebSocket client for server communication
- * Updated to remove hand tracking
+ * WebSocket client for server communication.
+ * 
+ * Protocol:
+ * - Binary messages = JPEG frame data (displayed directly via blob URL)
+ * - JSON messages = ball data, calibration, cursor events, etc.
  */
 import { CONFIG } from './config.js';
 
@@ -23,12 +26,16 @@ export class WebSocketClient {
     this.lastStatsTime = Date.now();
     this.latencySum = 0;
     this.latencyCount = 0;
+    
+    // Blob URL for binary frame display
+    this._lastBlobUrl = null;
   }
   
   connect() {
     console.log('Connecting to WebSocket server...');
     
     this.ws = new WebSocket(CONFIG.WEBSOCKET_URL);
+    this.ws.binaryType = 'blob';
     
     this.ws.onopen = () => {
       console.log('WebSocket connected');
@@ -41,7 +48,11 @@ export class WebSocketClient {
     };
     
     this.ws.onmessage = (event) => {
-      this.handleMessage(event.data);
+      if (event.data instanceof Blob) {
+        this._handleBinaryFrame(event.data);
+      } else {
+        this._handleJsonMessage(event.data);
+      }
     };
     
     this.ws.onerror = (error) => {
@@ -63,34 +74,47 @@ export class WebSocketClient {
     };
   }
   
-  handleMessage(rawData) {
+  _handleBinaryFrame(blob) {
+    // Pass raw Blob — three-scene uses createImageBitmap directly
+    if (this.onFrameData) {
+      this.onFrameData(blob);
+    }
+    this.frameCount++;
+  }
+  
+  _handleJsonMessage(rawData) {
     try {
       const data = JSON.parse(rawData);
       
       switch(data.type) {
         case 'calibration_request':
-          console.log('Server requesting calibration choice');
           if (this.onCalibrationRequest) {
             this.onCalibrationRequest();
           }
           break;
           
         case 'calibration':
-          console.log('Received calibration data');
           if (this.onCalibrationComplete) {
             this.onCalibrationComplete();
           }
           this.send({ type: 'start_stream' });
           break;
           
-        case 'frame':
-          this.handleFrame(data);
-          break;
-          
-        case 'ball_data':
-          if (this.onBallData) {
-            this.onBallData(data.data);
+        case 'balls':
+          if (this.onBallData && data.balls) {
+            this.onBallData(data.balls);
           }
+          // Latency tracking
+          if (data.timestamp) {
+            const latency = Date.now() - (data.timestamp * 1000);
+            this.latencySum += latency;
+            this.latencyCount++;
+          }
+          break;
+        
+        // Legacy: combined frame+balls as JSON (in case server sends old format)
+        case 'frame':
+          this.handleLegacyFrame(data);
           break;
           
         case 'cursor_navigate':
@@ -104,37 +128,18 @@ export class WebSocketClient {
             this.onCursorClick(data);
           }
           break;
-          
-        default:
-          console.warn('Unknown message type:', data.type);
       }
       
     } catch (e) {
       console.error('Error parsing WebSocket message:', e);
     }
-  }
-  
-  handleFrame(data) {
-    // Update frame
-    if (this.onFrameData) {
-      this.onFrameData(data.frame);
-    }
     
-    // Update ball tracking data
-    if (this.onBallData && data.balls) {
-      this.onBallData(data.balls);
-    }
-    
-    // Calculate performance
-    const latency = Date.now() - (data.timestamp * 1000);
-    this.latencySum += latency;
-    this.latencyCount++;
-    
-    this.frameCount++;
+    // Stats
     const now = Date.now();
     if (now - this.lastStatsTime > CONFIG.STATS_UPDATE_INTERVAL) {
-      const fps = this.frameCount / (CONFIG.STATS_UPDATE_INTERVAL / 1000);
-      const avgLatency = this.latencySum / this.latencyCount;
+      const elapsed = (now - this.lastStatsTime) / 1000;
+      const fps = this.frameCount / elapsed;
+      const avgLatency = this.latencyCount > 0 ? this.latencySum / this.latencyCount : 0;
       
       console.log(`Receiving: ${fps.toFixed(1)} FPS | Latency: ${avgLatency.toFixed(1)}ms`);
       
@@ -143,6 +148,17 @@ export class WebSocketClient {
       this.latencySum = 0;
       this.latencyCount = 0;
     }
+  }
+  
+  // Legacy support for old JSON-based frame format
+  handleLegacyFrame(data) {
+    if (this.onFrameData) {
+      this.onFrameData('data:image/jpeg;base64,' + data.frame);
+    }
+    if (this.onBallData && data.balls) {
+      this.onBallData(data.balls);
+    }
+    this.frameCount++;
   }
   
   attemptReconnect() {
@@ -170,7 +186,6 @@ export class WebSocketClient {
   }
   
   sendCalibrationChoice(useLast) {
-    console.log(`Sending calibration choice: ${useLast ? 'use last' : 'calibrate now'}`);
     this.send({
       type: 'calibration_choice',
       use_last: useLast

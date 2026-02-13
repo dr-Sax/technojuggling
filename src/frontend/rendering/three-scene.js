@@ -15,6 +15,8 @@ export class ThreeSceneManager {
     
     // Reference to scene manager (set externally)
     this.sceneManagerRef = null;
+    // Reference to visual effects processor for throttled texture updates
+    this.visualFXRef = null;
   }
   
   initialize() {
@@ -57,41 +59,20 @@ export class ThreeSceneManager {
   }
   
   setupCameraFeed() {
-    const img = document.createElement('img');
-    
-    // Debugging counters
     this.frameUpdateCount = 0;
     this.lastFrameTime = Date.now();
     this.imageLoading = false;
-    this.pendingFrame = null;
+    this.pendingBlob = null;
     
-    // Set up onload handler once during setup
-    img.onload = () => {
-      this.cameraTexture.needsUpdate = true;
-      this.frameUpdateCount++;
-      this.imageLoading = false;
-      
-      const now = Date.now();
-      const timeSinceLastFrame = now - this.lastFrameTime;
-      this.lastFrameTime = now;
-      
-      // If there's a pending frame, load it now
-      if (this.pendingFrame) {
-        const pending = this.pendingFrame;
-        this.pendingFrame = null;
-        this.cameraTexture.image.src = pending;
-        this.imageLoading = true;
-      }
-    };
+    // Start with a 1x1 placeholder so Three.js never sees an incomplete texture
+    const placeholder = document.createElement('canvas');
+    placeholder.width = 1;
+    placeholder.height = 1;
     
-    img.onerror = (e) => {
-      console.error('Camera image load error:', e);
-      this.imageLoading = false;
-    };
-    
-    this.cameraTexture = new THREE.Texture(img);
+    this.cameraTexture = new THREE.Texture(placeholder);
     this.cameraTexture.minFilter = THREE.LinearFilter;
     this.cameraTexture.magFilter = THREE.LinearFilter;
+    this.cameraTexture.needsUpdate = true;
     
     const planeGeometry = new THREE.PlaneGeometry(
       CONFIG.PLANE_WIDTH,
@@ -105,24 +86,69 @@ export class ThreeSceneManager {
     });
     
     this.cameraFeedPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-    
-    // Rotate 90° counter-clockwise for portrait mode
     this.cameraFeedPlane.rotation.z = -Math.PI / 2;
     this.cameraFeedPlane.position.z = 0;
     this.threeScene.add(this.cameraFeedPlane);
   }
   
-  updateCameraFrame(base64Image) {
-    const dataUrl = 'data:image/jpeg;base64,' + base64Image;
-    
-    // If image is currently loading, store as pending
-    if (this.imageLoading) {
-      this.pendingFrame = dataUrl;
-      return;
+  _processBlob(blob) {
+    this.imageLoading = true;
+    createImageBitmap(blob).then((bitmap) => {
+      // Swap the texture image to the GPU-ready bitmap
+      if (this.cameraTexture.image && this.cameraTexture.image.close) {
+        this.cameraTexture.image.close(); // Release previous ImageBitmap
+      }
+      this.cameraTexture.image = bitmap;
+      this.cameraTexture.needsUpdate = true;
+      this.frameUpdateCount++;
+      this.imageLoading = false;
+      this.lastFrameTime = Date.now();
+      
+      // Process pending blob if any
+      if (this.pendingBlob) {
+        const pending = this.pendingBlob;
+        this.pendingBlob = null;
+        this._processBlob(pending);
+      }
+    }).catch(() => {
+      this.imageLoading = false;
+      if (this.pendingBlob) {
+        const pending = this.pendingBlob;
+        this.pendingBlob = null;
+        this._processBlob(pending);
+      }
+    });
+  }
+  
+  updateCameraFrame(frameData) {
+    // frameData is either a Blob (binary path) or a string URL (legacy)
+    if (frameData instanceof Blob) {
+      if (this.imageLoading) {
+        this.pendingBlob = frameData;
+        return;
+      }
+      this._processBlob(frameData);
+    } else {
+      // Legacy: string URL (data URL or blob URL)
+      this._loadLegacyFrame(frameData);
     }
-    
-    // Otherwise load immediately
-    this.cameraTexture.image.src = dataUrl;
+  }
+  
+  _loadLegacyFrame(url) {
+    // Fallback for string URLs
+    if (!this._legacyImg) {
+      this._legacyImg = document.createElement('img');
+      this._legacyImg.onload = () => {
+        if (this._legacyImg.complete && this._legacyImg.naturalWidth > 0) {
+          this.cameraTexture.image = this._legacyImg;
+          this.cameraTexture.needsUpdate = true;
+        }
+        this.imageLoading = false;
+      };
+      this._legacyImg.onerror = () => { this.imageLoading = false; };
+    }
+    if (this.imageLoading) return;
+    this._legacyImg.src = url;
     this.imageLoading = true;
   }
   
@@ -148,6 +174,11 @@ export class ThreeSceneManager {
     // Update dynamic parameters if scene manager is available
     if (this.sceneManagerRef) {
       this.sceneManagerRef.updateDynamicParameters();
+    }
+    
+    // Throttled video texture uploads (20fps instead of 60fps)
+    if (this.visualFXRef) {
+      this.visualFXRef.updateTextures();
     }
     
     this.renderer.render(this.threeScene, this.camera);
@@ -185,5 +216,9 @@ export class ThreeSceneManager {
   setSceneManager(sceneManager) {
     this.sceneManagerRef = sceneManager;
     sceneManager.setThreeSceneRef(this);
+  }
+  
+  setVisualFX(visualFX) {
+    this.visualFXRef = visualFX;
   }
 }

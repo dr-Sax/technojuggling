@@ -4,9 +4,6 @@
  */
 
 export class MaskShader {
-  /**
-   * Get mask uniform declarations for shader
-   */
   static getUniforms() {
     return `
       uniform int maskShape;
@@ -21,9 +18,6 @@ export class MaskShader {
     `;
   }
   
-  /**
-   * Get mask helper functions for shader
-   */
   static getFunctions() {
     return `
       float pointInTriangle(vec2 p, vec2 p0, vec2 p1, vec2 p2) {
@@ -82,53 +76,46 @@ export class MaskShader {
   }
   
   /**
-   * Add mask code to fragment shader
+   * Add mask code to fragment shader.
+   * Uses regex replacements to be whitespace-tolerant.
    */
   static addToShader(fragmentShader) {
-    console.log('[MASK SHADER] Original shader length:', fragmentShader.length);
-    console.log('[MASK SHADER] Original shader contains getMaskAlpha:', fragmentShader.includes('getMaskAlpha'));
+    let shader = fragmentShader;
     
-    // Insert uniforms
-    let shader = fragmentShader.replace(
-      'uniform sampler2D videoTexture;', 
+    // 1. Insert uniforms after 'uniform sampler2D videoTexture;'
+    shader = shader.replace(
+      /uniform\s+sampler2D\s+videoTexture\s*;/,
       'uniform sampler2D videoTexture;\n' + MaskShader.getUniforms()
     );
     
-    // Insert functions
+    // 2. Insert helper functions before 'void main()'
     shader = shader.replace(
-      'void main() {', 
+      /void\s+main\s*\(\s*\)\s*\{/,
       MaskShader.getFunctions() + '\nvoid main() {'
     );
     
-    // Apply mask in early exit path (when no visual effects active)
+    // 3. Apply mask in early exit path:
+    //    gl_FragColor = texture2D(videoTexture, uv); return;
+    //    → add mask alpha before return
     shader = shader.replace(
-      'if (!hasUVEffects && !hasColorEffects && !hasRGBSplit) {\n          gl_FragColor = texture2D(videoTexture, uv);\n          return;\n        }',
-      `if (!hasUVEffects && !hasColorEffects && !hasRGBSplit) {
-          vec4 color = texture2D(videoTexture, uv);
-          color.a *= getMaskAlpha(vUv);
-          gl_FragColor = color;
-          return;
-        }`
+      /gl_FragColor\s*=\s*texture2D\s*\(\s*videoTexture\s*,\s*uv\s*\)\s*;\s*return\s*;/,
+      `vec4 _earlyColor = texture2D(videoTexture, uv);
+          _earlyColor.a *= getMaskAlpha(vUv);
+          gl_FragColor = _earlyColor;
+          return;`
     );
     
-    // Apply mask in normal path (when visual effects are active)
-    shader = shader.replace(
-      'gl_FragColor = color;', 
+    // 4. Apply mask to ALL remaining 'gl_FragColor = color;' lines
+    shader = shader.replaceAll(
+      /gl_FragColor\s*=\s*color\s*;/g,
       'color.a *= getMaskAlpha(vUv);\ngl_FragColor = color;'
     );
-    
-    console.log('[MASK SHADER] Modified shader length:', shader.length);
-    console.log('[MASK SHADER] Modified shader contains getMaskAlpha:', shader.includes('getMaskAlpha'));
-    console.log('[MASK SHADER] Modified shader contains color.a *= getMaskAlpha:', shader.includes('color.a *= getMaskAlpha'));
     
     return shader;
   }
   
-  /**
-   * Initialize mask uniforms on a Three.js material
-   */
   static initUniforms(material) {
-    material.uniforms.maskShape = { value: 0 }; // 0=triangle, 1=circle, 2=rectangle, 3=polygon
+    material.uniforms.maskShape = { value: 0 };
     material.uniforms.maskPoints = { value: [0.5, 0.05, 0.0, 1.0, 1.0, 1.0] };
     material.uniforms.maskRadius = { value: 0.25 };
     material.uniforms.maskCenter = { value: new THREE.Vector2(0.5, 0.5) };
@@ -139,13 +126,9 @@ export class MaskShader {
     material.uniforms.useMask = { value: 0.0 };
   }
   
-  /**
-   * Apply mask parameters to material uniforms
-   */
   static applyParameters(material, params) {
     const u = material.uniforms;
     
-    // maskShape: "triangle", "circle", "rectangle", "polygon" or 0-3
     if (params.maskShape !== undefined) {
       const shapeMap = { triangle: 0, circle: 1, rectangle: 2, polygon: 3 };
       const shapeValue = typeof params.maskShape === 'string' ? 
@@ -153,12 +136,10 @@ export class MaskShader {
       u.maskShape.value = Math.floor(Math.max(0, Math.min(3, shapeValue)));
     }
     
-    // Mask radius (for circle/polygon)
     if (params.maskRadius !== undefined && !isNaN(params.maskRadius)) {
-      u.maskRadius.value = Math.max(0.1, Math.min(1.0, params.maskRadius));
+      u.maskRadius.value = Math.max(0.01, Math.min(2.0, params.maskRadius));
     }
     
-    // Mask center
     if (params.maskCenterX !== undefined && !isNaN(params.maskCenterX)) {
       u.maskCenter.value.x = Math.max(0, Math.min(1, params.maskCenterX));
     }
@@ -166,7 +147,6 @@ export class MaskShader {
       u.maskCenter.value.y = Math.max(0, Math.min(1, params.maskCenterY));
     }
     
-    // Mask size (for rectangle)
     if (params.maskWidth !== undefined && !isNaN(params.maskWidth)) {
       u.maskSize.value.x = Math.max(0.1, Math.min(2.0, params.maskWidth));
     }
@@ -174,30 +154,23 @@ export class MaskShader {
       u.maskSize.value.y = Math.max(0.1, Math.min(2.0, params.maskHeight));
     }
     
-    // Polygon sides
     if (params.maskSides !== undefined && !isNaN(params.maskSides)) {
       u.maskSides.value = Math.floor(Math.max(3, Math.min(12, params.maskSides)));
     }
     
-    // Rotation
     if (params.maskRotation !== undefined && !isNaN(params.maskRotation)) {
       u.maskRotation.value = params.maskRotation;
     }
     
-    // Morph
     if (params.maskMorph !== undefined && !isNaN(params.maskMorph)) {
       u.maskMorph.value = Math.max(0, Math.min(1, params.maskMorph));
     }
     
-    // Enable/disable mask
     if (params.useMask !== undefined && !isNaN(params.useMask)) {
       u.useMask.value = params.useMask;
     }
   }
   
-  /**
-   * Update mask points (for triangle shape)
-   */
   static updatePoints(material, points) {
     if (material && material.uniforms && material.uniforms.maskPoints) {
       material.uniforms.maskPoints.value = points;
