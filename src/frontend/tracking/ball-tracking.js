@@ -1,86 +1,50 @@
 /**
- * BallTrackingManager - Uses EffectRegistry for extensible ball effects
+ * BallTrackingManager - Uses EffectRegistry for ALL visual effects
+ * 
+ * All effects — including connections — are defined in effects-library.js
+ * and self-register with the EffectRegistry. This file just manages the
+ * tracking data flow from WebSocket → effects.
  * 
  * Adding a new effect:
- * 1. Import the effect class
- * 2. Register it with effectRegistry.register()
- * 3. Done! No other code changes needed.
+ *   1. Write it in effects-library.js (or a new file)
+ *   2. Register with effectRegistry.register()
+ *   3. Done!
  */
+
+// Import the effects library — this triggers all registrations
+import './effects-library.js';
+
+// BallMedia is still special (manages video elements on tracked balls)
 import { BallMedia } from './ball-media.js';
-import { ConnectionLines } from './connection-lines.js';
-import { ConnectionCircles } from './connection-circles.js';
-import { BallTrails } from './ball-trails.js';
-import { BallRipples } from './ball-ripples.js';
-import { BallParticles } from './ball-particles.js';
-import { Ball3DShapes } from './ball-3d-shapes.js';
-import { Ball3DTrails } from './ball-3d-trails.js';
-import { Ball3DShapesThick } from './ball-3d-shapes-thick.js';
-import { BallSpiderweb } from './ball-spiderweb.js';
-import { Ball3DField } from './ball-3d-field.js';
-import { BallVortex } from './ball-vortex.js';
-import { VectorField } from './vector-field.js';
 import { BallSincWaves } from './ball-sinc-waves.js';
 import { effectRegistry } from './effect-registry.js';
 
-// ============================================================================
-// REGISTER ALL EFFECTS HERE — this is the ONLY place you need to add new ones
-// ============================================================================
-
-effectRegistry.register('trails', BallTrails, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('ripples', BallRipples, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('particles', BallParticles, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('3Dshapes', Ball3DShapes, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('3Dtrails', Ball3DTrails, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('3DShapesThick', Ball3DShapesThick, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('spiderweb', BallSpiderweb, {
-  updateMethod: null, clearMethod: 'clear'
-});
-effectRegistry.register('3DField', Ball3DField, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('vortex', BallVortex, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
-effectRegistry.register('vectorField', VectorField, {
-  updateMethod: null, clearMethod: 'clear', removeBallMethod: null
-});
+// Register sincwaves here (custom shader, too unique for base classes)
 effectRegistry.register('sincwaves', BallSincWaves, {
   updateMethod: 'updateBall', requiresWorldPos: true,
   hasEnabled: true, hasConfig: true,
   clearMethod: 'clear', removeBallMethod: 'removeBall'
 });
 
-// ============================================================================
-
 export class BallTrackingManager {
   constructor(sceneManager, audioProcessor, visualFX) {
     this.sceneManager = sceneManager;
     
-    // Core media and connections (not in registry — special behavior)
+    // Core media (manages video/image elements on tracked balls)
     this.media = new BallMedia(sceneManager, audioProcessor, visualFX);
-    this.lines = new ConnectionLines(sceneManager);
-    this.circles = new ConnectionCircles(sceneManager, this.media);
     
-    // Initialize all registered effects
+    // Initialize all registered effects (including connections)
     effectRegistry.initialize(sceneManager, audioProcessor, visualFX);
+    
+    // Wire up the Connections effect with its dependencies
+    const connections = effectRegistry.get('connections');
+    if (connections) {
+      connections.setBallMedia(this.media);
+      connections.onVisibilityChange((visible) => this.media.setAllVisible(visible));
+    }
     
     // Track which effects are enabled
     this.enabledEffects = new Set();
-    
-    // Connection mode (special case — not an effect)
-    this.connectionMode = 'none';
     
     // Data for external consumers
     this.ballData = {};
@@ -111,8 +75,6 @@ export class BallTrackingManager {
   
   clearAll() {
     this.media.clear();
-    this.lines.clear();
-    this.circles.clear();
     effectRegistry.clearAll();
     this.ballData = {};
   }
@@ -138,7 +100,7 @@ export class BallTrackingManager {
           vx: ball.vx || 0, vy: ball.vy || 0
         };
         
-        // Update all enabled effects
+        // Update all enabled per-ball effects
         const mediaObj = this.media.media[ball.id];
         if (mediaObj && mediaObj.mesh) {
           const worldPos = {
@@ -150,68 +112,57 @@ export class BallTrackingManager {
       }
     });
 
-    // Update connections (delegated to connection classes)
-    this._updateConnections(positions);
+    // Update global effects that need all positions
+    this._updateGlobalEffects(positions);
+  }
+  
+  _updateGlobalEffects(positions) {
+    // Connections
+    if (this.enabledEffects.has('connections')) {
+      const connections = effectRegistry.get('connections');
+      if (connections) connections.updateConnections(positions);
+    }
 
-    // Special-case effects that need all positions at once
+    // Spiderweb
     if (this.enabledEffects.has('spiderweb')) {
       const spiderweb = effectRegistry.get('spiderweb');
       if (spiderweb) spiderweb.updateConnections(positions);
     }
+
+    // Vector field
     if (this.enabledEffects.has('vectorField')) {
       const vectorField = effectRegistry.get('vectorField');
       if (vectorField) vectorField.updateField(positions);
     }
   }
   
-  _updateConnections(positions) {
-    if (this.connectionMode === 'mesh') {
-      this.lines.updateMesh(positions);
-    } else if (this.connectionMode === 'sequential') {
-      this.lines.updateSequential(positions);
-    } else if (this.connectionMode === 'circles') {
-      this.circles.updateFromPositions(positions);
-    }
-  }
-  
   // ============================================================================
-  // CONNECTION CONTROL
+  // CONNECTION CONTROL (delegates to the Connections effect in the registry)
   // ============================================================================
   
   setConnectionsEnabled(enabled) {
-    if (!enabled) {
-      this.connectionMode = 'none';
-      this.lines.clear();
-      this.circles.clear();
-      this.media.setAllVisible(true);
+    const connections = effectRegistry.get('connections');
+    if (connections) connections.setEnabled(enabled);
+    if (enabled) {
+      this.enabledEffects.add('connections');
+    } else {
+      this.enabledEffects.delete('connections');
     }
   }
   
   setConnectionMode(mode) {
-    this.connectionMode = mode;
-    this.lines.clear();
-    this.circles.clear();
-    
-    if (mode === 'circles' && this.circles.config.filled) {
-      this.media.setAllVisible(false);
-    } else {
-      this.media.setAllVisible(true);
-    }
+    const connections = effectRegistry.get('connections');
+    if (connections) connections.setMode(mode);
   }
   
   setConnectionParameters(params) {
-    if (this.connectionMode === 'circles') {
-      this.circles.setConfig(params);
-      if (params.filled !== undefined) {
-        this.media.setAllVisible(!params.filled);
-      }
-    } else {
-      this.lines.setConfig(params);
-    }
+    const connections = effectRegistry.get('connections');
+    if (connections) connections.setConfig(params);
   }
   
   setConnectionRouting(routing, streams) {
-    this.circles.setRouting(routing);
+    const connections = effectRegistry.get('connections');
+    if (connections) connections.setRouting(routing);
   }
   
   // ============================================================================

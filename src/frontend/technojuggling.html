@@ -188,32 +188,40 @@
   <!-- Code editor container -->
   <div id="code-editor" data-initial-code='{
   clips: {
-    A: {url: "frog-ribbet.mp4", start: 0, end: 10},
+    A: {url: "hackers.png", start: 0, end: 10},
+    B: {url: "frog-scream.png", start: 0, end: 10},
+    C: {url: "hackers2.png", start: 0, end: 10},
+    D: {url: "hackers2.png", start: 0, end: 10},
   },
 
   presets: {
   },
   
   streams: {
-    streamA: "A{scale: 7, useMask: 1, maskShape: triangle, maskRadius: .5}",
+    streamA: "A{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamB: "B{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamC: "C{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamD: "D{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
   },
   
   routing: {
     ball_0: {stream: "streamA", offset: 0},
-    ball_1: {stream: "streamA", offset: 0},
-    ball_2: {stream: "streamA", offset: 0}
+    ball_1: {stream: "streamB", offset: 0},
+    ball_2: {stream: "streamC", offset: 0},
+    ball_3: {stream: "streamD", offset: 0}
   },
   ballTrails: {
     enabled: true,
-    count: 5,
-    maxDelay: .1,
-    radiusRange: [0.5, 2.0],
-    sides: 20,
+    count: 2,
+    maxDelay: .01,
+    radiusRange: [0.5, 3],
+    sides: 6,
     perBallColors: true,
     ballColors: {
-      0: [0xff0000, 0xff00ff],  // Ball 0: Red → Magenta
-      1: [0x00ff00, 0x00ffff],  // Ball 1: Green → Cyan
-      2: [0xffff00, 0xff8800]   // Ball 3: Yellow → Orange
+      0: [0xff0000],  // Ball 0: Red → Magenta
+      1: [0x00ff00],  // Ball 1: Green → Cyan
+      2: [0xffff00]   // Ball 2: Yellow → Orange
+      3: [0xffffff]   // Ball 3: White → White
     }
   },
   showCamera: false
