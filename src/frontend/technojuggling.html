@@ -188,20 +188,20 @@
   <!-- Code editor container -->
   <div id="code-editor" data-initial-code='{
   clips: {
-    A: {url: "hackers.png", start: 0, end: 10},
-    B: {url: "frog-scream.png", start: 0, end: 10},
-    C: {url: "hackers2.png", start: 0, end: 10},
-    D: {url: "hackers2.png", start: 0, end: 10},
+    A: {url: "cat.png", start: 0, end: 10},
+    B: {url: "dog.png", start: 0, end: 10},
+    C: {url: "frog.png", start: 0, end: 10},
+    D: {url: "spider.png", start: 0, end: 10},
   },
 
   presets: {
   },
   
   streams: {
-    streamA: "A{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamB: "B{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamC: "C{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamD: "D{scale: 15, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamA: "A{scale: 9, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamB: "B{scale: 9, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamC: "C{scale: 9, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamD: "D{scale: 9, useMask: 1, maskShape: circle, maskRadius: .5}",
   },
   
   routing: {
@@ -210,19 +210,15 @@
     ball_2: {stream: "streamC", offset: 0},
     ball_3: {stream: "streamD", offset: 0}
   },
-  ballTrails: {
+  ballConnections: {
     enabled: true,
-    count: 2,
-    maxDelay: .01,
-    radiusRange: [0.5, 3],
-    sides: 6,
-    perBallColors: true,
-    ballColors: {
-      0: [0xff0000],  // Ball 0: Red → Magenta
-      1: [0x00ff00],  // Ball 1: Green → Cyan
-      2: [0xffff00]   // Ball 2: Yellow → Orange
-      3: [0xffffff]   // Ball 3: White → White
-    }
+    mode: "circles",
+    filled: true,
+    lineWidth: 0.2,
+    opacity: 0.9,
+    color: {hue: "time * 30", saturation: 1.0, lightness: 0.5},
+    segments:4, // @param float 3.0 10.0 1
+    zIndex: 0.05
   },
   showCamera: false
 }'></div>

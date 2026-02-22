@@ -123,7 +123,15 @@ export class MediaObject {
       this.material = new THREE.ShaderMaterial({
         uniforms: { videoTexture: { value: this.texture }, time: { value: 0 } },
         vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: MaskShader.addToShader('uniform sampler2D videoTexture; varying vec2 vUv; void main() { gl_FragColor = texture2D(videoTexture, vUv); }'),
+        fragmentShader: MaskShader.addToShader(
+          `uniform sampler2D videoTexture;
+           varying vec2 vUv;
+           void main() {
+             vec2 uv = vUv;
+             vec4 color = texture2D(videoTexture, uv);
+             gl_FragColor = color;
+           }`
+        ),
         transparent: true
       });
     }

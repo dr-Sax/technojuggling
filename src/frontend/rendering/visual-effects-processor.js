@@ -7,7 +7,7 @@ export class VisualEffectsProcessor {
   constructor() {
     this.videos = new Map(); // videoId → { canvas, texture, material, uniforms }
     this.initialized = false;
-    this.TARGET_VIDEO_FPS = 10; // Texture upload rate for ball videos (saves GPU bandwidth)
+    this.TARGET_VIDEO_FPS = 30; // Texture upload rate for ball videos (saves GPU bandwidth)
     this.textureUpdateInterval = 1000 / this.TARGET_VIDEO_FPS;
   }
   

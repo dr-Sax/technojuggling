@@ -1185,7 +1185,7 @@ effectRegistry.register('3DShapesThick', Shapes3DThick, {
   updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
 });
 effectRegistry.register('spiderweb', Spiderweb, {
-  updateMethod: null, clearMethod: 'clear'
+  updateMethod: null, clearMethod: 'clear', removeBallMethod: null
 });
 effectRegistry.register('3DField', Field3D, {
   updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'

@@ -61,8 +61,8 @@ export class ThreeSceneManager {
   setupCameraFeed() {
     this.frameUpdateCount = 0;
     this.lastFrameTime = Date.now();
-    this.imageLoading = false;
-    this.pendingBlob = null;
+    this._decoding = false;      // true while createImageBitmap is in flight
+    this._pendingBlob = null;    // newest frame that arrived during a decode
     
     // Start with a 1x1 placeholder so Three.js never sees an incomplete texture
     const placeholder = document.createElement('canvas');
@@ -92,41 +92,47 @@ export class ThreeSceneManager {
   }
   
   _processBlob(blob) {
-    this.imageLoading = true;
+    // Drop incoming frame if a decode is already in flight — we'll pick up
+    // the next one. This gives us backpressure without ever queuing stale frames.
+    if (this._decoding) {
+      // Keep only the very latest blob so we never fall more than 1 frame behind
+      this._pendingBlob = blob;
+      return;
+    }
+
+    this._decoding = true;
+    this._pendingBlob = null;
+
     createImageBitmap(blob).then((bitmap) => {
-      // Swap the texture image to the GPU-ready bitmap
+      // Release previous ImageBitmap from GPU memory
       if (this.cameraTexture.image && this.cameraTexture.image.close) {
-        this.cameraTexture.image.close(); // Release previous ImageBitmap
+        this.cameraTexture.image.close();
       }
       this.cameraTexture.image = bitmap;
       this.cameraTexture.needsUpdate = true;
       this.frameUpdateCount++;
-      this.imageLoading = false;
       this.lastFrameTime = Date.now();
-      
-      // Process pending blob if any
-      if (this.pendingBlob) {
-        const pending = this.pendingBlob;
-        this.pendingBlob = null;
-        this._processBlob(pending);
+      this._decoding = false;
+
+      // If a newer frame arrived while we were decoding, process it now
+      if (this._pendingBlob) {
+        const next = this._pendingBlob;
+        this._pendingBlob = null;
+        this._processBlob(next);
       }
     }).catch(() => {
-      this.imageLoading = false;
-      if (this.pendingBlob) {
-        const pending = this.pendingBlob;
-        this.pendingBlob = null;
-        this._processBlob(pending);
+      this._decoding = false;
+      if (this._pendingBlob) {
+        const next = this._pendingBlob;
+        this._pendingBlob = null;
+        this._processBlob(next);
       }
     });
   }
-  
+
   updateCameraFrame(frameData) {
     // frameData is either a Blob (binary path) or a string URL (legacy)
     if (frameData instanceof Blob) {
-      if (this.imageLoading) {
-        this.pendingBlob = frameData;
-        return;
-      }
       this._processBlob(frameData);
     } else {
       // Legacy: string URL (data URL or blob URL)
@@ -199,7 +205,7 @@ export class ThreeSceneManager {
     // Since plane is rotated 90° counter-clockwise:
     // - Camera's X (0 to 1, left to right) maps to world Y (bottom to top after rotation)
     // - Camera's Y (0 to 1, top to bottom) maps to world X (right to left after rotation)
-    const worldX = -(normalizedY - 0.5) * CONFIG.PLANE_HEIGHT;
+    const worldX = (normalizedY - 0.5) * CONFIG.PLANE_HEIGHT;
     const worldY = -(normalizedX - 0.5) * CONFIG.PLANE_WIDTH;
     return { x: worldX, y: worldY };
   }

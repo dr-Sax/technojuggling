@@ -131,9 +131,23 @@ class FramePipeline:
                 balls = self.ball_tracker.detect(frame)
                 self.latest_ball_data = {'balls': balls}
             
-            # 3. Encode JPEG
+            # 3. Resize to target resolution before encoding
+            # Camera may deliver a larger frame than requested (e.g. 1920x1080
+            # instead of 640x360). Always downscale here to keep JPEG payload
+            # small and createImageBitmap fast on the frontend.
+            h_actual, w_actual = frame.shape[:2]
+            if w_actual != CAMERA_WIDTH or h_actual != CAMERA_HEIGHT:
+                encode_frame = cv2.resize(
+                    frame,
+                    (CAMERA_WIDTH, CAMERA_HEIGHT),
+                    interpolation=cv2.INTER_LINEAR
+                )
+            else:
+                encode_frame = frame
+
+            # 4. Encode JPEG
             encode_start = time.time()
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
+            _, buffer = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
             self.latest_encoded_frame = buffer.tobytes()
             self.encode_times.append((time.time() - encode_start) * 1000)
             

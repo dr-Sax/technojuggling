@@ -107,7 +107,9 @@ export class EffectRegistry {
   removeBall(ballId) {
     for (const [name, effect] of this.effects.entries()) {
       if (effect.instance && effect.metadata.removeBallMethod) {
-        effect.instance[effect.metadata.removeBallMethod](ballId);
+        if (typeof effect.instance[effect.metadata.removeBallMethod] === 'function') {
+          effect.instance[effect.metadata.removeBallMethod](ballId);
+        }
       }
     }
   }

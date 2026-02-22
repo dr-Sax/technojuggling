@@ -85,7 +85,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       enableRemoteModule: false,
-      webSecurity: false // Allow loading video URLs from different origins
+      webSecurity: false, // Allow loading video URLs from different origins
+      backgroundThrottling: false // Keep render loop running at full speed
     },
     backgroundColor: '#000000',
     show: false // Don't show until ready
@@ -164,8 +165,17 @@ function waitForServer(retries = 20) {
 
 // ===== APP LIFECYCLE =====
 
-// Disable hardware acceleration to prevent GPU crashes
-app.disableHardwareAcceleration();
+// GPU flags to allow hardware acceleration without triggering driver crashes.
+// These are more targeted than disableHardwareAcceleration() which kills WebGL entirely.
+// Force NVIDIA GPU instead of Intel integrated graphics.
+// On laptops with dual GPUs, Electron defaults to the power-saving Intel GPU
+// which crashes with WebGL. These flags select the high-performance NVIDIA GPU.
+app.commandLine.appendSwitch('ignore-gpu-blacklist');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('use-angle', 'd3d11');
+app.commandLine.appendSwitch('use-gl', 'angle');
+app.commandLine.appendSwitch('high-dpi-support', '1');
+app.commandLine.appendSwitch('force_high_performance_gpu');
 
 // When Electron is ready
 app.whenReady().then(async () => {

@@ -101,28 +101,27 @@ class WebSocketHandler:
         frame_count = 0
         last_stats_time = time.time()
         last_frame_id = -1
-        
-        # Minimum time between sends to avoid busy-spinning
-        # Slightly less than frame interval to not miss frames
-        min_interval = (1.0 / self.actual_fps) * 0.5 if self.actual_fps > 0 else 0.010
-        
+
         while websocket in self.connected_clients:
             if self.frame_processor is None:
                 await asyncio.sleep(0.1)
                 continue
-                
+
             frame_data = self.frame_processor.get_latest_frame_data()
-            
+
             if frame_data['encoded_frame'] is None or frame_data['frame_id'] == last_frame_id:
-                await asyncio.sleep(0.002)
+                # No new frame yet — yield briefly without sleeping a full interval.
+                # asyncio.sleep(0) just hands control back to the event loop
+                # and returns on the very next iteration, keeping latency minimal.
+                await asyncio.sleep(0)
                 continue
-            
+
             last_frame_id = frame_data['frame_id']
-            
+
             try:
                 # Send frame as binary (no base64, no JSON overhead)
                 await websocket.send(frame_data['encoded_frame'])
-                
+
                 # Send ball data as small JSON
                 ball_msg = json.dumps({
                     'type': 'balls',
@@ -131,27 +130,28 @@ class WebSocketHandler:
                     'timestamp': time.time()
                 })
                 await websocket.send(ball_msg)
-                
+
                 frame_count += 1
             except:
                 break
-            
-            # Stats logging
+
+            # Stats logging — no sleep here, send the next frame immediately
             now = time.time()
             if now - last_stats_time > 2.0:
                 stats = self.frame_processor.get_performance_stats()
                 stream_fps = frame_count / (now - last_stats_time)
-                
+
                 print(f"Camera: {stats['fps']:.1f} FPS | "
                       f"Stream: {stream_fps:.1f} FPS | "
                       f"Encode: {stats['encode_time']:.1f}ms | "
                       f"Balls: {stats['ball_count']}")
-                
+
                 frame_count = 0
                 last_stats_time = now
-            
-            # Yield to event loop briefly — don't sleep a full frame interval
-            await asyncio.sleep(min_interval)
+
+            # Yield to event loop so other coroutines (BigTrack, calibration, etc.)
+            # can run between frame sends without adding latency.
+            await asyncio.sleep(0)
     
     def get_client_count(self):
         return len(self.connected_clients)
