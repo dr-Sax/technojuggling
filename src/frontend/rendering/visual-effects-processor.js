@@ -64,7 +64,10 @@ export class VisualEffectsProcessor {
         
         // Glitch
         glitch: { value: 0.0 },
-        glitchSeed: { value: Math.random() }
+        glitchSeed: { value: Math.random() },
+        
+        // Opacity
+        opacity: { value: 1.0 }
       };
       
       const material = new THREE.ShaderMaterial({
@@ -143,6 +146,9 @@ export class VisualEffectsProcessor {
         u.glitchSeed.value = Math.random();
       }
       
+      // Opacity
+      u.opacity.value = Math.max(0, Math.min(1, params.opacity ?? 1.0));
+      
     } catch (error) {
       console.error(`Error applying visual FX to ${videoId}:`, error);
     }
@@ -209,6 +215,7 @@ export class VisualEffectsProcessor {
       uniform float echo;
       uniform float glitch;
       uniform float glitchSeed;
+      uniform float opacity;
       
       varying vec2 vUv;
       
@@ -283,7 +290,9 @@ export class VisualEffectsProcessor {
         bool hasRGBSplit = rgbShift > 0.001 || chromatic > 0.001;
         
         if (!hasUVEffects && !hasColorEffects && !hasRGBSplit) {
-          gl_FragColor = texture2D(videoTexture, uv);
+          vec4 earlyColor = texture2D(videoTexture, uv);
+          earlyColor.a *= opacity;
+          gl_FragColor = earlyColor;
           return;
         }
         
@@ -348,6 +357,7 @@ export class VisualEffectsProcessor {
         
         // EARLY EXIT: If no color effects, return now
         if (!hasColorEffects) {
+          color.a *= opacity;
           gl_FragColor = color;
           return;
         }
@@ -388,6 +398,7 @@ export class VisualEffectsProcessor {
           color.rgb = mix(color.rgb, color.rgb * 0.8, echo * 0.5);
         }
         
+        color.a *= opacity;
         gl_FragColor = color;
       }
     `;

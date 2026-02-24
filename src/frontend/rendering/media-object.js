@@ -80,22 +80,29 @@ export class MediaObject {
     v._endTime = end;
     v._timeOffset = offset;
     
-    // Loop within start/end range
+    // Loop within video file's start/end — these are absolute video timestamps,
+    // independent of the clock offset
     v.ontimeupdate = () => {
-      if (end !== null && v.currentTime >= end + offset) v.currentTime = start + offset;
+      if (end !== null && v.currentTime >= end) {
+        v.currentTime = start;
+      }
     };
     
-    // Seek and play — handle both fresh and already-loaded elements
-    if (v.readyState >= 2) {
-      // Already loaded (cloned element) — seek and play immediately
-      v.currentTime = start + offset;
+    // Initial seek: start at videoStart, then shift by offset within the clip window.
+    // offset shifts WHEN in the loop we start (clock phase), not WHERE in the file.
+    const doSeek = () => {
+      const clipDuration = end - start;
+      const offsetIntoClip = clipDuration > 0
+        ? ((offset % clipDuration) + clipDuration) % clipDuration
+        : 0;
+      v.currentTime = start + offsetIntoClip;
       v.play().catch(() => {});
+    };
+
+    if (v.readyState >= 2) {
+      doSeek();
     } else {
-      // Not yet loaded — wait for data
-      v.addEventListener('loadeddata', () => {
-        v.currentTime = start + offset;
-        v.play().catch(() => {});
-      }, { once: true });
+      v.addEventListener('loadeddata', doSeek, { once: true });
     }
   }
   
@@ -121,14 +128,20 @@ export class MediaObject {
       this.texture.needsUpdate = true;
       this.texture.minFilter = this.texture.magFilter = THREE.LinearFilter;
       this.material = new THREE.ShaderMaterial({
-        uniforms: { videoTexture: { value: this.texture }, time: { value: 0 } },
+        uniforms: { 
+          videoTexture: { value: this.texture }, 
+          time: { value: 0 },
+          opacity: { value: 1.0 }
+        },
         vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
         fragmentShader: MaskShader.addToShader(
           `uniform sampler2D videoTexture;
+           uniform float opacity;
            varying vec2 vUv;
            void main() {
              vec2 uv = vUv;
              vec4 color = texture2D(videoTexture, uv);
+             color.a *= opacity;
              gl_FragColor = color;
            }`
         ),
@@ -180,7 +193,13 @@ export class MediaObject {
     if (params.rotation !== undefined) this.mesh.rotation.z = params.rotation * (Math.PI / 180);
     
     this.material.opacity = params.opacity ?? 1.0;
-    if (this.material.uniforms) MaskShader.applyParameters(this.material, params);
+    if (this.material.uniforms) {
+      // Set opacity uniform for ShaderMaterials (both video and image)
+      if (this.material.uniforms.opacity) {
+        this.material.uniforms.opacity.value = params.opacity ?? 1.0;
+      }
+      MaskShader.applyParameters(this.material, params);
+    }
     const hasMask = this.material.uniforms?.useMask?.value > 0.5;
     this.material.transparent = this.material.opacity < 1.0 || hasMask;
   }

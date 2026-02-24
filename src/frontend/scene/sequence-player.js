@@ -21,27 +21,49 @@ class StreamPlayer {
     if (!effectsString) return {};
     
     const effects = {};
-    const parts = effectsString.split(',').map(s => s.trim());
+    // Split on commas that are NOT inside parentheses
+    const parts = this._splitEffectsParts(effectsString);
     
     for (const part of parts) {
-      if (part.includes(':')) {
-        // Direct param:value format
-        const [key, value] = part.split(':').map(s => s.trim());
-        // Try to parse as number
+      const colonIdx = part.indexOf(':');
+      if (colonIdx !== -1) {
+        // Direct param:value format — split only on first colon
+        const key = part.slice(0, colonIdx).trim();
+        const value = part.slice(colonIdx + 1).trim();
+        // Try to parse as number; keep as string if not (could be expression or enum)
         const num = parseFloat(value);
-        effects[key] = !isNaN(num) ? num : value;
+        effects[key] = !isNaN(num) && String(num) === value ? num : value;
       } else {
-        // Preset reference - resolve from current config
-        const preset = this.config.getPreset(part);
+        // Preset reference — resolve from current config
+        const preset = this.config.getPreset(part.trim());
         if (preset) {
           Object.assign(effects, preset);
-        } else {
-          console.warn(`Unknown preset: ${part}`);
+        } else if (part.trim()) {
+          console.warn(`Unknown preset: ${part.trim()}`);
         }
       }
     }
     
     return effects;
+  }
+
+  // Split on commas that are outside parentheses
+  _splitEffectsParts(str) {
+    const parts = [];
+    let depth = 0;
+    let current = '';
+    for (const ch of str) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === ',' && depth === 0) {
+        parts.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) parts.push(current);
+    return parts;
   }
 
   getClipAtTime(globalTime) {

@@ -118,17 +118,20 @@ export class SceneManager {
                               .replace('left_hand', 'left')
                               .replace('ball_', '');
     
-    const timeOffset = clipData.startTime - clipData.videoStart;
+    // timeOffset comes from routing config (e.g. ball_1: {stream: "streamD", offset: 5})
+    // This shifts clock phase — WHERE in the clip loop we start — not the video file position
+    const routeConfig = this.sequenceConfig.getRoutingConfig(objectId);
+    const timeOffset = routeConfig ? routeConfig.offset : 0;
     
     this.ballManager.clearBall(objectName);
     
     const mediaConfig = {
-      startTime: clipData.videoStart,
-      endTime: clipData.videoEnd,
+      startTime: clipData.videoStart,   // absolute position in the video file (e.g. 30s)
+      endTime: clipData.videoEnd,       // absolute position in the video file (e.g. 60s)
       locked: false,
       zIndex: clipData.effects.zIndex || 0.1,
       scale: 1.0,
-      timeOffset: timeOffset
+      timeOffset: timeOffset            // clock phase offset from routing config
     };
     
     await this.ballManager.displayBallMedia(objectName, media, mediaConfig);

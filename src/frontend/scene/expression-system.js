@@ -31,9 +31,25 @@ export class ExpressionEvaluator {
       const scope = {
         time,
         t: time,
-        ...ballData,
         ...this.mathFunctions
       };
+
+      // Flatten ball positions into scope: ball_0_x, ball_0_y, ball_0_vx, ball_0_vy
+      // Also expose as b0x, b0y etc for brevity
+      for (const [key, val] of Object.entries(ballData)) {
+        if (val && typeof val === 'object') {
+          scope[key] = val; // keep full object e.g. ball_0
+          const idx = key.match(/\d+/)?.[0] ?? '';
+          scope[`${key}_x`]  = val.x  ?? 0;
+          scope[`${key}_y`]  = val.y  ?? 0;
+          scope[`${key}_vx`] = val.vx ?? 0;
+          scope[`${key}_vy`] = val.vy ?? 0;
+          scope[`b${idx}x`]  = val.x  ?? 0;
+          scope[`b${idx}y`]  = val.y  ?? 0;
+        } else {
+          scope[key] = val;
+        }
+      }
       
       const paramNames = Object.keys(scope);
       const paramValues = Object.values(scope);
@@ -62,9 +78,11 @@ export class ExpressionEvaluator {
     }
     
     const hasOperators = /[+\-*/%()]/.test(value);
-    const hasFunctions = /\b(sin|cos|tan|abs|sqrt|pow|min|max|floor|ceil|round|PI|E|time|ball_\d+)\b/.test(value);
+    const hasFunctions = /\b(sin|cos|tan|abs|sqrt|pow|min|max|floor|ceil|round|PI|E)\b/.test(value);
+    const hasTimeVar = /\btime\b|\bt\b/.test(value);
+    const hasBallVar = /\bball_\d+\b|\bb\d+[xy]\b/.test(value);
     
-    return hasOperators || hasFunctions;
+    return hasOperators || hasFunctions || hasTimeVar || hasBallVar;
   }
   
   validate(expression) {

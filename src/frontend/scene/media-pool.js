@@ -43,7 +43,7 @@ export class MediaPool {
      * Each object gets its own video element (cloned from the pool's master copy)
      * so multiple balls can independently play the same clip.
      */
-    async assignClipToObject(objectId, clipId, url) {
+    async assignClipToObject(objectId, clipId, url, videoStart = 0) {
         try {
             const master = await this.getMedia(clipId, url);
             this.assignments.set(objectId, clipId);
@@ -66,6 +66,21 @@ export class MediaPool {
                         clone.load();
                     }
                 });
+
+                // Seek to the clip's start time once the element is seekable
+                if (videoStart > 0) {
+                    await new Promise((resolve) => {
+                        const doSeek = () => {
+                            clone.currentTime = videoStart;
+                            resolve();
+                        };
+                        if (clone.seekable && clone.seekable.length > 0) {
+                            doSeek();
+                        } else {
+                            clone.addEventListener('canplay', doSeek, { once: true });
+                        }
+                    });
+                }
                 
                 return { element: clone, type: 'video', src: master.src };
             }
