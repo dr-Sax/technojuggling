@@ -5,6 +5,7 @@
  */
 
 import { ParamScrubHandler } from './param-scrub.js';
+import { FootMouseTracker } from './foot-mouse-tracker.js';
 
 export class CursorNavigationHandler {
   constructor(liveCodeEditor, websocketClient) {
@@ -14,22 +15,45 @@ export class CursorNavigationHandler {
     this.currentSegmentIndex = 0;
     this.currentLineSegments = [];
 
-    // Param scrub handler
+    // Param scrub handler (kept for backwards compat but no longer triggered by foot mouse)
     this.paramScrub = new ParamScrubHandler(liveCodeEditor);
 
-    // onAfterScrub is set externally by UIController after construction
-    // so that scrubbing can trigger a lightweight scene updateConfig()
+    // Foot mouse tracker — accumulates trackball deltas into window.footMouse
+    this.footMouseTracker = new FootMouseTracker();
+
+    // Mode: 'nav' | 'fm'
+    // 'nav' — trackball moves cursor through live code (default)
+    // 'fm'  — trackball feeds window.footMouse, cursor frozen to foot input
+    this.mode = 'nav';
 
     // Wire WebSocket callbacks
-    this.wsClient.onCursorNavigate  = (data) => this.handleNavigation(data);
+    // scrub_mode_toggle is reused as the NAV <-> FM toggle:
+    //   active: true  → FM mode
+    //   active: false → NAV mode
+    this.wsClient.onCursorNavigate  = (data) => this._handleNavigation(data);
     this.wsClient.onCursorClick     = (data) => this.handleClick(data);
-    this.wsClient.onParamScrub      = (data) => this.paramScrub.scrub(data.direction);
-    this.wsClient.onScrubModeToggle = (data) => this._updateScrubModeIndicator(data.active);
+    this.wsClient.onParamScrub      = (data) => { /* scrub retired — no-op */ };
+    this.wsClient.onScrubModeToggle = (data) => this._onModeToggle(data.active);
+    this.wsClient.onFootMouseMove   = (data) => this.footMouseTracker.onMove(data.dx, data.dy);
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
 
-  handleNavigation(data) {
+  _handleNavigation(data) {
+    // In FM mode: route trackball ticks directly into window.footMouse
+    // cursor_navigate carries nav_type ('line' = Y axis, 'segment' = X axis)
+    if (this.mode === 'fm') {
+      // 'line' = trackball Y axis (horizontal roll) → fmx
+      // 'segment' = trackball X axis (vertical roll) → fmy
+      // Swap these if your trackball axes feel inverted.
+      if (data.nav_type === 'line') {
+        this.footMouseTracker.onMove(data.direction, 0);
+      } else if (data.nav_type === 'segment') {
+        this.footMouseTracker.onMove(0, data.direction);
+      }
+      return;
+    }
+
     if (data.nav_type === 'line') {
       this.navigateLine(data.direction);
     } else if (data.nav_type === 'segment') {
@@ -167,39 +191,44 @@ export class CursorNavigationHandler {
     }
   }
 
-  // ── Scrub mode indicator ───────────────────────────────────────────────────
+  // ── Mode toggle & indicator ───────────────────────────────────────────────
 
-  _updateScrubModeIndicator(active) {
-    let el = document.getElementById('scrub-mode-indicator');
+  _onModeToggle(fmActive) {
+    this.mode = fmActive ? 'fm' : 'nav';
+    this._updateModeIndicator();
+  }
+
+  _updateModeIndicator() {
+    let el = document.getElementById('foot-mode-indicator');
 
     if (!el) {
       el = document.createElement('div');
-      el.id = 'scrub-mode-indicator';
+      el.id = 'foot-mode-indicator';
       Object.assign(el.style, {
-        position:   'fixed',
-        bottom:     '14px',
-        right:      '14px',
-        padding:    '4px 12px',
-        borderRadius: '4px',
-        fontFamily: "'Courier New', monospace",
-        fontSize:   '13px',
-        fontWeight: 'bold',
+        position:      'fixed',
+        bottom:        '14px',
+        right:         '14px',
+        padding:       '4px 12px',
+        borderRadius:  '4px',
+        fontFamily:    "'Courier New', monospace",
+        fontSize:      '13px',
+        fontWeight:    'bold',
         letterSpacing: '0.08em',
-        zIndex:     '9999',
+        zIndex:        '9999',
         pointerEvents: 'none',
-        transition: 'background 0.15s, color 0.15s',
-        userSelect: 'none',
+        transition:    'background 0.15s, color 0.15s',
+        userSelect:    'none',
       });
       document.body.appendChild(el);
     }
 
-    if (active) {
-      el.textContent = '\u21BA SCRUB';
-      el.style.background = '#e65c00';
+    if (this.mode === 'fm') {
+      el.textContent      = '\u25CF FM';          // ● FM
+      el.style.background = '#7b2fff';
       el.style.color      = '#fff';
       el.style.opacity    = '1';
     } else {
-      el.textContent = '\u2195 NAV';
+      el.textContent      = '\u2195 NAV';          // ↕ NAV
       el.style.background = 'rgba(20,20,40,0.85)';
       el.style.color      = 'rgba(255,255,255,0.6)';
       el.style.opacity    = '0.85';

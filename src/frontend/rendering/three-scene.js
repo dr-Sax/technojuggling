@@ -3,6 +3,7 @@
  * Updated to remove CSS3DRenderer (WebGL only)
  */
 import { CONFIG } from '../core/config.js';
+import { effectRegistry } from '../tracking/effect-registry.js';
 
 export class ThreeSceneManager {
   constructor() {
@@ -165,6 +166,17 @@ export class ThreeSceneManager {
       console.log(`Camera feed: ${visible ? 'visible' : 'hidden'}`);
     }
   }
+
+  /**
+   * Move the camera feed plane to a specific Z position.
+   * Called each frame by BallSpacetime so the feed trails behind
+   * the advancing spacetime front by a configurable depth.
+   */
+  setCameraFeedZ(z) {
+    if (this.cameraFeedPlane) {
+      this.cameraFeedPlane.position.z = z;
+    }
+  }
   
   startAnimation() {
     if (this.animating) return;
@@ -180,6 +192,10 @@ export class ThreeSceneManager {
     // Update dynamic parameters if scene manager is available
     if (this.sceneManagerRef) {
       this.sceneManagerRef.updateDynamicParameters();
+
+      // Advance spacetime Z and keep camera locked to present
+      const spacetime = effectRegistry.get('spacetime');
+      if (spacetime?.active) spacetime.tick();
     }
     
     // Throttled video texture uploads (20fps instead of 60fps)
@@ -213,6 +229,10 @@ export class ThreeSceneManager {
   // Getters for other modules
   getWebGLScene() {
     return this.threeScene;
+  }
+
+  getCamera() {
+    return this.camera;
   }
   
   getPlaneHeight() {

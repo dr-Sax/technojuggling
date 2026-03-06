@@ -3,9 +3,9 @@ BigTrack Foot Mouse Handler - Optional USB HID device for hands-free code naviga
 Self-contained: config constants are defined here, not in config.py.
 
 Controls:
-  Trackball Y-axis  ->  line navigation (always)
-  Trackball X-axis  ->  segment navigation (NAV mode) OR param scrubbing (SCRUB mode)
-  Right button      ->  toggle NAV <-> SCRUB mode
+  Trackball Y-axis  ->  line navigation (NAV mode) OR fmy input (FM mode)
+  Trackball X-axis  ->  segment navigation (NAV mode) OR fmx input (FM mode)
+  Right button      ->  toggle NAV <-> FM mode
   Left double-click ->  select current segment
 """
 import threading
@@ -35,6 +35,12 @@ SCRUB_THRESHOLD   = 0.15
 # Raise further if still drifting (e.g. 1.5 = essentially locked).
 SCRUB_Y_THRESHOLD = 0.8
 
+# -- Foot mouse input mode ---------------------------------------------------
+# Raw dx/dy multiplier sent to the client as foot_mouse_move events.
+# 1.0 = one unit per raw USB tick. Tune up/down to taste.
+FM_SENSITIVITY_X = 1.0
+FM_SENSITIVITY_Y = 1.0
+
 
 class BigTrackHandler:
     def __init__(self, websocket_handler, event_loop):
@@ -49,8 +55,9 @@ class BigTrackHandler:
         self.current_line    = 0
         self.current_segment = 0
 
-        # Scrub mode state
-        self.scrub_mode        = False
+        # Mode: 'nav' | 'fm'  (scrub mode retired)
+        self.mode              = 'nav'
+        self.scrub_mode        = False   # kept for legacy compat; mirrors mode=='fm'
         self.scrub_accumulator = 0.0
 
         self.last_left_click_time = 0
@@ -132,39 +139,40 @@ class BigTrackHandler:
         self.state['left_button']  = current_left
         self.state['right_button'] = current_right
 
-        # Right button press: toggle scrub mode
+        # Right button press: toggle NAV <-> FM mode
         if current_right and not last_right_button:
-            self.scrub_mode        = not self.scrub_mode
-            self.scrub_accumulator = 0.0
-            self.state['y']        = 0.0   # reset Y accumulator on mode switch
+            self.mode       = 'fm' if self.mode == 'nav' else 'nav'
+            self.scrub_mode = (self.mode == 'fm')   # keep legacy flag in sync
+            self.state['x'] = 0.0
+            self.state['y'] = 0.0
             self._send_event({
-                'type':   'scrub_mode_toggle',
+                'type':   'scrub_mode_toggle',   # reuse existing client message
                 'active': self.scrub_mode,
             })
 
-        # Y-axis: line navigation
-        # Use a much higher threshold in scrub mode to resist diagonal drift
-        y_threshold = SCRUB_Y_THRESHOLD if self.scrub_mode else NAV_THRESHOLD
-
-        self.state['y'] -= dy * SENSITIVITY * VERTICAL_MULTIPLIER
-        self.state['y']  = max(-MAX_POSITION, min(MAX_POSITION, self.state['y']))
-
-        if self.state['y'] > y_threshold:
-            self._navigate('line', -1)
-            self.state['y'] = 0.0
-        elif self.state['y'] < -y_threshold:
-            self._navigate('line', 1)
-            self.state['y'] = 0.0
-
-        # X-axis: NAV -> segment steps  |  SCRUB -> param steps
-        if self.scrub_mode:
-            self.scrub_accumulator += dx * SCRUB_SENSITIVITY
-            if abs(self.scrub_accumulator) >= SCRUB_THRESHOLD:
-                steps = int(self.scrub_accumulator / SCRUB_THRESHOLD)
-                if steps != 0:
-                    self._send_event({'type': 'param_scrub', 'direction': steps})
-                    self.scrub_accumulator -= steps * SCRUB_THRESHOLD
+        if self.mode == 'fm':
+            # FM mode: send raw deltas directly — client accumulates into fmx/fmy.
+            # Only send a message when there is actual movement to avoid noise.
+            fm_dx = dx * FM_SENSITIVITY_X if dx != 0 else 0
+            fm_dy = dy * FM_SENSITIVITY_Y if dy != 0 else 0
+            if fm_dx != 0 or fm_dy != 0:
+                self._send_event({
+                    'type': 'foot_mouse_move',
+                    'dx':   fm_dx,
+                    'dy':   fm_dy,
+                })
         else:
+            # NAV mode: discretize into line/segment navigation steps
+            self.state['y'] -= dy * SENSITIVITY * VERTICAL_MULTIPLIER
+            self.state['y']  = max(-MAX_POSITION, min(MAX_POSITION, self.state['y']))
+
+            if self.state['y'] > NAV_THRESHOLD:
+                self._navigate('line', -1)
+                self.state['y'] = 0.0
+            elif self.state['y'] < -NAV_THRESHOLD:
+                self._navigate('line', 1)
+                self.state['y'] = 0.0
+
             self.state['x'] += dx * SENSITIVITY
             self.state['x']  = max(-MAX_POSITION, min(MAX_POSITION, self.state['x']))
 
@@ -175,7 +183,7 @@ class BigTrackHandler:
                 self._navigate('segment', -1)
                 self.state['x'] = 0.0
 
-        # Left button: double-click detection
+        # Left button: double-click detection (works in any mode)
         if current_left and not last_left_button:
             now = time.time()
             if now - self.last_left_click_time < DOUBLE_CLICK_THRESHOLD:

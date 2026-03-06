@@ -31,6 +31,11 @@ export class ExpressionEvaluator {
       const scope = {
         time,
         t: time,
+        // Foot mouse continuous inputs — accumulated trackball position/velocity
+        fmx: window.footMouse?.x  ?? 0,
+        fmy: window.footMouse?.y  ?? 0,
+        fmvx: window.footMouse?.vx ?? 0,
+        fmvy: window.footMouse?.vy ?? 0,
         ...this.mathFunctions
       };
 
@@ -81,8 +86,9 @@ export class ExpressionEvaluator {
     const hasFunctions = /\b(sin|cos|tan|abs|sqrt|pow|min|max|floor|ceil|round|PI|E)\b/.test(value);
     const hasTimeVar = /\btime\b|\bt\b/.test(value);
     const hasBallVar = /\bball_\d+\b|\bb\d+[xy]\b/.test(value);
+    const hasFootMouse = /\bfmx\b|\bfmy\b|\bfmvx\b|\bfmvy\b/.test(value);
     
-    return hasOperators || hasFunctions || hasTimeVar || hasBallVar;
+    return hasOperators || hasFunctions || hasTimeVar || hasBallVar || hasFootMouse;
   }
   
   validate(expression) {

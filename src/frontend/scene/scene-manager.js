@@ -352,6 +352,22 @@ export class SceneManager {
     if (settings.enabled !== undefined) {
       this.ballManager.setEffectEnabled(effectName, settings.enabled);
     }
+
+    // Spacetime mode: call enable/disable to manage camera and scene objects
+    if (effectName === 'spacetime') {
+      const effect = effectRegistry.get('spacetime');
+      if (effect) {
+        const camera = this.threeSceneRef ? this.threeSceneRef.getCamera() : null;
+        if (camera) {
+          if (settings.enabled && !effect.active) {
+            effect.enable(camera, this.threeSceneRef);
+          } else if (settings.enabled === false && effect.active) {
+            effect.disable(camera);
+          }
+        }
+      }
+    }
+
     if (effectRegistry.has(effectName)) {
       effectRegistry.applyConfig(effectName, settings);
     }
@@ -380,6 +396,11 @@ export class SceneManager {
     return CONFIG.PLANE_HEIGHT;
   }
   
+  getCamera() {
+    if (this.threeSceneRef) return this.threeSceneRef.getCamera();
+    return null;
+  }
+
   setThreeSceneRef(threeScene) {
     this.threeSceneRef = threeScene;
   }

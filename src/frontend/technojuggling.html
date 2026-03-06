@@ -200,8 +200,8 @@
   streams: {
     streamA: "A{scale: 100, useMask: 1, opacity:sin(2*(time+3)),maskShape: circle, maskRadius: .5}",
     streamB: "B{scale: 20, useMask: 1, opacity:sin(2*(time+2)),maskShape: circle, maskRadius: .5}",
-    streamC: "C{scale: 20, pan:-1, volume: 10,opacity:sin(2*(time+1)),useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamD: "D{scale: 40,opacity:sin(2*(time)), pan:1, useMask: 1, maskShape: square, maskRadius: .5}",
+    streamC: "A{scale: 20, pan:-1, volume: 10,opacity:sin(2*(time+1)),useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamD: "B{scale: 40,opacity:sin(2*(time)), pan:1, useMask: 1, maskShape: square, maskRadius: .5}",
   },
   
   routing: {
@@ -210,20 +210,20 @@
     ball_2: {stream: "streamC", offset: 0},
     ball_3: {stream: "streamD", offset: 1}
   },
-   ballTrails: {
-    enabled: true,
-    count: 5,
-    maxDelay: .5,
-    radiusRange: [.5, 1.5],
-    sides: 48,
-    perBallColors: true,
-    ballColors: {
-      0: [0xff0000],  // Ball 0: Red → Magenta
-      1: [0x00ff00],  // Ball 1: Green → Cyan
-      2: [0xffff00],   // Ball 2: Yellow → Orange
-      3: [0xffffff]   // Ball 3: White → White
-    }
-  },
+   ballSpacetime: {
+  enabled: true,
+  zStep: 0.1,
+    feedPlaneOffset: 30,
+  maxHistory: 2000,
+  theta: "fmy *.02",    // @param float 0.0 6.28 0.05
+  phi: "fmx *.02",      // @param float 0.1  2.5  0.05
+  radius: 10,  // @param float 5.0  80.0 1.0
+  perBallColors: true,
+    tubeRadius: 0.25,   // @param float 0.01 0.5 0.01
+  tubeSegments: 6,    // @param int 3 16 1
+  rebuildEvery: 1,
+  ballColors: { 0: 0xff4444, 1: 0x44ff44, 2: 0xffff44, 3: 0x44aaff }
+},
 
   showCamera: true
 }'></div>

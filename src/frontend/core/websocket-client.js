@@ -24,8 +24,9 @@ export class WebSocketClient {
     // Foot mouse callbacks (set by CursorNavigationHandler)
     this.onCursorNavigate  = null;
     this.onCursorClick     = null;
-    this.onParamScrub      = null;   // NEW: { type, direction }
-    this.onScrubModeToggle = null;   // NEW: { type, active }
+    this.onParamScrub      = null;   // { type, direction }
+    this.onScrubModeToggle = null;   // { type, active }
+    this.onFootMouseMove   = null;   // { type, dx, dy } — raw trackball deltas
 
     // Performance tracking
     this.frameCount   = 0;
@@ -118,6 +119,11 @@ export class WebSocketClient {
 
         case 'scrub_mode_toggle':
           if (this.onScrubModeToggle) this.onScrubModeToggle(data);
+          break;
+
+        // ── Foot mouse continuous input ────────────────────────────────────
+        case 'foot_mouse_move':
+          if (this.onFootMouseMove) this.onFootMouseMove(data);
           break;
       }
 

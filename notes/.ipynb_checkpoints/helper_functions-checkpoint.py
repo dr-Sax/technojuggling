@@ -1,6 +1,10 @@
 import yt_dlp
 import subprocess
 import os
+import requests
+from bs4 import BeautifulSoup
+import json
+import re
 
 def display_videos(youtube_urls):
     html = '<div style="display: flex; gap: 10px; flex-wrap: wrap;">'
@@ -21,7 +25,7 @@ def display_videos(youtube_urls):
                     allowfullscreen
                     style="border: 1px solid #ccc;">
             </iframe>
-            <figcaption style="text-align: center; margin-top: 10px;">
+            <figcaption style="text-align: center; margin-top: 10px; width:300px">
                 <a href="{url}">Watch on YouTube</a>
             </figcaption>
         </figure>
@@ -51,16 +55,16 @@ def display_videofiles(directory_path):
     html += '</div>'
     return html
 
-def display_images(media_url_list):
+def display_images(media_url_list, captions_list):
     html = '<div style="display: flex; gap: 10px; flex-wrap: wrap;">'
     width = 300
     height = 400
-    for url in media_url_list:
+    for i in range (0, len(media_url_list)):
         html += f"""
         <figure style="text-align: center; margin: 0;">
-            <img src="{url}" width="{width}" height="{height}" style="border: 1px solid #ccc;"></img>
-            <figcaption style="text-align: center; margin-top: 10px;">
-                <a href="{url}">hiiiiiii :3</a>
+            <img src="{media_url_list[i]}" width="{width}" height="{height}" style="border: 1px solid #ccc;"></img>
+            <figcaption style="text-align: center; margin-top: 10px; width:300px">
+                <a href="{media_url_list[i]}">"{captions_list[i]}"</a>
             </figcaption>
         </figure>
         """
@@ -146,4 +150,39 @@ def display_webvideos(media_url_list):
     return html
 
 
+def scrape_tumblr_post(post_url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    
+    response = requests.get(post_url, headers=headers)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    # Tumblr embeds data in JSON-LD script tag
+    script_tag = soup.find('script', {'type': 'application/ld+json'})
+    
+    if script_tag:
+        data = json.loads(script_tag.string)
+        
+        metadata = {
+            'blog_name': data.get('author', {}).get('name', ''),
+            'date': data.get('datePublished', ''),
+            'caption': data.get('headline', ''),
+            'description': data.get('description', ''),
+            'media_url': data.get('image', {}).get('url', '') if isinstance(data.get('image'), dict) else data.get('image', '')
+        }
+        
+        return metadata
+    
+    # Fallback: try to find Open Graph meta tags
+    metadata = {
+        'blog_name': soup.find('meta', {'property': 'og:site_name'})['content'] if soup.find('meta', {'property': 'og:site_name'}) else '',
+        'caption': soup.find('meta', {'property': 'og:title'})['content'] if soup.find('meta', {'property': 'og:title'}) else '',
+        'description': soup.find('meta', {'property': 'og:description'})['content'] if soup.find('meta', {'property': 'og:description'}) else '',
+        'media_url': soup.find('meta', {'property': 'og:image'})['content'] if soup.find('meta', {'property': 'og:image'}) else ''
+    }
+    
+    return metadata
+
+display
     

@@ -29,6 +29,7 @@ import {
 } from '../rendering/effect-bases.js';
 
 import { effectRegistry } from './effect-registry.js';
+import { BallSpacetime } from './ball-spacetime.js';
 
 
 // ════════════════════════════════════════════════════════════════
@@ -1201,3 +1202,7 @@ effectRegistry.register('connections', Connections, {
 });
 // Note: sincwaves registration stays in ball-tracking.js since it uses
 // the original BallSincWaves class (too unique for the base classes)
+
+effectRegistry.register('spacetime', BallSpacetime, {
+  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
+});

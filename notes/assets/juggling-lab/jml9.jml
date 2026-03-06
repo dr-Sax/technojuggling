@@ -1,0 +1,3036 @@
+<?xml version="1.0"?>
+<!DOCTYPE jml SYSTEM "file://jml.dtd">
+<jml version="3">
+<pattern>
+<prop type="ball" mod="color=black;diam=20"/>
+<prop type="ball" mod="color=white;diam=20"/>
+<setup jugglers="432" paths="864" props="1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2"/>
+<symmetry type="delay" pperm="(1)(2)(3)(4)(5)(6)(7)(8)(9)(10)(11)(12)(13)(14)(15)(16)(17)(18)(19)(20)(21)(22)(23)(24)(25)(26)(27)(28)(29)(30)(31)(32)(33)(34)(35)(36)(37)(38)(39)(40)(41)(42)(43)(44)(45)(46)(47)(48)(49)(50)(51)(52)(53)(54)(55)(56)(57)(58)(59)(60)(61)(62)(63)(64)(65)(66)(67)(68)(69)(70)(71)(72)(73)(74)(75)(76)(77)(78)(79)(80)(81)(82)(83)(84)(85)(86)(87)(88)(89)(90)(91)(92)(93)(94)(95)(96)(97)(98)(99)(100)(101)(102)(103)(104)(105)(106)(107)(108)(109)(110)(111)(112)(113)(114)(115)(116)(117)(118)(119)(120)(121)(122)(123)(124)(125)(126)(127)(128)(129)(130)(131)(132)(133)(134)(135)(136)(137)(138)(139)(140)(141)(142)(143)(144)(145)(146)(147)(148)(149)(150)(151)(152)(153)(154)(155)(156)(157)(158)(159)(160)(161)(162)(163)(164)(165)(166)(167)(168)(169)(170)(171)(172)(173)(174)(175)(176)(177)(178)(179)(180)(181)(182)(183)(184)(185)(186)(187)(188)(189)(190)(191)(192)(193)(194)(195)(196)(197)(198)(199)(200)(201)(202)(203)(204)(205)(206)(207)(208)(209)(210)(211)(212)(213)(214)(215)(216)(217)(218)(219)(220)(221)(222)(223)(224)(225)(226)(227)(228)(229)(230)(231)(232)(233)(234)(235)(236)(237)(238)(239)(240)(241)(242)(243)(244)(245)(246)(247)(248)(249)(250)(251)(252)(253)(254)(255)(256)(257)(258)(259)(260)(261)(262)(263)(264)(265)(266)(267)(268)(269)(270)(271)(272)(273)(274)(275)(276)(277)(278)(279)(280)(281)(282)(283)(284)(285)(286)(287)(288)(289)(290)(291)(292)(293)(294)(295)(296)(297)(298)(299)(300)(301)(302)(303)(304)(305)(306)(307)(308)(309)(310)(311)(312)(313)(314)(315)(316)(317)(318)(319)(320)(321)(322)(323)(324)(325)(326)(327)(328)(329)(330)(331)(332)(333)(334)(335)(336)(337)(338)(339)(340)(341)(342)(343)(344)(345)(346)(347)(348)(349)(350)(351)(352)(353)(354)(355)(356)(357)(358)(359)(360)(361)(362)(363)(364)(365)(366)(367)(368)(369)(370)(371)(372)(373)(374)(375)(376)(377)(378)(379)(380)(381)(382)(383)(384)(385)(386)(387)(388)(389)(390)(391)(392)(393)(394)(395)(396)(397)(398)(399)(400)(401)(402)(403)(404)(405)(406)(407)(408)(409)(410)(411)(412)(413)(414)(415)(416)(417)(418)(419)(420)(421)(422)(423)(424)(425)(426)(427)(428)(429)(430)(431)(432)(433)(434)(435)(436)(437)(438)(439)(440)(441)(442)(443)(444)(445)(446)(447)(448)(449)(450)(451)(452)(453)(454)(455)(456)(457)(458)(459)(460)(461)(462)(463)(464)(465)(466)(467)(468)(469)(470)(471)(472)(473)(474)(475)(476)(477)(478)(479)(480)(481)(482)(483)(484)(485)(486)(487)(488)(489)(490)(491)(492)(493)(494)(495)(496)(497)(498)(499)(500)(501)(502)(503)(504)(505)(506)(507)(508)(509)(510)(511)(512)(513)(514)(515)(516)(517)(518)(519)(520)(521)(522)(523)(524)(525)(526)(527)(528)(529)(530)(531)(532)(533)(534)(535)(536)(537)(538)(539)(540)(541)(542)(543)(544)(545)(546)(547)(548)(549)(550)(551)(552)(553)(554)(555)(556)(557)(558)(559)(560)(561)(562)(563)(564)(565)(566)(567)(568)(569)(570)(571)(572)(573)(574)(575)(576)(577)(578)(579)(580)(581)(582)(583)(584)(585)(586)(587)(588)(589)(590)(591)(592)(593)(594)(595)(596)(597)(598)(599)(600)(601)(602)(603)(604)(605)(606)(607)(608)(609)(610)(611)(612)(613)(614)(615)(616)(617)(618)(619)(620)(621)(622)(623)(624)(625)(626)(627)(628)(629)(630)(631)(632)(633)(634)(635)(636)(637)(638)(639)(640)(641)(642)(643)(644)(645)(646)(647)(648)(649)(650)(651)(652)(653)(654)(655)(656)(657)(658)(659)(660)(661)(662)(663)(664)(665)(666)(667)(668)(669)(670)(671)(672)(673)(674)(675)(676)(677)(678)(679)(680)(681)(682)(683)(684)(685)(686)(687)(688)(689)(690)(691)(692)(693)(694)(695)(696)(697)(698)(699)(700)(701)(702)(703)(704)(705)(706)(707)(708)(709)(710)(711)(712)(713)(714)(715)(716)(717)(718)(719)(720)(721)(722)(723)(724)(725)(726)(727)(728)(729)(730)(731)(732)(733)(734)(735)(736)(737)(738)(739)(740)(741)(742)(743)(744)(745)(746)(747)(748)(749)(750)(751)(752)(753)(754)(755)(756)(757)(758)(759)(760)(761)(762)(763)(764)(765)(766)(767)(768)(769)(770)(771)(772)(773)(774)(775)(776)(777)(778)(779)(780)(781)(782)(783)(784)(785)(786)(787)(788)(789)(790)(791)(792)(793)(794)(795)(796)(797)(798)(799)(800)(801)(802)(803)(804)(805)(806)(807)(808)(809)(810)(811)(812)(813)(814)(815)(816)(817)(818)(819)(820)(821)(822)(823)(824)(825)(826)(827)(828)(829)(830)(831)(832)(833)(834)(835)(836)(837)(838)(839)(840)(841)(842)(843)(844)(845)(846)(847)(848)(849)(850)(851)(852)(853)(854)(855)(856)(857)(858)(859)(860)(861)(862)(863)(864)" delay="0.1"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="1"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="2"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="3"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="4"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="5"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="6"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="7"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="8"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="9"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="10"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="11"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="12"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="13"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="14"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="15"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="16"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="17"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="18"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="19"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="20"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="21"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="22"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="23"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="24"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="25"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="26"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="27"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="28"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="29"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="30"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="31"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="32"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="33"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="34"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="35"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="36"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="37"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="38"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="39"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="40"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="41"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="42"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="43"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="44"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="45"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="46"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="47"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="48"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="49"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="50"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="51"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="52"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="53"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="54"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="55"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="56"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="57"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="58"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="59"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="60"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="61"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="62"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="63"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="64"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="65"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="66"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="67"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="68"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="69"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="70"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="71"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="72"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="73"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="74"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="75"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="76"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="77"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="78"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="79"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="80"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="81"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="82"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="83"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="84"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="85"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="86"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="87"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="88"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="89"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="90"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="91"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="92"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="93"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="94"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="95"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="96"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="97"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="98"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="99"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="100"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="101"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="102"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="103"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="104"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="105"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="106"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="107"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="108"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="109"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="110"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="111"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="112"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="113"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="114"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="115"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="116"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="117"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="118"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="119"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="120"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="121"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="122"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="123"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="124"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="125"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="126"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="127"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="128"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="129"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="130"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="131"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="132"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="133"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="134"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="135"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="136"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="137"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="138"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="139"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="140"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="141"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="142"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="143"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="144"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="145"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="146"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="147"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="148"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="149"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="150"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="151"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="152"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="153"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="154"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="155"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="156"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="157"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="158"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="159"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="160"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="161"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="162"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="163"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="164"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="165"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="166"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="167"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="168"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="169"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="170"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="171"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="172"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="173"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="174"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="175"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="176"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="177"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="178"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="179"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="180"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="181"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="182"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="183"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="184"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="185"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="186"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="187"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="188"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="189"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="190"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="191"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="192"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="193"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="194"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="195"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="196"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="197"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="198"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="199"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="200"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="201"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="202"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="203"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="204"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="205"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="206"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="207"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="208"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="209"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="210"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="211"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="212"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="213"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="214"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="215"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="216"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="217"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="218"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="219"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="220"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="221"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="222"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="223"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="224"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="225"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="226"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="227"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="228"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="229"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="230"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="231"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="232"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="233"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="234"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="235"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="236"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="237"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="238"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="239"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="240"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="241"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="242"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="243"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="244"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="245"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="246"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="247"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="248"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="249"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="250"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="251"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="252"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="253"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="254"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="255"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="256"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="257"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="258"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="259"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="260"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="261"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="262"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="263"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="264"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="265"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="266"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="267"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="268"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="269"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="270"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="271"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="272"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="273"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="274"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="275"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="276"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="277"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="278"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="279"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="280"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="281"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="282"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="283"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="284"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="285"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="286"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="287"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="288"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="289"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="290"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="291"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="292"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="293"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="294"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="295"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="296"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="297"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="298"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="299"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="300"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="301"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="302"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="303"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="304"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="305"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="306"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="307"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="308"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="309"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="310"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="311"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="312"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="313"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="314"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="315"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="316"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="317"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="318"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="319"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="320"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="321"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="322"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="323"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="324"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="325"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="326"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="327"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="328"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="329"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="330"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="331"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="332"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="333"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="334"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="335"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="336"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="337"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="338"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="339"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="340"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="341"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="342"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="343"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="344"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="345"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="346"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="347"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="348"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="349"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="350"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="351"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="352"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="353"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="354"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="355"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="356"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="357"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="358"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="359"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="360"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="361"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="362"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="363"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="364"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="365"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="366"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="367"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="368"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="369"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="370"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="371"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="372"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="373"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="374"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="375"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="376"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="377"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="378"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="379"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="380"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="381"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="382"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="383"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="384"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="385"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="386"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="387"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="388"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="389"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="390"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="391"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="392"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="393"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="394"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="395"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="396"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="397"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="398"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="399"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="400"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="401"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="402"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="403"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="404"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="405"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="406"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="407"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="408"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="409"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="410"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="411"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="412"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="413"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="414"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="415"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="416"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="417"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="418"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="419"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="420"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="421"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="422"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="423"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="424"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="425"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="426"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="427"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="428"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="429"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="430"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="431"/>
+<position x="0" y="0" z="0" t="0" angle="0" juggler="432"/>
+
+<event x="230.00" y="50.00" z="430.00" t="0.00" hand="1:left">
+<holding path="1"/>
+</event>
+<event x="230.00" y="100.00" z="430.00" t="0.00" hand="1:right">
+<holding path="2"/>
+</event>
+<event x="210.00" y="50.00" z="430.00" t="0.00" hand="2:left">
+<holding path="3"/>
+</event>
+<event x="210.00" y="100.00" z="430.00" t="0.00" hand="2:right">
+<holding path="4"/>
+</event>
+<event x="190.00" y="50.00" z="430.00" t="0.00" hand="3:left">
+<holding path="5"/>
+</event>
+<event x="190.00" y="100.00" z="430.00" t="0.00" hand="3:right">
+<holding path="6"/>
+</event>
+<event x="170.00" y="50.00" z="430.00" t="0.00" hand="4:left">
+<holding path="7"/>
+</event>
+<event x="170.00" y="100.00" z="430.00" t="0.00" hand="4:right">
+<holding path="8"/>
+</event>
+<event x="150.00" y="50.00" z="430.00" t="0.00" hand="5:left">
+<holding path="9"/>
+</event>
+<event x="150.00" y="100.00" z="430.00" t="0.00" hand="5:right">
+<holding path="10"/>
+</event>
+<event x="130.00" y="50.00" z="430.00" t="0.00" hand="6:left">
+<holding path="11"/>
+</event>
+<event x="130.00" y="100.00" z="430.00" t="0.00" hand="6:right">
+<holding path="12"/>
+</event>
+<event x="110.00" y="50.00" z="430.00" t="0.00" hand="7:left">
+<holding path="13"/>
+</event>
+<event x="110.00" y="100.00" z="430.00" t="0.00" hand="7:right">
+<holding path="14"/>
+</event>
+<event x="90.00" y="50.00" z="430.00" t="0.00" hand="8:left">
+<holding path="15"/>
+</event>
+<event x="90.00" y="100.00" z="430.00" t="0.00" hand="8:right">
+<holding path="16"/>
+</event>
+<event x="70.00" y="50.00" z="430.00" t="0.00" hand="9:left">
+<holding path="17"/>
+</event>
+<event x="70.00" y="100.00" z="430.00" t="0.00" hand="9:right">
+<holding path="18"/>
+</event>
+<event x="50.00" y="50.00" z="430.00" t="0.00" hand="10:left">
+<holding path="19"/>
+</event>
+<event x="50.00" y="100.00" z="430.00" t="0.00" hand="10:right">
+<holding path="20"/>
+</event>
+<event x="30.00" y="50.00" z="430.00" t="0.00" hand="11:left">
+<holding path="21"/>
+</event>
+<event x="30.00" y="100.00" z="430.00" t="0.00" hand="11:right">
+<holding path="22"/>
+</event>
+<event x="10.00" y="50.00" z="430.00" t="0.00" hand="12:left">
+<holding path="23"/>
+</event>
+<event x="10.00" y="100.00" z="430.00" t="0.00" hand="12:right">
+<holding path="24"/>
+</event>
+<event x="-10.00" y="50.00" z="430.00" t="0.00" hand="13:left">
+<holding path="25"/>
+</event>
+<event x="-10.00" y="100.00" z="430.00" t="0.00" hand="13:right">
+<holding path="26"/>
+</event>
+<event x="-30.00" y="50.00" z="430.00" t="0.00" hand="14:left">
+<holding path="27"/>
+</event>
+<event x="-30.00" y="100.00" z="430.00" t="0.00" hand="14:right">
+<holding path="28"/>
+</event>
+<event x="-50.00" y="50.00" z="430.00" t="0.00" hand="15:left">
+<holding path="29"/>
+</event>
+<event x="-50.00" y="100.00" z="430.00" t="0.00" hand="15:right">
+<holding path="30"/>
+</event>
+<event x="-70.00" y="50.00" z="430.00" t="0.00" hand="16:left">
+<holding path="31"/>
+</event>
+<event x="-70.00" y="100.00" z="430.00" t="0.00" hand="16:right">
+<holding path="32"/>
+</event>
+<event x="-90.00" y="50.00" z="430.00" t="0.00" hand="17:left">
+<holding path="33"/>
+</event>
+<event x="-90.00" y="100.00" z="430.00" t="0.00" hand="17:right">
+<holding path="34"/>
+</event>
+<event x="-110.00" y="50.00" z="430.00" t="0.00" hand="18:left">
+<holding path="35"/>
+</event>
+<event x="-110.00" y="100.00" z="430.00" t="0.00" hand="18:right">
+<holding path="36"/>
+</event>
+<event x="-130.00" y="50.00" z="430.00" t="0.00" hand="19:left">
+<holding path="37"/>
+</event>
+<event x="-130.00" y="100.00" z="430.00" t="0.00" hand="19:right">
+<holding path="38"/>
+</event>
+<event x="-150.00" y="50.00" z="430.00" t="0.00" hand="20:left">
+<holding path="39"/>
+</event>
+<event x="-150.00" y="100.00" z="430.00" t="0.00" hand="20:right">
+<holding path="40"/>
+</event>
+<event x="-170.00" y="50.00" z="430.00" t="0.00" hand="21:left">
+<holding path="41"/>
+</event>
+<event x="-170.00" y="100.00" z="430.00" t="0.00" hand="21:right">
+<holding path="42"/>
+</event>
+<event x="-190.00" y="50.00" z="430.00" t="0.00" hand="22:left">
+<holding path="43"/>
+</event>
+<event x="-190.00" y="100.00" z="430.00" t="0.00" hand="22:right">
+<holding path="44"/>
+</event>
+<event x="-210.00" y="50.00" z="430.00" t="0.00" hand="23:left">
+<holding path="45"/>
+</event>
+<event x="-210.00" y="100.00" z="430.00" t="0.00" hand="23:right">
+<holding path="46"/>
+</event>
+<event x="-230.00" y="50.00" z="430.00" t="0.00" hand="24:left">
+<holding path="47"/>
+</event>
+<event x="-230.00" y="100.00" z="430.00" t="0.00" hand="24:right">
+<holding path="48"/>
+</event>
+<event x="230.00" y="50.00" z="410.00" t="0.00" hand="25:left">
+<holding path="49"/>
+</event>
+<event x="230.00" y="100.00" z="410.00" t="0.00" hand="25:right">
+<holding path="50"/>
+</event>
+<event x="210.00" y="50.00" z="410.00" t="0.00" hand="26:left">
+<holding path="51"/>
+</event>
+<event x="210.00" y="100.00" z="410.00" t="0.00" hand="26:right">
+<holding path="52"/>
+</event>
+<event x="190.00" y="50.00" z="410.00" t="0.00" hand="27:left">
+<holding path="53"/>
+</event>
+<event x="190.00" y="100.00" z="410.00" t="0.00" hand="27:right">
+<holding path="54"/>
+</event>
+<event x="170.00" y="50.00" z="410.00" t="0.00" hand="28:left">
+<holding path="55"/>
+</event>
+<event x="170.00" y="100.00" z="410.00" t="0.00" hand="28:right">
+<holding path="56"/>
+</event>
+<event x="150.00" y="50.00" z="410.00" t="0.00" hand="29:left">
+<holding path="57"/>
+</event>
+<event x="150.00" y="100.00" z="410.00" t="0.00" hand="29:right">
+<holding path="58"/>
+</event>
+<event x="130.00" y="50.00" z="410.00" t="0.00" hand="30:left">
+<holding path="59"/>
+</event>
+<event x="130.00" y="100.00" z="410.00" t="0.00" hand="30:right">
+<holding path="60"/>
+</event>
+<event x="110.00" y="50.00" z="410.00" t="0.00" hand="31:left">
+<holding path="61"/>
+</event>
+<event x="110.00" y="100.00" z="410.00" t="0.00" hand="31:right">
+<holding path="62"/>
+</event>
+<event x="90.00" y="50.00" z="410.00" t="0.00" hand="32:left">
+<holding path="63"/>
+</event>
+<event x="90.00" y="100.00" z="410.00" t="0.00" hand="32:right">
+<holding path="64"/>
+</event>
+<event x="70.00" y="50.00" z="410.00" t="0.00" hand="33:left">
+<holding path="65"/>
+</event>
+<event x="70.00" y="100.00" z="410.00" t="0.00" hand="33:right">
+<holding path="66"/>
+</event>
+<event x="50.00" y="50.00" z="410.00" t="0.00" hand="34:left">
+<holding path="67"/>
+</event>
+<event x="50.00" y="100.00" z="410.00" t="0.00" hand="34:right">
+<holding path="68"/>
+</event>
+<event x="30.00" y="50.00" z="410.00" t="0.00" hand="35:left">
+<holding path="69"/>
+</event>
+<event x="30.00" y="100.00" z="410.00" t="0.00" hand="35:right">
+<holding path="70"/>
+</event>
+<event x="10.00" y="50.00" z="410.00" t="0.00" hand="36:left">
+<holding path="71"/>
+</event>
+<event x="10.00" y="100.00" z="410.00" t="0.00" hand="36:right">
+<holding path="72"/>
+</event>
+<event x="-10.00" y="50.00" z="410.00" t="0.00" hand="37:left">
+<holding path="73"/>
+</event>
+<event x="-10.00" y="100.00" z="410.00" t="0.00" hand="37:right">
+<holding path="74"/>
+</event>
+<event x="-30.00" y="50.00" z="410.00" t="0.00" hand="38:left">
+<holding path="75"/>
+</event>
+<event x="-30.00" y="100.00" z="410.00" t="0.00" hand="38:right">
+<holding path="76"/>
+</event>
+<event x="-50.00" y="50.00" z="410.00" t="0.00" hand="39:left">
+<holding path="77"/>
+</event>
+<event x="-50.00" y="100.00" z="410.00" t="0.00" hand="39:right">
+<holding path="78"/>
+</event>
+<event x="-70.00" y="50.00" z="410.00" t="0.00" hand="40:left">
+<holding path="79"/>
+</event>
+<event x="-70.00" y="100.00" z="410.00" t="0.00" hand="40:right">
+<holding path="80"/>
+</event>
+<event x="-90.00" y="50.00" z="410.00" t="0.00" hand="41:left">
+<holding path="81"/>
+</event>
+<event x="-90.00" y="100.00" z="410.00" t="0.00" hand="41:right">
+<holding path="82"/>
+</event>
+<event x="-110.00" y="50.00" z="410.00" t="0.00" hand="42:left">
+<holding path="83"/>
+</event>
+<event x="-110.00" y="100.00" z="410.00" t="0.00" hand="42:right">
+<holding path="84"/>
+</event>
+<event x="-130.00" y="50.00" z="410.00" t="0.00" hand="43:left">
+<holding path="85"/>
+</event>
+<event x="-130.00" y="100.00" z="410.00" t="0.00" hand="43:right">
+<holding path="86"/>
+</event>
+<event x="-150.00" y="50.00" z="410.00" t="0.00" hand="44:left">
+<holding path="87"/>
+</event>
+<event x="-150.00" y="100.00" z="410.00" t="0.00" hand="44:right">
+<holding path="88"/>
+</event>
+<event x="-170.00" y="50.00" z="410.00" t="0.00" hand="45:left">
+<holding path="89"/>
+</event>
+<event x="-170.00" y="100.00" z="410.00" t="0.00" hand="45:right">
+<holding path="90"/>
+</event>
+<event x="-190.00" y="50.00" z="410.00" t="0.00" hand="46:left">
+<holding path="91"/>
+</event>
+<event x="-190.00" y="100.00" z="410.00" t="0.00" hand="46:right">
+<holding path="92"/>
+</event>
+<event x="-210.00" y="50.00" z="410.00" t="0.00" hand="47:left">
+<holding path="93"/>
+</event>
+<event x="-210.00" y="100.00" z="410.00" t="0.00" hand="47:right">
+<holding path="94"/>
+</event>
+<event x="-230.00" y="50.00" z="410.00" t="0.00" hand="48:left">
+<holding path="95"/>
+</event>
+<event x="-230.00" y="100.00" z="410.00" t="0.00" hand="48:right">
+<holding path="96"/>
+</event>
+<event x="230.00" y="50.00" z="390.00" t="0.00" hand="49:left">
+<holding path="97"/>
+</event>
+<event x="230.00" y="100.00" z="390.00" t="0.00" hand="49:right">
+<holding path="98"/>
+</event>
+<event x="210.00" y="50.00" z="390.00" t="0.00" hand="50:left">
+<holding path="99"/>
+</event>
+<event x="210.00" y="100.00" z="390.00" t="0.00" hand="50:right">
+<holding path="100"/>
+</event>
+<event x="190.00" y="50.00" z="390.00" t="0.00" hand="51:left">
+<holding path="101"/>
+</event>
+<event x="190.00" y="100.00" z="390.00" t="0.00" hand="51:right">
+<holding path="102"/>
+</event>
+<event x="170.00" y="50.00" z="390.00" t="0.00" hand="52:left">
+<holding path="103"/>
+</event>
+<event x="170.00" y="100.00" z="390.00" t="0.00" hand="52:right">
+<holding path="104"/>
+</event>
+<event x="150.00" y="50.00" z="390.00" t="0.00" hand="53:left">
+<holding path="105"/>
+</event>
+<event x="150.00" y="100.00" z="390.00" t="0.00" hand="53:right">
+<holding path="106"/>
+</event>
+<event x="130.00" y="50.00" z="390.00" t="0.00" hand="54:left">
+<holding path="107"/>
+</event>
+<event x="130.00" y="100.00" z="390.00" t="0.00" hand="54:right">
+<holding path="108"/>
+</event>
+<event x="110.00" y="50.00" z="390.00" t="0.00" hand="55:left">
+<holding path="109"/>
+</event>
+<event x="110.00" y="100.00" z="390.00" t="0.00" hand="55:right">
+<holding path="110"/>
+</event>
+<event x="90.00" y="50.00" z="390.00" t="0.00" hand="56:left">
+<holding path="111"/>
+</event>
+<event x="90.00" y="100.00" z="390.00" t="0.00" hand="56:right">
+<holding path="112"/>
+</event>
+<event x="70.00" y="50.00" z="390.00" t="0.00" hand="57:left">
+<holding path="113"/>
+</event>
+<event x="70.00" y="100.00" z="390.00" t="0.00" hand="57:right">
+<holding path="114"/>
+</event>
+<event x="50.00" y="50.00" z="390.00" t="0.00" hand="58:left">
+<holding path="115"/>
+</event>
+<event x="50.00" y="100.00" z="390.00" t="0.00" hand="58:right">
+<holding path="116"/>
+</event>
+<event x="30.00" y="50.00" z="390.00" t="0.00" hand="59:left">
+<holding path="117"/>
+</event>
+<event x="30.00" y="100.00" z="390.00" t="0.00" hand="59:right">
+<holding path="118"/>
+</event>
+<event x="10.00" y="50.00" z="390.00" t="0.00" hand="60:left">
+<holding path="119"/>
+</event>
+<event x="10.00" y="100.00" z="390.00" t="0.00" hand="60:right">
+<holding path="120"/>
+</event>
+<event x="-10.00" y="50.00" z="390.00" t="0.00" hand="61:left">
+<holding path="121"/>
+</event>
+<event x="-10.00" y="100.00" z="390.00" t="0.00" hand="61:right">
+<holding path="122"/>
+</event>
+<event x="-30.00" y="50.00" z="390.00" t="0.00" hand="62:left">
+<holding path="123"/>
+</event>
+<event x="-30.00" y="100.00" z="390.00" t="0.00" hand="62:right">
+<holding path="124"/>
+</event>
+<event x="-50.00" y="50.00" z="390.00" t="0.00" hand="63:left">
+<holding path="125"/>
+</event>
+<event x="-50.00" y="100.00" z="390.00" t="0.00" hand="63:right">
+<holding path="126"/>
+</event>
+<event x="-70.00" y="50.00" z="390.00" t="0.00" hand="64:left">
+<holding path="127"/>
+</event>
+<event x="-70.00" y="100.00" z="390.00" t="0.00" hand="64:right">
+<holding path="128"/>
+</event>
+<event x="-90.00" y="50.00" z="390.00" t="0.00" hand="65:left">
+<holding path="129"/>
+</event>
+<event x="-90.00" y="100.00" z="390.00" t="0.00" hand="65:right">
+<holding path="130"/>
+</event>
+<event x="-110.00" y="50.00" z="390.00" t="0.00" hand="66:left">
+<holding path="131"/>
+</event>
+<event x="-110.00" y="100.00" z="390.00" t="0.00" hand="66:right">
+<holding path="132"/>
+</event>
+<event x="-130.00" y="50.00" z="390.00" t="0.00" hand="67:left">
+<holding path="133"/>
+</event>
+<event x="-130.00" y="100.00" z="390.00" t="0.00" hand="67:right">
+<holding path="134"/>
+</event>
+<event x="-150.00" y="50.00" z="390.00" t="0.00" hand="68:left">
+<holding path="135"/>
+</event>
+<event x="-150.00" y="100.00" z="390.00" t="0.00" hand="68:right">
+<holding path="136"/>
+</event>
+<event x="-170.00" y="50.00" z="390.00" t="0.00" hand="69:left">
+<holding path="137"/>
+</event>
+<event x="-170.00" y="100.00" z="390.00" t="0.00" hand="69:right">
+<holding path="138"/>
+</event>
+<event x="-190.00" y="50.00" z="390.00" t="0.00" hand="70:left">
+<holding path="139"/>
+</event>
+<event x="-190.00" y="100.00" z="390.00" t="0.00" hand="70:right">
+<holding path="140"/>
+</event>
+<event x="-210.00" y="50.00" z="390.00" t="0.00" hand="71:left">
+<holding path="141"/>
+</event>
+<event x="-210.00" y="100.00" z="390.00" t="0.00" hand="71:right">
+<holding path="142"/>
+</event>
+<event x="-230.00" y="50.00" z="390.00" t="0.00" hand="72:left">
+<holding path="143"/>
+</event>
+<event x="-230.00" y="100.00" z="390.00" t="0.00" hand="72:right">
+<holding path="144"/>
+</event>
+<event x="230.00" y="50.00" z="370.00" t="0.00" hand="73:left">
+<holding path="145"/>
+</event>
+<event x="230.00" y="100.00" z="370.00" t="0.00" hand="73:right">
+<holding path="146"/>
+</event>
+<event x="210.00" y="50.00" z="370.00" t="0.00" hand="74:left">
+<holding path="147"/>
+</event>
+<event x="210.00" y="100.00" z="370.00" t="0.00" hand="74:right">
+<holding path="148"/>
+</event>
+<event x="190.00" y="50.00" z="370.00" t="0.00" hand="75:left">
+<holding path="149"/>
+</event>
+<event x="190.00" y="100.00" z="370.00" t="0.00" hand="75:right">
+<holding path="150"/>
+</event>
+<event x="170.00" y="50.00" z="370.00" t="0.00" hand="76:left">
+<holding path="151"/>
+</event>
+<event x="170.00" y="100.00" z="370.00" t="0.00" hand="76:right">
+<holding path="152"/>
+</event>
+<event x="150.00" y="50.00" z="370.00" t="0.00" hand="77:left">
+<holding path="153"/>
+</event>
+<event x="150.00" y="100.00" z="370.00" t="0.00" hand="77:right">
+<holding path="154"/>
+</event>
+<event x="130.00" y="50.00" z="370.00" t="0.00" hand="78:left">
+<holding path="155"/>
+</event>
+<event x="130.00" y="100.00" z="370.00" t="0.00" hand="78:right">
+<holding path="156"/>
+</event>
+<event x="110.00" y="50.00" z="370.00" t="0.00" hand="79:left">
+<holding path="157"/>
+</event>
+<event x="110.00" y="100.00" z="370.00" t="0.00" hand="79:right">
+<holding path="158"/>
+</event>
+<event x="90.00" y="50.00" z="370.00" t="0.00" hand="80:left">
+<holding path="159"/>
+</event>
+<event x="90.00" y="100.00" z="370.00" t="0.00" hand="80:right">
+<holding path="160"/>
+</event>
+<event x="70.00" y="50.00" z="370.00" t="0.00" hand="81:left">
+<holding path="161"/>
+</event>
+<event x="70.00" y="100.00" z="370.00" t="0.00" hand="81:right">
+<holding path="162"/>
+</event>
+<event x="50.00" y="50.00" z="370.00" t="0.00" hand="82:left">
+<holding path="163"/>
+</event>
+<event x="50.00" y="100.00" z="370.00" t="0.00" hand="82:right">
+<holding path="164"/>
+</event>
+<event x="30.00" y="50.00" z="370.00" t="0.00" hand="83:left">
+<holding path="165"/>
+</event>
+<event x="30.00" y="100.00" z="370.00" t="0.00" hand="83:right">
+<holding path="166"/>
+</event>
+<event x="10.00" y="50.00" z="370.00" t="0.00" hand="84:left">
+<holding path="167"/>
+</event>
+<event x="10.00" y="100.00" z="370.00" t="0.00" hand="84:right">
+<holding path="168"/>
+</event>
+<event x="-10.00" y="50.00" z="370.00" t="0.00" hand="85:left">
+<holding path="169"/>
+</event>
+<event x="-10.00" y="100.00" z="370.00" t="0.00" hand="85:right">
+<holding path="170"/>
+</event>
+<event x="-30.00" y="50.00" z="370.00" t="0.00" hand="86:left">
+<holding path="171"/>
+</event>
+<event x="-30.00" y="100.00" z="370.00" t="0.00" hand="86:right">
+<holding path="172"/>
+</event>
+<event x="-50.00" y="50.00" z="370.00" t="0.00" hand="87:left">
+<holding path="173"/>
+</event>
+<event x="-50.00" y="100.00" z="370.00" t="0.00" hand="87:right">
+<holding path="174"/>
+</event>
+<event x="-70.00" y="50.00" z="370.00" t="0.00" hand="88:left">
+<holding path="175"/>
+</event>
+<event x="-70.00" y="100.00" z="370.00" t="0.00" hand="88:right">
+<holding path="176"/>
+</event>
+<event x="-90.00" y="50.00" z="370.00" t="0.00" hand="89:left">
+<holding path="177"/>
+</event>
+<event x="-90.00" y="100.00" z="370.00" t="0.00" hand="89:right">
+<holding path="178"/>
+</event>
+<event x="-110.00" y="50.00" z="370.00" t="0.00" hand="90:left">
+<holding path="179"/>
+</event>
+<event x="-110.00" y="100.00" z="370.00" t="0.00" hand="90:right">
+<holding path="180"/>
+</event>
+<event x="-130.00" y="50.00" z="370.00" t="0.00" hand="91:left">
+<holding path="181"/>
+</event>
+<event x="-130.00" y="100.00" z="370.00" t="0.00" hand="91:right">
+<holding path="182"/>
+</event>
+<event x="-150.00" y="50.00" z="370.00" t="0.00" hand="92:left">
+<holding path="183"/>
+</event>
+<event x="-150.00" y="100.00" z="370.00" t="0.00" hand="92:right">
+<holding path="184"/>
+</event>
+<event x="-170.00" y="50.00" z="370.00" t="0.00" hand="93:left">
+<holding path="185"/>
+</event>
+<event x="-170.00" y="100.00" z="370.00" t="0.00" hand="93:right">
+<holding path="186"/>
+</event>
+<event x="-190.00" y="50.00" z="370.00" t="0.00" hand="94:left">
+<holding path="187"/>
+</event>
+<event x="-190.00" y="100.00" z="370.00" t="0.00" hand="94:right">
+<holding path="188"/>
+</event>
+<event x="-210.00" y="50.00" z="370.00" t="0.00" hand="95:left">
+<holding path="189"/>
+</event>
+<event x="-210.00" y="100.00" z="370.00" t="0.00" hand="95:right">
+<holding path="190"/>
+</event>
+<event x="-230.00" y="50.00" z="370.00" t="0.00" hand="96:left">
+<holding path="191"/>
+</event>
+<event x="-230.00" y="100.00" z="370.00" t="0.00" hand="96:right">
+<holding path="192"/>
+</event>
+<event x="230.00" y="50.00" z="350.00" t="0.00" hand="97:left">
+<holding path="193"/>
+</event>
+<event x="230.00" y="100.00" z="350.00" t="0.00" hand="97:right">
+<holding path="194"/>
+</event>
+<event x="210.00" y="50.00" z="350.00" t="0.00" hand="98:left">
+<holding path="195"/>
+</event>
+<event x="210.00" y="100.00" z="350.00" t="0.00" hand="98:right">
+<holding path="196"/>
+</event>
+<event x="190.00" y="50.00" z="350.00" t="0.00" hand="99:left">
+<holding path="197"/>
+</event>
+<event x="190.00" y="100.00" z="350.00" t="0.00" hand="99:right">
+<holding path="198"/>
+</event>
+<event x="170.00" y="50.00" z="350.00" t="0.00" hand="100:left">
+<holding path="199"/>
+</event>
+<event x="170.00" y="100.00" z="350.00" t="0.00" hand="100:right">
+<holding path="200"/>
+</event>
+<event x="150.00" y="50.00" z="350.00" t="0.00" hand="101:left">
+<holding path="201"/>
+</event>
+<event x="150.00" y="100.00" z="350.00" t="0.00" hand="101:right">
+<holding path="202"/>
+</event>
+<event x="130.00" y="50.00" z="350.00" t="0.00" hand="102:left">
+<holding path="203"/>
+</event>
+<event x="130.00" y="100.00" z="350.00" t="0.00" hand="102:right">
+<holding path="204"/>
+</event>
+<event x="110.00" y="50.00" z="350.00" t="0.00" hand="103:left">
+<holding path="205"/>
+</event>
+<event x="110.00" y="100.00" z="350.00" t="0.00" hand="103:right">
+<holding path="206"/>
+</event>
+<event x="90.00" y="50.00" z="350.00" t="0.00" hand="104:left">
+<holding path="207"/>
+</event>
+<event x="90.00" y="100.00" z="350.00" t="0.00" hand="104:right">
+<holding path="208"/>
+</event>
+<event x="70.00" y="50.00" z="350.00" t="0.00" hand="105:left">
+<holding path="209"/>
+</event>
+<event x="70.00" y="100.00" z="350.00" t="0.00" hand="105:right">
+<holding path="210"/>
+</event>
+<event x="50.00" y="50.00" z="350.00" t="0.00" hand="106:left">
+<holding path="211"/>
+</event>
+<event x="50.00" y="100.00" z="350.00" t="0.00" hand="106:right">
+<holding path="212"/>
+</event>
+<event x="30.00" y="50.00" z="350.00" t="0.00" hand="107:left">
+<holding path="213"/>
+</event>
+<event x="30.00" y="100.00" z="350.00" t="0.00" hand="107:right">
+<holding path="214"/>
+</event>
+<event x="10.00" y="50.00" z="350.00" t="0.00" hand="108:left">
+<holding path="215"/>
+</event>
+<event x="10.00" y="100.00" z="350.00" t="0.00" hand="108:right">
+<holding path="216"/>
+</event>
+<event x="-10.00" y="50.00" z="350.00" t="0.00" hand="109:left">
+<holding path="217"/>
+</event>
+<event x="-10.00" y="100.00" z="350.00" t="0.00" hand="109:right">
+<holding path="218"/>
+</event>
+<event x="-30.00" y="50.00" z="350.00" t="0.00" hand="110:left">
+<holding path="219"/>
+</event>
+<event x="-30.00" y="100.00" z="350.00" t="0.00" hand="110:right">
+<holding path="220"/>
+</event>
+<event x="-50.00" y="50.00" z="350.00" t="0.00" hand="111:left">
+<holding path="221"/>
+</event>
+<event x="-50.00" y="100.00" z="350.00" t="0.00" hand="111:right">
+<holding path="222"/>
+</event>
+<event x="-70.00" y="50.00" z="350.00" t="0.00" hand="112:left">
+<holding path="223"/>
+</event>
+<event x="-70.00" y="100.00" z="350.00" t="0.00" hand="112:right">
+<holding path="224"/>
+</event>
+<event x="-90.00" y="50.00" z="350.00" t="0.00" hand="113:left">
+<holding path="225"/>
+</event>
+<event x="-90.00" y="100.00" z="350.00" t="0.00" hand="113:right">
+<holding path="226"/>
+</event>
+<event x="-110.00" y="50.00" z="350.00" t="0.00" hand="114:left">
+<holding path="227"/>
+</event>
+<event x="-110.00" y="100.00" z="350.00" t="0.00" hand="114:right">
+<holding path="228"/>
+</event>
+<event x="-130.00" y="50.00" z="350.00" t="0.00" hand="115:left">
+<holding path="229"/>
+</event>
+<event x="-130.00" y="100.00" z="350.00" t="0.00" hand="115:right">
+<holding path="230"/>
+</event>
+<event x="-150.00" y="50.00" z="350.00" t="0.00" hand="116:left">
+<holding path="231"/>
+</event>
+<event x="-150.00" y="100.00" z="350.00" t="0.00" hand="116:right">
+<holding path="232"/>
+</event>
+<event x="-170.00" y="50.00" z="350.00" t="0.00" hand="117:left">
+<holding path="233"/>
+</event>
+<event x="-170.00" y="100.00" z="350.00" t="0.00" hand="117:right">
+<holding path="234"/>
+</event>
+<event x="-190.00" y="50.00" z="350.00" t="0.00" hand="118:left">
+<holding path="235"/>
+</event>
+<event x="-190.00" y="100.00" z="350.00" t="0.00" hand="118:right">
+<holding path="236"/>
+</event>
+<event x="-210.00" y="50.00" z="350.00" t="0.00" hand="119:left">
+<holding path="237"/>
+</event>
+<event x="-210.00" y="100.00" z="350.00" t="0.00" hand="119:right">
+<holding path="238"/>
+</event>
+<event x="-230.00" y="50.00" z="350.00" t="0.00" hand="120:left">
+<holding path="239"/>
+</event>
+<event x="-230.00" y="100.00" z="350.00" t="0.00" hand="120:right">
+<holding path="240"/>
+</event>
+<event x="230.00" y="50.00" z="330.00" t="0.00" hand="121:left">
+<holding path="241"/>
+</event>
+<event x="230.00" y="100.00" z="330.00" t="0.00" hand="121:right">
+<holding path="242"/>
+</event>
+<event x="210.00" y="50.00" z="330.00" t="0.00" hand="122:left">
+<holding path="243"/>
+</event>
+<event x="210.00" y="100.00" z="330.00" t="0.00" hand="122:right">
+<holding path="244"/>
+</event>
+<event x="190.00" y="50.00" z="330.00" t="0.00" hand="123:left">
+<holding path="245"/>
+</event>
+<event x="190.00" y="100.00" z="330.00" t="0.00" hand="123:right">
+<holding path="246"/>
+</event>
+<event x="170.00" y="50.00" z="330.00" t="0.00" hand="124:left">
+<holding path="247"/>
+</event>
+<event x="170.00" y="100.00" z="330.00" t="0.00" hand="124:right">
+<holding path="248"/>
+</event>
+<event x="150.00" y="50.00" z="330.00" t="0.00" hand="125:left">
+<holding path="249"/>
+</event>
+<event x="150.00" y="100.00" z="330.00" t="0.00" hand="125:right">
+<holding path="250"/>
+</event>
+<event x="130.00" y="50.00" z="330.00" t="0.00" hand="126:left">
+<holding path="251"/>
+</event>
+<event x="130.00" y="100.00" z="330.00" t="0.00" hand="126:right">
+<holding path="252"/>
+</event>
+<event x="110.00" y="50.00" z="330.00" t="0.00" hand="127:left">
+<holding path="253"/>
+</event>
+<event x="110.00" y="100.00" z="330.00" t="0.00" hand="127:right">
+<holding path="254"/>
+</event>
+<event x="90.00" y="50.00" z="330.00" t="0.00" hand="128:left">
+<holding path="255"/>
+</event>
+<event x="90.00" y="100.00" z="330.00" t="0.00" hand="128:right">
+<holding path="256"/>
+</event>
+<event x="70.00" y="50.00" z="330.00" t="0.00" hand="129:left">
+<holding path="257"/>
+</event>
+<event x="70.00" y="100.00" z="330.00" t="0.00" hand="129:right">
+<holding path="258"/>
+</event>
+<event x="50.00" y="50.00" z="330.00" t="0.00" hand="130:left">
+<holding path="259"/>
+</event>
+<event x="50.00" y="100.00" z="330.00" t="0.00" hand="130:right">
+<holding path="260"/>
+</event>
+<event x="30.00" y="50.00" z="330.00" t="0.00" hand="131:left">
+<holding path="261"/>
+</event>
+<event x="30.00" y="100.00" z="330.00" t="0.00" hand="131:right">
+<holding path="262"/>
+</event>
+<event x="10.00" y="50.00" z="330.00" t="0.00" hand="132:left">
+<holding path="263"/>
+</event>
+<event x="10.00" y="100.00" z="330.00" t="0.00" hand="132:right">
+<holding path="264"/>
+</event>
+<event x="-10.00" y="50.00" z="330.00" t="0.00" hand="133:left">
+<holding path="265"/>
+</event>
+<event x="-10.00" y="100.00" z="330.00" t="0.00" hand="133:right">
+<holding path="266"/>
+</event>
+<event x="-30.00" y="50.00" z="330.00" t="0.00" hand="134:left">
+<holding path="267"/>
+</event>
+<event x="-30.00" y="100.00" z="330.00" t="0.00" hand="134:right">
+<holding path="268"/>
+</event>
+<event x="-50.00" y="50.00" z="330.00" t="0.00" hand="135:left">
+<holding path="269"/>
+</event>
+<event x="-50.00" y="100.00" z="330.00" t="0.00" hand="135:right">
+<holding path="270"/>
+</event>
+<event x="-70.00" y="50.00" z="330.00" t="0.00" hand="136:left">
+<holding path="271"/>
+</event>
+<event x="-70.00" y="100.00" z="330.00" t="0.00" hand="136:right">
+<holding path="272"/>
+</event>
+<event x="-90.00" y="50.00" z="330.00" t="0.00" hand="137:left">
+<holding path="273"/>
+</event>
+<event x="-90.00" y="100.00" z="330.00" t="0.00" hand="137:right">
+<holding path="274"/>
+</event>
+<event x="-110.00" y="50.00" z="330.00" t="0.00" hand="138:left">
+<holding path="275"/>
+</event>
+<event x="-110.00" y="100.00" z="330.00" t="0.00" hand="138:right">
+<holding path="276"/>
+</event>
+<event x="-130.00" y="50.00" z="330.00" t="0.00" hand="139:left">
+<holding path="277"/>
+</event>
+<event x="-130.00" y="100.00" z="330.00" t="0.00" hand="139:right">
+<holding path="278"/>
+</event>
+<event x="-150.00" y="50.00" z="330.00" t="0.00" hand="140:left">
+<holding path="279"/>
+</event>
+<event x="-150.00" y="100.00" z="330.00" t="0.00" hand="140:right">
+<holding path="280"/>
+</event>
+<event x="-170.00" y="50.00" z="330.00" t="0.00" hand="141:left">
+<holding path="281"/>
+</event>
+<event x="-170.00" y="100.00" z="330.00" t="0.00" hand="141:right">
+<holding path="282"/>
+</event>
+<event x="-190.00" y="50.00" z="330.00" t="0.00" hand="142:left">
+<holding path="283"/>
+</event>
+<event x="-190.00" y="100.00" z="330.00" t="0.00" hand="142:right">
+<holding path="284"/>
+</event>
+<event x="-210.00" y="50.00" z="330.00" t="0.00" hand="143:left">
+<holding path="285"/>
+</event>
+<event x="-210.00" y="100.00" z="330.00" t="0.00" hand="143:right">
+<holding path="286"/>
+</event>
+<event x="-230.00" y="50.00" z="330.00" t="0.00" hand="144:left">
+<holding path="287"/>
+</event>
+<event x="-230.00" y="100.00" z="330.00" t="0.00" hand="144:right">
+<holding path="288"/>
+</event>
+<event x="230.00" y="50.00" z="310.00" t="0.00" hand="145:left">
+<holding path="289"/>
+</event>
+<event x="230.00" y="100.00" z="310.00" t="0.00" hand="145:right">
+<holding path="290"/>
+</event>
+<event x="210.00" y="50.00" z="310.00" t="0.00" hand="146:left">
+<holding path="291"/>
+</event>
+<event x="210.00" y="100.00" z="310.00" t="0.00" hand="146:right">
+<holding path="292"/>
+</event>
+<event x="190.00" y="50.00" z="310.00" t="0.00" hand="147:left">
+<holding path="293"/>
+</event>
+<event x="190.00" y="100.00" z="310.00" t="0.00" hand="147:right">
+<holding path="294"/>
+</event>
+<event x="170.00" y="50.00" z="310.00" t="0.00" hand="148:left">
+<holding path="295"/>
+</event>
+<event x="170.00" y="100.00" z="310.00" t="0.00" hand="148:right">
+<holding path="296"/>
+</event>
+<event x="150.00" y="50.00" z="310.00" t="0.00" hand="149:left">
+<holding path="297"/>
+</event>
+<event x="150.00" y="100.00" z="310.00" t="0.00" hand="149:right">
+<holding path="298"/>
+</event>
+<event x="130.00" y="50.00" z="310.00" t="0.00" hand="150:left">
+<holding path="299"/>
+</event>
+<event x="130.00" y="100.00" z="310.00" t="0.00" hand="150:right">
+<holding path="300"/>
+</event>
+<event x="110.00" y="50.00" z="310.00" t="0.00" hand="151:left">
+<holding path="301"/>
+</event>
+<event x="110.00" y="100.00" z="310.00" t="0.00" hand="151:right">
+<holding path="302"/>
+</event>
+<event x="90.00" y="50.00" z="310.00" t="0.00" hand="152:left">
+<holding path="303"/>
+</event>
+<event x="90.00" y="100.00" z="310.00" t="0.00" hand="152:right">
+<holding path="304"/>
+</event>
+<event x="70.00" y="50.00" z="310.00" t="0.00" hand="153:left">
+<holding path="305"/>
+</event>
+<event x="70.00" y="100.00" z="310.00" t="0.00" hand="153:right">
+<holding path="306"/>
+</event>
+<event x="50.00" y="50.00" z="310.00" t="0.00" hand="154:left">
+<holding path="307"/>
+</event>
+<event x="50.00" y="100.00" z="310.00" t="0.00" hand="154:right">
+<holding path="308"/>
+</event>
+<event x="30.00" y="50.00" z="310.00" t="0.00" hand="155:left">
+<holding path="309"/>
+</event>
+<event x="30.00" y="100.00" z="310.00" t="0.00" hand="155:right">
+<holding path="310"/>
+</event>
+<event x="10.00" y="50.00" z="310.00" t="0.00" hand="156:left">
+<holding path="311"/>
+</event>
+<event x="10.00" y="100.00" z="310.00" t="0.00" hand="156:right">
+<holding path="312"/>
+</event>
+<event x="-10.00" y="50.00" z="310.00" t="0.00" hand="157:left">
+<holding path="313"/>
+</event>
+<event x="-10.00" y="100.00" z="310.00" t="0.00" hand="157:right">
+<holding path="314"/>
+</event>
+<event x="-30.00" y="50.00" z="310.00" t="0.00" hand="158:left">
+<holding path="315"/>
+</event>
+<event x="-30.00" y="100.00" z="310.00" t="0.00" hand="158:right">
+<holding path="316"/>
+</event>
+<event x="-50.00" y="50.00" z="310.00" t="0.00" hand="159:left">
+<holding path="317"/>
+</event>
+<event x="-50.00" y="100.00" z="310.00" t="0.00" hand="159:right">
+<holding path="318"/>
+</event>
+<event x="-70.00" y="50.00" z="310.00" t="0.00" hand="160:left">
+<holding path="319"/>
+</event>
+<event x="-70.00" y="100.00" z="310.00" t="0.00" hand="160:right">
+<holding path="320"/>
+</event>
+<event x="-90.00" y="50.00" z="310.00" t="0.00" hand="161:left">
+<holding path="321"/>
+</event>
+<event x="-90.00" y="100.00" z="310.00" t="0.00" hand="161:right">
+<holding path="322"/>
+</event>
+<event x="-110.00" y="50.00" z="310.00" t="0.00" hand="162:left">
+<holding path="323"/>
+</event>
+<event x="-110.00" y="100.00" z="310.00" t="0.00" hand="162:right">
+<holding path="324"/>
+</event>
+<event x="-130.00" y="50.00" z="310.00" t="0.00" hand="163:left">
+<holding path="325"/>
+</event>
+<event x="-130.00" y="100.00" z="310.00" t="0.00" hand="163:right">
+<holding path="326"/>
+</event>
+<event x="-150.00" y="50.00" z="310.00" t="0.00" hand="164:left">
+<holding path="327"/>
+</event>
+<event x="-150.00" y="100.00" z="310.00" t="0.00" hand="164:right">
+<holding path="328"/>
+</event>
+<event x="-170.00" y="50.00" z="310.00" t="0.00" hand="165:left">
+<holding path="329"/>
+</event>
+<event x="-170.00" y="100.00" z="310.00" t="0.00" hand="165:right">
+<holding path="330"/>
+</event>
+<event x="-190.00" y="50.00" z="310.00" t="0.00" hand="166:left">
+<holding path="331"/>
+</event>
+<event x="-190.00" y="100.00" z="310.00" t="0.00" hand="166:right">
+<holding path="332"/>
+</event>
+<event x="-210.00" y="50.00" z="310.00" t="0.00" hand="167:left">
+<holding path="333"/>
+</event>
+<event x="-210.00" y="100.00" z="310.00" t="0.00" hand="167:right">
+<holding path="334"/>
+</event>
+<event x="-230.00" y="50.00" z="310.00" t="0.00" hand="168:left">
+<holding path="335"/>
+</event>
+<event x="-230.00" y="100.00" z="310.00" t="0.00" hand="168:right">
+<holding path="336"/>
+</event>
+<event x="230.00" y="50.00" z="290.00" t="0.00" hand="169:left">
+<holding path="337"/>
+</event>
+<event x="230.00" y="100.00" z="290.00" t="0.00" hand="169:right">
+<holding path="338"/>
+</event>
+<event x="210.00" y="50.00" z="290.00" t="0.00" hand="170:left">
+<holding path="339"/>
+</event>
+<event x="210.00" y="100.00" z="290.00" t="0.00" hand="170:right">
+<holding path="340"/>
+</event>
+<event x="190.00" y="50.00" z="290.00" t="0.00" hand="171:left">
+<holding path="341"/>
+</event>
+<event x="190.00" y="100.00" z="290.00" t="0.00" hand="171:right">
+<holding path="342"/>
+</event>
+<event x="170.00" y="50.00" z="290.00" t="0.00" hand="172:left">
+<holding path="343"/>
+</event>
+<event x="170.00" y="100.00" z="290.00" t="0.00" hand="172:right">
+<holding path="344"/>
+</event>
+<event x="150.00" y="50.00" z="290.00" t="0.00" hand="173:left">
+<holding path="345"/>
+</event>
+<event x="150.00" y="100.00" z="290.00" t="0.00" hand="173:right">
+<holding path="346"/>
+</event>
+<event x="130.00" y="50.00" z="290.00" t="0.00" hand="174:left">
+<holding path="347"/>
+</event>
+<event x="130.00" y="100.00" z="290.00" t="0.00" hand="174:right">
+<holding path="348"/>
+</event>
+<event x="110.00" y="50.00" z="290.00" t="0.00" hand="175:left">
+<holding path="349"/>
+</event>
+<event x="110.00" y="100.00" z="290.00" t="0.00" hand="175:right">
+<holding path="350"/>
+</event>
+<event x="90.00" y="50.00" z="290.00" t="0.00" hand="176:left">
+<holding path="351"/>
+</event>
+<event x="90.00" y="100.00" z="290.00" t="0.00" hand="176:right">
+<holding path="352"/>
+</event>
+<event x="70.00" y="50.00" z="290.00" t="0.00" hand="177:left">
+<holding path="353"/>
+</event>
+<event x="70.00" y="100.00" z="290.00" t="0.00" hand="177:right">
+<holding path="354"/>
+</event>
+<event x="50.00" y="50.00" z="290.00" t="0.00" hand="178:left">
+<holding path="355"/>
+</event>
+<event x="50.00" y="100.00" z="290.00" t="0.00" hand="178:right">
+<holding path="356"/>
+</event>
+<event x="30.00" y="50.00" z="290.00" t="0.00" hand="179:left">
+<holding path="357"/>
+</event>
+<event x="30.00" y="100.00" z="290.00" t="0.00" hand="179:right">
+<holding path="358"/>
+</event>
+<event x="10.00" y="50.00" z="290.00" t="0.00" hand="180:left">
+<holding path="359"/>
+</event>
+<event x="10.00" y="100.00" z="290.00" t="0.00" hand="180:right">
+<holding path="360"/>
+</event>
+<event x="-10.00" y="50.00" z="290.00" t="0.00" hand="181:left">
+<holding path="361"/>
+</event>
+<event x="-10.00" y="100.00" z="290.00" t="0.00" hand="181:right">
+<holding path="362"/>
+</event>
+<event x="-30.00" y="50.00" z="290.00" t="0.00" hand="182:left">
+<holding path="363"/>
+</event>
+<event x="-30.00" y="100.00" z="290.00" t="0.00" hand="182:right">
+<holding path="364"/>
+</event>
+<event x="-50.00" y="50.00" z="290.00" t="0.00" hand="183:left">
+<holding path="365"/>
+</event>
+<event x="-50.00" y="100.00" z="290.00" t="0.00" hand="183:right">
+<holding path="366"/>
+</event>
+<event x="-70.00" y="50.00" z="290.00" t="0.00" hand="184:left">
+<holding path="367"/>
+</event>
+<event x="-70.00" y="100.00" z="290.00" t="0.00" hand="184:right">
+<holding path="368"/>
+</event>
+<event x="-90.00" y="50.00" z="290.00" t="0.00" hand="185:left">
+<holding path="369"/>
+</event>
+<event x="-90.00" y="100.00" z="290.00" t="0.00" hand="185:right">
+<holding path="370"/>
+</event>
+<event x="-110.00" y="50.00" z="290.00" t="0.00" hand="186:left">
+<holding path="371"/>
+</event>
+<event x="-110.00" y="100.00" z="290.00" t="0.00" hand="186:right">
+<holding path="372"/>
+</event>
+<event x="-130.00" y="50.00" z="290.00" t="0.00" hand="187:left">
+<holding path="373"/>
+</event>
+<event x="-130.00" y="100.00" z="290.00" t="0.00" hand="187:right">
+<holding path="374"/>
+</event>
+<event x="-150.00" y="50.00" z="290.00" t="0.00" hand="188:left">
+<holding path="375"/>
+</event>
+<event x="-150.00" y="100.00" z="290.00" t="0.00" hand="188:right">
+<holding path="376"/>
+</event>
+<event x="-170.00" y="50.00" z="290.00" t="0.00" hand="189:left">
+<holding path="377"/>
+</event>
+<event x="-170.00" y="100.00" z="290.00" t="0.00" hand="189:right">
+<holding path="378"/>
+</event>
+<event x="-190.00" y="50.00" z="290.00" t="0.00" hand="190:left">
+<holding path="379"/>
+</event>
+<event x="-190.00" y="100.00" z="290.00" t="0.00" hand="190:right">
+<holding path="380"/>
+</event>
+<event x="-210.00" y="50.00" z="290.00" t="0.00" hand="191:left">
+<holding path="381"/>
+</event>
+<event x="-210.00" y="100.00" z="290.00" t="0.00" hand="191:right">
+<holding path="382"/>
+</event>
+<event x="-230.00" y="50.00" z="290.00" t="0.00" hand="192:left">
+<holding path="383"/>
+</event>
+<event x="-230.00" y="100.00" z="290.00" t="0.00" hand="192:right">
+<holding path="384"/>
+</event>
+<event x="230.00" y="50.00" z="270.00" t="0.00" hand="193:left">
+<holding path="385"/>
+</event>
+<event x="230.00" y="100.00" z="270.00" t="0.00" hand="193:right">
+<holding path="386"/>
+</event>
+<event x="210.00" y="50.00" z="270.00" t="0.00" hand="194:left">
+<holding path="387"/>
+</event>
+<event x="210.00" y="100.00" z="270.00" t="0.00" hand="194:right">
+<holding path="388"/>
+</event>
+<event x="190.00" y="50.00" z="270.00" t="0.00" hand="195:left">
+<holding path="389"/>
+</event>
+<event x="190.00" y="100.00" z="270.00" t="0.00" hand="195:right">
+<holding path="390"/>
+</event>
+<event x="170.00" y="50.00" z="270.00" t="0.00" hand="196:left">
+<holding path="391"/>
+</event>
+<event x="170.00" y="100.00" z="270.00" t="0.00" hand="196:right">
+<holding path="392"/>
+</event>
+<event x="150.00" y="50.00" z="270.00" t="0.00" hand="197:left">
+<holding path="393"/>
+</event>
+<event x="150.00" y="100.00" z="270.00" t="0.00" hand="197:right">
+<holding path="394"/>
+</event>
+<event x="130.00" y="50.00" z="270.00" t="0.00" hand="198:left">
+<holding path="395"/>
+</event>
+<event x="130.00" y="100.00" z="270.00" t="0.00" hand="198:right">
+<holding path="396"/>
+</event>
+<event x="110.00" y="50.00" z="270.00" t="0.00" hand="199:left">
+<holding path="397"/>
+</event>
+<event x="110.00" y="100.00" z="270.00" t="0.00" hand="199:right">
+<holding path="398"/>
+</event>
+<event x="90.00" y="50.00" z="270.00" t="0.00" hand="200:left">
+<holding path="399"/>
+</event>
+<event x="90.00" y="100.00" z="270.00" t="0.00" hand="200:right">
+<holding path="400"/>
+</event>
+<event x="70.00" y="50.00" z="270.00" t="0.00" hand="201:left">
+<holding path="401"/>
+</event>
+<event x="70.00" y="100.00" z="270.00" t="0.00" hand="201:right">
+<holding path="402"/>
+</event>
+<event x="50.00" y="50.00" z="270.00" t="0.00" hand="202:left">
+<holding path="403"/>
+</event>
+<event x="50.00" y="100.00" z="270.00" t="0.00" hand="202:right">
+<holding path="404"/>
+</event>
+<event x="30.00" y="50.00" z="270.00" t="0.00" hand="203:left">
+<holding path="405"/>
+</event>
+<event x="30.00" y="100.00" z="270.00" t="0.00" hand="203:right">
+<holding path="406"/>
+</event>
+<event x="10.00" y="50.00" z="270.00" t="0.00" hand="204:left">
+<holding path="407"/>
+</event>
+<event x="10.00" y="100.00" z="270.00" t="0.00" hand="204:right">
+<holding path="408"/>
+</event>
+<event x="-10.00" y="50.00" z="270.00" t="0.00" hand="205:left">
+<holding path="409"/>
+</event>
+<event x="-10.00" y="100.00" z="270.00" t="0.00" hand="205:right">
+<holding path="410"/>
+</event>
+<event x="-30.00" y="50.00" z="270.00" t="0.00" hand="206:left">
+<holding path="411"/>
+</event>
+<event x="-30.00" y="100.00" z="270.00" t="0.00" hand="206:right">
+<holding path="412"/>
+</event>
+<event x="-50.00" y="50.00" z="270.00" t="0.00" hand="207:left">
+<holding path="413"/>
+</event>
+<event x="-50.00" y="100.00" z="270.00" t="0.00" hand="207:right">
+<holding path="414"/>
+</event>
+<event x="-70.00" y="50.00" z="270.00" t="0.00" hand="208:left">
+<holding path="415"/>
+</event>
+<event x="-70.00" y="100.00" z="270.00" t="0.00" hand="208:right">
+<holding path="416"/>
+</event>
+<event x="-90.00" y="50.00" z="270.00" t="0.00" hand="209:left">
+<holding path="417"/>
+</event>
+<event x="-90.00" y="100.00" z="270.00" t="0.00" hand="209:right">
+<holding path="418"/>
+</event>
+<event x="-110.00" y="50.00" z="270.00" t="0.00" hand="210:left">
+<holding path="419"/>
+</event>
+<event x="-110.00" y="100.00" z="270.00" t="0.00" hand="210:right">
+<holding path="420"/>
+</event>
+<event x="-130.00" y="50.00" z="270.00" t="0.00" hand="211:left">
+<holding path="421"/>
+</event>
+<event x="-130.00" y="100.00" z="270.00" t="0.00" hand="211:right">
+<holding path="422"/>
+</event>
+<event x="-150.00" y="50.00" z="270.00" t="0.00" hand="212:left">
+<holding path="423"/>
+</event>
+<event x="-150.00" y="100.00" z="270.00" t="0.00" hand="212:right">
+<holding path="424"/>
+</event>
+<event x="-170.00" y="50.00" z="270.00" t="0.00" hand="213:left">
+<holding path="425"/>
+</event>
+<event x="-170.00" y="100.00" z="270.00" t="0.00" hand="213:right">
+<holding path="426"/>
+</event>
+<event x="-190.00" y="50.00" z="270.00" t="0.00" hand="214:left">
+<holding path="427"/>
+</event>
+<event x="-190.00" y="100.00" z="270.00" t="0.00" hand="214:right">
+<holding path="428"/>
+</event>
+<event x="-210.00" y="50.00" z="270.00" t="0.00" hand="215:left">
+<holding path="429"/>
+</event>
+<event x="-210.00" y="100.00" z="270.00" t="0.00" hand="215:right">
+<holding path="430"/>
+</event>
+<event x="-230.00" y="50.00" z="270.00" t="0.00" hand="216:left">
+<holding path="431"/>
+</event>
+<event x="-230.00" y="100.00" z="270.00" t="0.00" hand="216:right">
+<holding path="432"/>
+</event>
+<event x="230.00" y="50.00" z="250.00" t="0.00" hand="217:left">
+<holding path="433"/>
+</event>
+<event x="230.00" y="100.00" z="250.00" t="0.00" hand="217:right">
+<holding path="434"/>
+</event>
+<event x="210.00" y="50.00" z="250.00" t="0.00" hand="218:left">
+<holding path="435"/>
+</event>
+<event x="210.00" y="100.00" z="250.00" t="0.00" hand="218:right">
+<holding path="436"/>
+</event>
+<event x="190.00" y="50.00" z="250.00" t="0.00" hand="219:left">
+<holding path="437"/>
+</event>
+<event x="190.00" y="100.00" z="250.00" t="0.00" hand="219:right">
+<holding path="438"/>
+</event>
+<event x="170.00" y="50.00" z="250.00" t="0.00" hand="220:left">
+<holding path="439"/>
+</event>
+<event x="170.00" y="100.00" z="250.00" t="0.00" hand="220:right">
+<holding path="440"/>
+</event>
+<event x="150.00" y="50.00" z="250.00" t="0.00" hand="221:left">
+<holding path="441"/>
+</event>
+<event x="150.00" y="100.00" z="250.00" t="0.00" hand="221:right">
+<holding path="442"/>
+</event>
+<event x="130.00" y="50.00" z="250.00" t="0.00" hand="222:left">
+<holding path="443"/>
+</event>
+<event x="130.00" y="100.00" z="250.00" t="0.00" hand="222:right">
+<holding path="444"/>
+</event>
+<event x="110.00" y="50.00" z="250.00" t="0.00" hand="223:left">
+<holding path="445"/>
+</event>
+<event x="110.00" y="100.00" z="250.00" t="0.00" hand="223:right">
+<holding path="446"/>
+</event>
+<event x="90.00" y="50.00" z="250.00" t="0.00" hand="224:left">
+<holding path="447"/>
+</event>
+<event x="90.00" y="100.00" z="250.00" t="0.00" hand="224:right">
+<holding path="448"/>
+</event>
+<event x="70.00" y="50.00" z="250.00" t="0.00" hand="225:left">
+<holding path="449"/>
+</event>
+<event x="70.00" y="100.00" z="250.00" t="0.00" hand="225:right">
+<holding path="450"/>
+</event>
+<event x="50.00" y="50.00" z="250.00" t="0.00" hand="226:left">
+<holding path="451"/>
+</event>
+<event x="50.00" y="100.00" z="250.00" t="0.00" hand="226:right">
+<holding path="452"/>
+</event>
+<event x="30.00" y="50.00" z="250.00" t="0.00" hand="227:left">
+<holding path="453"/>
+</event>
+<event x="30.00" y="100.00" z="250.00" t="0.00" hand="227:right">
+<holding path="454"/>
+</event>
+<event x="10.00" y="50.00" z="250.00" t="0.00" hand="228:left">
+<holding path="455"/>
+</event>
+<event x="10.00" y="100.00" z="250.00" t="0.00" hand="228:right">
+<holding path="456"/>
+</event>
+<event x="-10.00" y="50.00" z="250.00" t="0.00" hand="229:left">
+<holding path="457"/>
+</event>
+<event x="-10.00" y="100.00" z="250.00" t="0.00" hand="229:right">
+<holding path="458"/>
+</event>
+<event x="-30.00" y="50.00" z="250.00" t="0.00" hand="230:left">
+<holding path="459"/>
+</event>
+<event x="-30.00" y="100.00" z="250.00" t="0.00" hand="230:right">
+<holding path="460"/>
+</event>
+<event x="-50.00" y="50.00" z="250.00" t="0.00" hand="231:left">
+<holding path="461"/>
+</event>
+<event x="-50.00" y="100.00" z="250.00" t="0.00" hand="231:right">
+<holding path="462"/>
+</event>
+<event x="-70.00" y="50.00" z="250.00" t="0.00" hand="232:left">
+<holding path="463"/>
+</event>
+<event x="-70.00" y="100.00" z="250.00" t="0.00" hand="232:right">
+<holding path="464"/>
+</event>
+<event x="-90.00" y="50.00" z="250.00" t="0.00" hand="233:left">
+<holding path="465"/>
+</event>
+<event x="-90.00" y="100.00" z="250.00" t="0.00" hand="233:right">
+<holding path="466"/>
+</event>
+<event x="-110.00" y="50.00" z="250.00" t="0.00" hand="234:left">
+<holding path="467"/>
+</event>
+<event x="-110.00" y="100.00" z="250.00" t="0.00" hand="234:right">
+<holding path="468"/>
+</event>
+<event x="-130.00" y="50.00" z="250.00" t="0.00" hand="235:left">
+<holding path="469"/>
+</event>
+<event x="-130.00" y="100.00" z="250.00" t="0.00" hand="235:right">
+<holding path="470"/>
+</event>
+<event x="-150.00" y="50.00" z="250.00" t="0.00" hand="236:left">
+<holding path="471"/>
+</event>
+<event x="-150.00" y="100.00" z="250.00" t="0.00" hand="236:right">
+<holding path="472"/>
+</event>
+<event x="-170.00" y="50.00" z="250.00" t="0.00" hand="237:left">
+<holding path="473"/>
+</event>
+<event x="-170.00" y="100.00" z="250.00" t="0.00" hand="237:right">
+<holding path="474"/>
+</event>
+<event x="-190.00" y="50.00" z="250.00" t="0.00" hand="238:left">
+<holding path="475"/>
+</event>
+<event x="-190.00" y="100.00" z="250.00" t="0.00" hand="238:right">
+<holding path="476"/>
+</event>
+<event x="-210.00" y="50.00" z="250.00" t="0.00" hand="239:left">
+<holding path="477"/>
+</event>
+<event x="-210.00" y="100.00" z="250.00" t="0.00" hand="239:right">
+<holding path="478"/>
+</event>
+<event x="-230.00" y="50.00" z="250.00" t="0.00" hand="240:left">
+<holding path="479"/>
+</event>
+<event x="-230.00" y="100.00" z="250.00" t="0.00" hand="240:right">
+<holding path="480"/>
+</event>
+<event x="230.00" y="50.00" z="230.00" t="0.00" hand="241:left">
+<holding path="481"/>
+</event>
+<event x="230.00" y="100.00" z="230.00" t="0.00" hand="241:right">
+<holding path="482"/>
+</event>
+<event x="210.00" y="50.00" z="230.00" t="0.00" hand="242:left">
+<holding path="483"/>
+</event>
+<event x="210.00" y="100.00" z="230.00" t="0.00" hand="242:right">
+<holding path="484"/>
+</event>
+<event x="190.00" y="50.00" z="230.00" t="0.00" hand="243:left">
+<holding path="485"/>
+</event>
+<event x="190.00" y="100.00" z="230.00" t="0.00" hand="243:right">
+<holding path="486"/>
+</event>
+<event x="170.00" y="50.00" z="230.00" t="0.00" hand="244:left">
+<holding path="487"/>
+</event>
+<event x="170.00" y="100.00" z="230.00" t="0.00" hand="244:right">
+<holding path="488"/>
+</event>
+<event x="150.00" y="50.00" z="230.00" t="0.00" hand="245:left">
+<holding path="489"/>
+</event>
+<event x="150.00" y="100.00" z="230.00" t="0.00" hand="245:right">
+<holding path="490"/>
+</event>
+<event x="130.00" y="50.00" z="230.00" t="0.00" hand="246:left">
+<holding path="491"/>
+</event>
+<event x="130.00" y="100.00" z="230.00" t="0.00" hand="246:right">
+<holding path="492"/>
+</event>
+<event x="110.00" y="50.00" z="230.00" t="0.00" hand="247:left">
+<holding path="493"/>
+</event>
+<event x="110.00" y="100.00" z="230.00" t="0.00" hand="247:right">
+<holding path="494"/>
+</event>
+<event x="90.00" y="50.00" z="230.00" t="0.00" hand="248:left">
+<holding path="495"/>
+</event>
+<event x="90.00" y="100.00" z="230.00" t="0.00" hand="248:right">
+<holding path="496"/>
+</event>
+<event x="70.00" y="50.00" z="230.00" t="0.00" hand="249:left">
+<holding path="497"/>
+</event>
+<event x="70.00" y="100.00" z="230.00" t="0.00" hand="249:right">
+<holding path="498"/>
+</event>
+<event x="50.00" y="50.00" z="230.00" t="0.00" hand="250:left">
+<holding path="499"/>
+</event>
+<event x="50.00" y="100.00" z="230.00" t="0.00" hand="250:right">
+<holding path="500"/>
+</event>
+<event x="30.00" y="50.00" z="230.00" t="0.00" hand="251:left">
+<holding path="501"/>
+</event>
+<event x="30.00" y="100.00" z="230.00" t="0.00" hand="251:right">
+<holding path="502"/>
+</event>
+<event x="10.00" y="50.00" z="230.00" t="0.00" hand="252:left">
+<holding path="503"/>
+</event>
+<event x="10.00" y="100.00" z="230.00" t="0.00" hand="252:right">
+<holding path="504"/>
+</event>
+<event x="-10.00" y="50.00" z="230.00" t="0.00" hand="253:left">
+<holding path="505"/>
+</event>
+<event x="-10.00" y="100.00" z="230.00" t="0.00" hand="253:right">
+<holding path="506"/>
+</event>
+<event x="-30.00" y="50.00" z="230.00" t="0.00" hand="254:left">
+<holding path="507"/>
+</event>
+<event x="-30.00" y="100.00" z="230.00" t="0.00" hand="254:right">
+<holding path="508"/>
+</event>
+<event x="-50.00" y="50.00" z="230.00" t="0.00" hand="255:left">
+<holding path="509"/>
+</event>
+<event x="-50.00" y="100.00" z="230.00" t="0.00" hand="255:right">
+<holding path="510"/>
+</event>
+<event x="-70.00" y="50.00" z="230.00" t="0.00" hand="256:left">
+<holding path="511"/>
+</event>
+<event x="-70.00" y="100.00" z="230.00" t="0.00" hand="256:right">
+<holding path="512"/>
+</event>
+<event x="-90.00" y="50.00" z="230.00" t="0.00" hand="257:left">
+<holding path="513"/>
+</event>
+<event x="-90.00" y="100.00" z="230.00" t="0.00" hand="257:right">
+<holding path="514"/>
+</event>
+<event x="-110.00" y="50.00" z="230.00" t="0.00" hand="258:left">
+<holding path="515"/>
+</event>
+<event x="-110.00" y="100.00" z="230.00" t="0.00" hand="258:right">
+<holding path="516"/>
+</event>
+<event x="-130.00" y="50.00" z="230.00" t="0.00" hand="259:left">
+<holding path="517"/>
+</event>
+<event x="-130.00" y="100.00" z="230.00" t="0.00" hand="259:right">
+<holding path="518"/>
+</event>
+<event x="-150.00" y="50.00" z="230.00" t="0.00" hand="260:left">
+<holding path="519"/>
+</event>
+<event x="-150.00" y="100.00" z="230.00" t="0.00" hand="260:right">
+<holding path="520"/>
+</event>
+<event x="-170.00" y="50.00" z="230.00" t="0.00" hand="261:left">
+<holding path="521"/>
+</event>
+<event x="-170.00" y="100.00" z="230.00" t="0.00" hand="261:right">
+<holding path="522"/>
+</event>
+<event x="-190.00" y="50.00" z="230.00" t="0.00" hand="262:left">
+<holding path="523"/>
+</event>
+<event x="-190.00" y="100.00" z="230.00" t="0.00" hand="262:right">
+<holding path="524"/>
+</event>
+<event x="-210.00" y="50.00" z="230.00" t="0.00" hand="263:left">
+<holding path="525"/>
+</event>
+<event x="-210.00" y="100.00" z="230.00" t="0.00" hand="263:right">
+<holding path="526"/>
+</event>
+<event x="-230.00" y="50.00" z="230.00" t="0.00" hand="264:left">
+<holding path="527"/>
+</event>
+<event x="-230.00" y="100.00" z="230.00" t="0.00" hand="264:right">
+<holding path="528"/>
+</event>
+<event x="230.00" y="50.00" z="210.00" t="0.00" hand="265:left">
+<holding path="529"/>
+</event>
+<event x="230.00" y="100.00" z="210.00" t="0.00" hand="265:right">
+<holding path="530"/>
+</event>
+<event x="210.00" y="50.00" z="210.00" t="0.00" hand="266:left">
+<holding path="531"/>
+</event>
+<event x="210.00" y="100.00" z="210.00" t="0.00" hand="266:right">
+<holding path="532"/>
+</event>
+<event x="190.00" y="50.00" z="210.00" t="0.00" hand="267:left">
+<holding path="533"/>
+</event>
+<event x="190.00" y="100.00" z="210.00" t="0.00" hand="267:right">
+<holding path="534"/>
+</event>
+<event x="170.00" y="50.00" z="210.00" t="0.00" hand="268:left">
+<holding path="535"/>
+</event>
+<event x="170.00" y="100.00" z="210.00" t="0.00" hand="268:right">
+<holding path="536"/>
+</event>
+<event x="150.00" y="50.00" z="210.00" t="0.00" hand="269:left">
+<holding path="537"/>
+</event>
+<event x="150.00" y="100.00" z="210.00" t="0.00" hand="269:right">
+<holding path="538"/>
+</event>
+<event x="130.00" y="50.00" z="210.00" t="0.00" hand="270:left">
+<holding path="539"/>
+</event>
+<event x="130.00" y="100.00" z="210.00" t="0.00" hand="270:right">
+<holding path="540"/>
+</event>
+<event x="110.00" y="50.00" z="210.00" t="0.00" hand="271:left">
+<holding path="541"/>
+</event>
+<event x="110.00" y="100.00" z="210.00" t="0.00" hand="271:right">
+<holding path="542"/>
+</event>
+<event x="90.00" y="50.00" z="210.00" t="0.00" hand="272:left">
+<holding path="543"/>
+</event>
+<event x="90.00" y="100.00" z="210.00" t="0.00" hand="272:right">
+<holding path="544"/>
+</event>
+<event x="70.00" y="50.00" z="210.00" t="0.00" hand="273:left">
+<holding path="545"/>
+</event>
+<event x="70.00" y="100.00" z="210.00" t="0.00" hand="273:right">
+<holding path="546"/>
+</event>
+<event x="50.00" y="50.00" z="210.00" t="0.00" hand="274:left">
+<holding path="547"/>
+</event>
+<event x="50.00" y="100.00" z="210.00" t="0.00" hand="274:right">
+<holding path="548"/>
+</event>
+<event x="30.00" y="50.00" z="210.00" t="0.00" hand="275:left">
+<holding path="549"/>
+</event>
+<event x="30.00" y="100.00" z="210.00" t="0.00" hand="275:right">
+<holding path="550"/>
+</event>
+<event x="10.00" y="50.00" z="210.00" t="0.00" hand="276:left">
+<holding path="551"/>
+</event>
+<event x="10.00" y="100.00" z="210.00" t="0.00" hand="276:right">
+<holding path="552"/>
+</event>
+<event x="-10.00" y="50.00" z="210.00" t="0.00" hand="277:left">
+<holding path="553"/>
+</event>
+<event x="-10.00" y="100.00" z="210.00" t="0.00" hand="277:right">
+<holding path="554"/>
+</event>
+<event x="-30.00" y="50.00" z="210.00" t="0.00" hand="278:left">
+<holding path="555"/>
+</event>
+<event x="-30.00" y="100.00" z="210.00" t="0.00" hand="278:right">
+<holding path="556"/>
+</event>
+<event x="-50.00" y="50.00" z="210.00" t="0.00" hand="279:left">
+<holding path="557"/>
+</event>
+<event x="-50.00" y="100.00" z="210.00" t="0.00" hand="279:right">
+<holding path="558"/>
+</event>
+<event x="-70.00" y="50.00" z="210.00" t="0.00" hand="280:left">
+<holding path="559"/>
+</event>
+<event x="-70.00" y="100.00" z="210.00" t="0.00" hand="280:right">
+<holding path="560"/>
+</event>
+<event x="-90.00" y="50.00" z="210.00" t="0.00" hand="281:left">
+<holding path="561"/>
+</event>
+<event x="-90.00" y="100.00" z="210.00" t="0.00" hand="281:right">
+<holding path="562"/>
+</event>
+<event x="-110.00" y="50.00" z="210.00" t="0.00" hand="282:left">
+<holding path="563"/>
+</event>
+<event x="-110.00" y="100.00" z="210.00" t="0.00" hand="282:right">
+<holding path="564"/>
+</event>
+<event x="-130.00" y="50.00" z="210.00" t="0.00" hand="283:left">
+<holding path="565"/>
+</event>
+<event x="-130.00" y="100.00" z="210.00" t="0.00" hand="283:right">
+<holding path="566"/>
+</event>
+<event x="-150.00" y="50.00" z="210.00" t="0.00" hand="284:left">
+<holding path="567"/>
+</event>
+<event x="-150.00" y="100.00" z="210.00" t="0.00" hand="284:right">
+<holding path="568"/>
+</event>
+<event x="-170.00" y="50.00" z="210.00" t="0.00" hand="285:left">
+<holding path="569"/>
+</event>
+<event x="-170.00" y="100.00" z="210.00" t="0.00" hand="285:right">
+<holding path="570"/>
+</event>
+<event x="-190.00" y="50.00" z="210.00" t="0.00" hand="286:left">
+<holding path="571"/>
+</event>
+<event x="-190.00" y="100.00" z="210.00" t="0.00" hand="286:right">
+<holding path="572"/>
+</event>
+<event x="-210.00" y="50.00" z="210.00" t="0.00" hand="287:left">
+<holding path="573"/>
+</event>
+<event x="-210.00" y="100.00" z="210.00" t="0.00" hand="287:right">
+<holding path="574"/>
+</event>
+<event x="-230.00" y="50.00" z="210.00" t="0.00" hand="288:left">
+<holding path="575"/>
+</event>
+<event x="-230.00" y="100.00" z="210.00" t="0.00" hand="288:right">
+<holding path="576"/>
+</event>
+<event x="230.00" y="50.00" z="190.00" t="0.00" hand="289:left">
+<holding path="577"/>
+</event>
+<event x="230.00" y="100.00" z="190.00" t="0.00" hand="289:right">
+<holding path="578"/>
+</event>
+<event x="210.00" y="50.00" z="190.00" t="0.00" hand="290:left">
+<holding path="579"/>
+</event>
+<event x="210.00" y="100.00" z="190.00" t="0.00" hand="290:right">
+<holding path="580"/>
+</event>
+<event x="190.00" y="50.00" z="190.00" t="0.00" hand="291:left">
+<holding path="581"/>
+</event>
+<event x="190.00" y="100.00" z="190.00" t="0.00" hand="291:right">
+<holding path="582"/>
+</event>
+<event x="170.00" y="50.00" z="190.00" t="0.00" hand="292:left">
+<holding path="583"/>
+</event>
+<event x="170.00" y="100.00" z="190.00" t="0.00" hand="292:right">
+<holding path="584"/>
+</event>
+<event x="150.00" y="50.00" z="190.00" t="0.00" hand="293:left">
+<holding path="585"/>
+</event>
+<event x="150.00" y="100.00" z="190.00" t="0.00" hand="293:right">
+<holding path="586"/>
+</event>
+<event x="130.00" y="50.00" z="190.00" t="0.00" hand="294:left">
+<holding path="587"/>
+</event>
+<event x="130.00" y="100.00" z="190.00" t="0.00" hand="294:right">
+<holding path="588"/>
+</event>
+<event x="110.00" y="50.00" z="190.00" t="0.00" hand="295:left">
+<holding path="589"/>
+</event>
+<event x="110.00" y="100.00" z="190.00" t="0.00" hand="295:right">
+<holding path="590"/>
+</event>
+<event x="90.00" y="50.00" z="190.00" t="0.00" hand="296:left">
+<holding path="591"/>
+</event>
+<event x="90.00" y="100.00" z="190.00" t="0.00" hand="296:right">
+<holding path="592"/>
+</event>
+<event x="70.00" y="50.00" z="190.00" t="0.00" hand="297:left">
+<holding path="593"/>
+</event>
+<event x="70.00" y="100.00" z="190.00" t="0.00" hand="297:right">
+<holding path="594"/>
+</event>
+<event x="50.00" y="50.00" z="190.00" t="0.00" hand="298:left">
+<holding path="595"/>
+</event>
+<event x="50.00" y="100.00" z="190.00" t="0.00" hand="298:right">
+<holding path="596"/>
+</event>
+<event x="30.00" y="50.00" z="190.00" t="0.00" hand="299:left">
+<holding path="597"/>
+</event>
+<event x="30.00" y="100.00" z="190.00" t="0.00" hand="299:right">
+<holding path="598"/>
+</event>
+<event x="10.00" y="50.00" z="190.00" t="0.00" hand="300:left">
+<holding path="599"/>
+</event>
+<event x="10.00" y="100.00" z="190.00" t="0.00" hand="300:right">
+<holding path="600"/>
+</event>
+<event x="-10.00" y="50.00" z="190.00" t="0.00" hand="301:left">
+<holding path="601"/>
+</event>
+<event x="-10.00" y="100.00" z="190.00" t="0.00" hand="301:right">
+<holding path="602"/>
+</event>
+<event x="-30.00" y="50.00" z="190.00" t="0.00" hand="302:left">
+<holding path="603"/>
+</event>
+<event x="-30.00" y="100.00" z="190.00" t="0.00" hand="302:right">
+<holding path="604"/>
+</event>
+<event x="-50.00" y="50.00" z="190.00" t="0.00" hand="303:left">
+<holding path="605"/>
+</event>
+<event x="-50.00" y="100.00" z="190.00" t="0.00" hand="303:right">
+<holding path="606"/>
+</event>
+<event x="-70.00" y="50.00" z="190.00" t="0.00" hand="304:left">
+<holding path="607"/>
+</event>
+<event x="-70.00" y="100.00" z="190.00" t="0.00" hand="304:right">
+<holding path="608"/>
+</event>
+<event x="-90.00" y="50.00" z="190.00" t="0.00" hand="305:left">
+<holding path="609"/>
+</event>
+<event x="-90.00" y="100.00" z="190.00" t="0.00" hand="305:right">
+<holding path="610"/>
+</event>
+<event x="-110.00" y="50.00" z="190.00" t="0.00" hand="306:left">
+<holding path="611"/>
+</event>
+<event x="-110.00" y="100.00" z="190.00" t="0.00" hand="306:right">
+<holding path="612"/>
+</event>
+<event x="-130.00" y="50.00" z="190.00" t="0.00" hand="307:left">
+<holding path="613"/>
+</event>
+<event x="-130.00" y="100.00" z="190.00" t="0.00" hand="307:right">
+<holding path="614"/>
+</event>
+<event x="-150.00" y="50.00" z="190.00" t="0.00" hand="308:left">
+<holding path="615"/>
+</event>
+<event x="-150.00" y="100.00" z="190.00" t="0.00" hand="308:right">
+<holding path="616"/>
+</event>
+<event x="-170.00" y="50.00" z="190.00" t="0.00" hand="309:left">
+<holding path="617"/>
+</event>
+<event x="-170.00" y="100.00" z="190.00" t="0.00" hand="309:right">
+<holding path="618"/>
+</event>
+<event x="-190.00" y="50.00" z="190.00" t="0.00" hand="310:left">
+<holding path="619"/>
+</event>
+<event x="-190.00" y="100.00" z="190.00" t="0.00" hand="310:right">
+<holding path="620"/>
+</event>
+<event x="-210.00" y="50.00" z="190.00" t="0.00" hand="311:left">
+<holding path="621"/>
+</event>
+<event x="-210.00" y="100.00" z="190.00" t="0.00" hand="311:right">
+<holding path="622"/>
+</event>
+<event x="-230.00" y="50.00" z="190.00" t="0.00" hand="312:left">
+<holding path="623"/>
+</event>
+<event x="-230.00" y="100.00" z="190.00" t="0.00" hand="312:right">
+<holding path="624"/>
+</event>
+<event x="230.00" y="50.00" z="170.00" t="0.00" hand="313:left">
+<holding path="625"/>
+</event>
+<event x="230.00" y="100.00" z="170.00" t="0.00" hand="313:right">
+<holding path="626"/>
+</event>
+<event x="210.00" y="50.00" z="170.00" t="0.00" hand="314:left">
+<holding path="627"/>
+</event>
+<event x="210.00" y="100.00" z="170.00" t="0.00" hand="314:right">
+<holding path="628"/>
+</event>
+<event x="190.00" y="50.00" z="170.00" t="0.00" hand="315:left">
+<holding path="629"/>
+</event>
+<event x="190.00" y="100.00" z="170.00" t="0.00" hand="315:right">
+<holding path="630"/>
+</event>
+<event x="170.00" y="50.00" z="170.00" t="0.00" hand="316:left">
+<holding path="631"/>
+</event>
+<event x="170.00" y="100.00" z="170.00" t="0.00" hand="316:right">
+<holding path="632"/>
+</event>
+<event x="150.00" y="50.00" z="170.00" t="0.00" hand="317:left">
+<holding path="633"/>
+</event>
+<event x="150.00" y="100.00" z="170.00" t="0.00" hand="317:right">
+<holding path="634"/>
+</event>
+<event x="130.00" y="50.00" z="170.00" t="0.00" hand="318:left">
+<holding path="635"/>
+</event>
+<event x="130.00" y="100.00" z="170.00" t="0.00" hand="318:right">
+<holding path="636"/>
+</event>
+<event x="110.00" y="50.00" z="170.00" t="0.00" hand="319:left">
+<holding path="637"/>
+</event>
+<event x="110.00" y="100.00" z="170.00" t="0.00" hand="319:right">
+<holding path="638"/>
+</event>
+<event x="90.00" y="50.00" z="170.00" t="0.00" hand="320:left">
+<holding path="639"/>
+</event>
+<event x="90.00" y="100.00" z="170.00" t="0.00" hand="320:right">
+<holding path="640"/>
+</event>
+<event x="70.00" y="50.00" z="170.00" t="0.00" hand="321:left">
+<holding path="641"/>
+</event>
+<event x="70.00" y="100.00" z="170.00" t="0.00" hand="321:right">
+<holding path="642"/>
+</event>
+<event x="50.00" y="50.00" z="170.00" t="0.00" hand="322:left">
+<holding path="643"/>
+</event>
+<event x="50.00" y="100.00" z="170.00" t="0.00" hand="322:right">
+<holding path="644"/>
+</event>
+<event x="30.00" y="50.00" z="170.00" t="0.00" hand="323:left">
+<holding path="645"/>
+</event>
+<event x="30.00" y="100.00" z="170.00" t="0.00" hand="323:right">
+<holding path="646"/>
+</event>
+<event x="10.00" y="50.00" z="170.00" t="0.00" hand="324:left">
+<holding path="647"/>
+</event>
+<event x="10.00" y="100.00" z="170.00" t="0.00" hand="324:right">
+<holding path="648"/>
+</event>
+<event x="-10.00" y="50.00" z="170.00" t="0.00" hand="325:left">
+<holding path="649"/>
+</event>
+<event x="-10.00" y="100.00" z="170.00" t="0.00" hand="325:right">
+<holding path="650"/>
+</event>
+<event x="-30.00" y="50.00" z="170.00" t="0.00" hand="326:left">
+<holding path="651"/>
+</event>
+<event x="-30.00" y="100.00" z="170.00" t="0.00" hand="326:right">
+<holding path="652"/>
+</event>
+<event x="-50.00" y="50.00" z="170.00" t="0.00" hand="327:left">
+<holding path="653"/>
+</event>
+<event x="-50.00" y="100.00" z="170.00" t="0.00" hand="327:right">
+<holding path="654"/>
+</event>
+<event x="-70.00" y="50.00" z="170.00" t="0.00" hand="328:left">
+<holding path="655"/>
+</event>
+<event x="-70.00" y="100.00" z="170.00" t="0.00" hand="328:right">
+<holding path="656"/>
+</event>
+<event x="-90.00" y="50.00" z="170.00" t="0.00" hand="329:left">
+<holding path="657"/>
+</event>
+<event x="-90.00" y="100.00" z="170.00" t="0.00" hand="329:right">
+<holding path="658"/>
+</event>
+<event x="-110.00" y="50.00" z="170.00" t="0.00" hand="330:left">
+<holding path="659"/>
+</event>
+<event x="-110.00" y="100.00" z="170.00" t="0.00" hand="330:right">
+<holding path="660"/>
+</event>
+<event x="-130.00" y="50.00" z="170.00" t="0.00" hand="331:left">
+<holding path="661"/>
+</event>
+<event x="-130.00" y="100.00" z="170.00" t="0.00" hand="331:right">
+<holding path="662"/>
+</event>
+<event x="-150.00" y="50.00" z="170.00" t="0.00" hand="332:left">
+<holding path="663"/>
+</event>
+<event x="-150.00" y="100.00" z="170.00" t="0.00" hand="332:right">
+<holding path="664"/>
+</event>
+<event x="-170.00" y="50.00" z="170.00" t="0.00" hand="333:left">
+<holding path="665"/>
+</event>
+<event x="-170.00" y="100.00" z="170.00" t="0.00" hand="333:right">
+<holding path="666"/>
+</event>
+<event x="-190.00" y="50.00" z="170.00" t="0.00" hand="334:left">
+<holding path="667"/>
+</event>
+<event x="-190.00" y="100.00" z="170.00" t="0.00" hand="334:right">
+<holding path="668"/>
+</event>
+<event x="-210.00" y="50.00" z="170.00" t="0.00" hand="335:left">
+<holding path="669"/>
+</event>
+<event x="-210.00" y="100.00" z="170.00" t="0.00" hand="335:right">
+<holding path="670"/>
+</event>
+<event x="-230.00" y="50.00" z="170.00" t="0.00" hand="336:left">
+<holding path="671"/>
+</event>
+<event x="-230.00" y="100.00" z="170.00" t="0.00" hand="336:right">
+<holding path="672"/>
+</event>
+<event x="230.00" y="50.00" z="150.00" t="0.00" hand="337:left">
+<holding path="673"/>
+</event>
+<event x="230.00" y="100.00" z="150.00" t="0.00" hand="337:right">
+<holding path="674"/>
+</event>
+<event x="210.00" y="50.00" z="150.00" t="0.00" hand="338:left">
+<holding path="675"/>
+</event>
+<event x="210.00" y="100.00" z="150.00" t="0.00" hand="338:right">
+<holding path="676"/>
+</event>
+<event x="190.00" y="50.00" z="150.00" t="0.00" hand="339:left">
+<holding path="677"/>
+</event>
+<event x="190.00" y="100.00" z="150.00" t="0.00" hand="339:right">
+<holding path="678"/>
+</event>
+<event x="170.00" y="50.00" z="150.00" t="0.00" hand="340:left">
+<holding path="679"/>
+</event>
+<event x="170.00" y="100.00" z="150.00" t="0.00" hand="340:right">
+<holding path="680"/>
+</event>
+<event x="150.00" y="50.00" z="150.00" t="0.00" hand="341:left">
+<holding path="681"/>
+</event>
+<event x="150.00" y="100.00" z="150.00" t="0.00" hand="341:right">
+<holding path="682"/>
+</event>
+<event x="130.00" y="50.00" z="150.00" t="0.00" hand="342:left">
+<holding path="683"/>
+</event>
+<event x="130.00" y="100.00" z="150.00" t="0.00" hand="342:right">
+<holding path="684"/>
+</event>
+<event x="110.00" y="50.00" z="150.00" t="0.00" hand="343:left">
+<holding path="685"/>
+</event>
+<event x="110.00" y="100.00" z="150.00" t="0.00" hand="343:right">
+<holding path="686"/>
+</event>
+<event x="90.00" y="50.00" z="150.00" t="0.00" hand="344:left">
+<holding path="687"/>
+</event>
+<event x="90.00" y="100.00" z="150.00" t="0.00" hand="344:right">
+<holding path="688"/>
+</event>
+<event x="70.00" y="50.00" z="150.00" t="0.00" hand="345:left">
+<holding path="689"/>
+</event>
+<event x="70.00" y="100.00" z="150.00" t="0.00" hand="345:right">
+<holding path="690"/>
+</event>
+<event x="50.00" y="50.00" z="150.00" t="0.00" hand="346:left">
+<holding path="691"/>
+</event>
+<event x="50.00" y="100.00" z="150.00" t="0.00" hand="346:right">
+<holding path="692"/>
+</event>
+<event x="30.00" y="50.00" z="150.00" t="0.00" hand="347:left">
+<holding path="693"/>
+</event>
+<event x="30.00" y="100.00" z="150.00" t="0.00" hand="347:right">
+<holding path="694"/>
+</event>
+<event x="10.00" y="50.00" z="150.00" t="0.00" hand="348:left">
+<holding path="695"/>
+</event>
+<event x="10.00" y="100.00" z="150.00" t="0.00" hand="348:right">
+<holding path="696"/>
+</event>
+<event x="-10.00" y="50.00" z="150.00" t="0.00" hand="349:left">
+<holding path="697"/>
+</event>
+<event x="-10.00" y="100.00" z="150.00" t="0.00" hand="349:right">
+<holding path="698"/>
+</event>
+<event x="-30.00" y="50.00" z="150.00" t="0.00" hand="350:left">
+<holding path="699"/>
+</event>
+<event x="-30.00" y="100.00" z="150.00" t="0.00" hand="350:right">
+<holding path="700"/>
+</event>
+<event x="-50.00" y="50.00" z="150.00" t="0.00" hand="351:left">
+<holding path="701"/>
+</event>
+<event x="-50.00" y="100.00" z="150.00" t="0.00" hand="351:right">
+<holding path="702"/>
+</event>
+<event x="-70.00" y="50.00" z="150.00" t="0.00" hand="352:left">
+<holding path="703"/>
+</event>
+<event x="-70.00" y="100.00" z="150.00" t="0.00" hand="352:right">
+<holding path="704"/>
+</event>
+<event x="-90.00" y="50.00" z="150.00" t="0.00" hand="353:left">
+<holding path="705"/>
+</event>
+<event x="-90.00" y="100.00" z="150.00" t="0.00" hand="353:right">
+<holding path="706"/>
+</event>
+<event x="-110.00" y="50.00" z="150.00" t="0.00" hand="354:left">
+<holding path="707"/>
+</event>
+<event x="-110.00" y="100.00" z="150.00" t="0.00" hand="354:right">
+<holding path="708"/>
+</event>
+<event x="-130.00" y="50.00" z="150.00" t="0.00" hand="355:left">
+<holding path="709"/>
+</event>
+<event x="-130.00" y="100.00" z="150.00" t="0.00" hand="355:right">
+<holding path="710"/>
+</event>
+<event x="-150.00" y="50.00" z="150.00" t="0.00" hand="356:left">
+<holding path="711"/>
+</event>
+<event x="-150.00" y="100.00" z="150.00" t="0.00" hand="356:right">
+<holding path="712"/>
+</event>
+<event x="-170.00" y="50.00" z="150.00" t="0.00" hand="357:left">
+<holding path="713"/>
+</event>
+<event x="-170.00" y="100.00" z="150.00" t="0.00" hand="357:right">
+<holding path="714"/>
+</event>
+<event x="-190.00" y="50.00" z="150.00" t="0.00" hand="358:left">
+<holding path="715"/>
+</event>
+<event x="-190.00" y="100.00" z="150.00" t="0.00" hand="358:right">
+<holding path="716"/>
+</event>
+<event x="-210.00" y="50.00" z="150.00" t="0.00" hand="359:left">
+<holding path="717"/>
+</event>
+<event x="-210.00" y="100.00" z="150.00" t="0.00" hand="359:right">
+<holding path="718"/>
+</event>
+<event x="-230.00" y="50.00" z="150.00" t="0.00" hand="360:left">
+<holding path="719"/>
+</event>
+<event x="-230.00" y="100.00" z="150.00" t="0.00" hand="360:right">
+<holding path="720"/>
+</event>
+<event x="230.00" y="50.00" z="130.00" t="0.00" hand="361:left">
+<holding path="721"/>
+</event>
+<event x="230.00" y="100.00" z="130.00" t="0.00" hand="361:right">
+<holding path="722"/>
+</event>
+<event x="210.00" y="50.00" z="130.00" t="0.00" hand="362:left">
+<holding path="723"/>
+</event>
+<event x="210.00" y="100.00" z="130.00" t="0.00" hand="362:right">
+<holding path="724"/>
+</event>
+<event x="190.00" y="50.00" z="130.00" t="0.00" hand="363:left">
+<holding path="725"/>
+</event>
+<event x="190.00" y="100.00" z="130.00" t="0.00" hand="363:right">
+<holding path="726"/>
+</event>
+<event x="170.00" y="50.00" z="130.00" t="0.00" hand="364:left">
+<holding path="727"/>
+</event>
+<event x="170.00" y="100.00" z="130.00" t="0.00" hand="364:right">
+<holding path="728"/>
+</event>
+<event x="150.00" y="50.00" z="130.00" t="0.00" hand="365:left">
+<holding path="729"/>
+</event>
+<event x="150.00" y="100.00" z="130.00" t="0.00" hand="365:right">
+<holding path="730"/>
+</event>
+<event x="130.00" y="50.00" z="130.00" t="0.00" hand="366:left">
+<holding path="731"/>
+</event>
+<event x="130.00" y="100.00" z="130.00" t="0.00" hand="366:right">
+<holding path="732"/>
+</event>
+<event x="110.00" y="50.00" z="130.00" t="0.00" hand="367:left">
+<holding path="733"/>
+</event>
+<event x="110.00" y="100.00" z="130.00" t="0.00" hand="367:right">
+<holding path="734"/>
+</event>
+<event x="90.00" y="50.00" z="130.00" t="0.00" hand="368:left">
+<holding path="735"/>
+</event>
+<event x="90.00" y="100.00" z="130.00" t="0.00" hand="368:right">
+<holding path="736"/>
+</event>
+<event x="70.00" y="50.00" z="130.00" t="0.00" hand="369:left">
+<holding path="737"/>
+</event>
+<event x="70.00" y="100.00" z="130.00" t="0.00" hand="369:right">
+<holding path="738"/>
+</event>
+<event x="50.00" y="50.00" z="130.00" t="0.00" hand="370:left">
+<holding path="739"/>
+</event>
+<event x="50.00" y="100.00" z="130.00" t="0.00" hand="370:right">
+<holding path="740"/>
+</event>
+<event x="30.00" y="50.00" z="130.00" t="0.00" hand="371:left">
+<holding path="741"/>
+</event>
+<event x="30.00" y="100.00" z="130.00" t="0.00" hand="371:right">
+<holding path="742"/>
+</event>
+<event x="10.00" y="50.00" z="130.00" t="0.00" hand="372:left">
+<holding path="743"/>
+</event>
+<event x="10.00" y="100.00" z="130.00" t="0.00" hand="372:right">
+<holding path="744"/>
+</event>
+<event x="-10.00" y="50.00" z="130.00" t="0.00" hand="373:left">
+<holding path="745"/>
+</event>
+<event x="-10.00" y="100.00" z="130.00" t="0.00" hand="373:right">
+<holding path="746"/>
+</event>
+<event x="-30.00" y="50.00" z="130.00" t="0.00" hand="374:left">
+<holding path="747"/>
+</event>
+<event x="-30.00" y="100.00" z="130.00" t="0.00" hand="374:right">
+<holding path="748"/>
+</event>
+<event x="-50.00" y="50.00" z="130.00" t="0.00" hand="375:left">
+<holding path="749"/>
+</event>
+<event x="-50.00" y="100.00" z="130.00" t="0.00" hand="375:right">
+<holding path="750"/>
+</event>
+<event x="-70.00" y="50.00" z="130.00" t="0.00" hand="376:left">
+<holding path="751"/>
+</event>
+<event x="-70.00" y="100.00" z="130.00" t="0.00" hand="376:right">
+<holding path="752"/>
+</event>
+<event x="-90.00" y="50.00" z="130.00" t="0.00" hand="377:left">
+<holding path="753"/>
+</event>
+<event x="-90.00" y="100.00" z="130.00" t="0.00" hand="377:right">
+<holding path="754"/>
+</event>
+<event x="-110.00" y="50.00" z="130.00" t="0.00" hand="378:left">
+<holding path="755"/>
+</event>
+<event x="-110.00" y="100.00" z="130.00" t="0.00" hand="378:right">
+<holding path="756"/>
+</event>
+<event x="-130.00" y="50.00" z="130.00" t="0.00" hand="379:left">
+<holding path="757"/>
+</event>
+<event x="-130.00" y="100.00" z="130.00" t="0.00" hand="379:right">
+<holding path="758"/>
+</event>
+<event x="-150.00" y="50.00" z="130.00" t="0.00" hand="380:left">
+<holding path="759"/>
+</event>
+<event x="-150.00" y="100.00" z="130.00" t="0.00" hand="380:right">
+<holding path="760"/>
+</event>
+<event x="-170.00" y="50.00" z="130.00" t="0.00" hand="381:left">
+<holding path="761"/>
+</event>
+<event x="-170.00" y="100.00" z="130.00" t="0.00" hand="381:right">
+<holding path="762"/>
+</event>
+<event x="-190.00" y="50.00" z="130.00" t="0.00" hand="382:left">
+<holding path="763"/>
+</event>
+<event x="-190.00" y="100.00" z="130.00" t="0.00" hand="382:right">
+<holding path="764"/>
+</event>
+<event x="-210.00" y="50.00" z="130.00" t="0.00" hand="383:left">
+<holding path="765"/>
+</event>
+<event x="-210.00" y="100.00" z="130.00" t="0.00" hand="383:right">
+<holding path="766"/>
+</event>
+<event x="-230.00" y="50.00" z="130.00" t="0.00" hand="384:left">
+<holding path="767"/>
+</event>
+<event x="-230.00" y="100.00" z="130.00" t="0.00" hand="384:right">
+<holding path="768"/>
+</event>
+<event x="230.00" y="50.00" z="110.00" t="0.00" hand="385:left">
+<holding path="769"/>
+</event>
+<event x="230.00" y="100.00" z="110.00" t="0.00" hand="385:right">
+<holding path="770"/>
+</event>
+<event x="210.00" y="50.00" z="110.00" t="0.00" hand="386:left">
+<holding path="771"/>
+</event>
+<event x="210.00" y="100.00" z="110.00" t="0.00" hand="386:right">
+<holding path="772"/>
+</event>
+<event x="190.00" y="50.00" z="110.00" t="0.00" hand="387:left">
+<holding path="773"/>
+</event>
+<event x="190.00" y="100.00" z="110.00" t="0.00" hand="387:right">
+<holding path="774"/>
+</event>
+<event x="170.00" y="50.00" z="110.00" t="0.00" hand="388:left">
+<holding path="775"/>
+</event>
+<event x="170.00" y="100.00" z="110.00" t="0.00" hand="388:right">
+<holding path="776"/>
+</event>
+<event x="150.00" y="50.00" z="110.00" t="0.00" hand="389:left">
+<holding path="777"/>
+</event>
+<event x="150.00" y="100.00" z="110.00" t="0.00" hand="389:right">
+<holding path="778"/>
+</event>
+<event x="130.00" y="50.00" z="110.00" t="0.00" hand="390:left">
+<holding path="779"/>
+</event>
+<event x="130.00" y="100.00" z="110.00" t="0.00" hand="390:right">
+<holding path="780"/>
+</event>
+<event x="110.00" y="50.00" z="110.00" t="0.00" hand="391:left">
+<holding path="781"/>
+</event>
+<event x="110.00" y="100.00" z="110.00" t="0.00" hand="391:right">
+<holding path="782"/>
+</event>
+<event x="90.00" y="50.00" z="110.00" t="0.00" hand="392:left">
+<holding path="783"/>
+</event>
+<event x="90.00" y="100.00" z="110.00" t="0.00" hand="392:right">
+<holding path="784"/>
+</event>
+<event x="70.00" y="50.00" z="110.00" t="0.00" hand="393:left">
+<holding path="785"/>
+</event>
+<event x="70.00" y="100.00" z="110.00" t="0.00" hand="393:right">
+<holding path="786"/>
+</event>
+<event x="50.00" y="50.00" z="110.00" t="0.00" hand="394:left">
+<holding path="787"/>
+</event>
+<event x="50.00" y="100.00" z="110.00" t="0.00" hand="394:right">
+<holding path="788"/>
+</event>
+<event x="30.00" y="50.00" z="110.00" t="0.00" hand="395:left">
+<holding path="789"/>
+</event>
+<event x="30.00" y="100.00" z="110.00" t="0.00" hand="395:right">
+<holding path="790"/>
+</event>
+<event x="10.00" y="50.00" z="110.00" t="0.00" hand="396:left">
+<holding path="791"/>
+</event>
+<event x="10.00" y="100.00" z="110.00" t="0.00" hand="396:right">
+<holding path="792"/>
+</event>
+<event x="-10.00" y="50.00" z="110.00" t="0.00" hand="397:left">
+<holding path="793"/>
+</event>
+<event x="-10.00" y="100.00" z="110.00" t="0.00" hand="397:right">
+<holding path="794"/>
+</event>
+<event x="-30.00" y="50.00" z="110.00" t="0.00" hand="398:left">
+<holding path="795"/>
+</event>
+<event x="-30.00" y="100.00" z="110.00" t="0.00" hand="398:right">
+<holding path="796"/>
+</event>
+<event x="-50.00" y="50.00" z="110.00" t="0.00" hand="399:left">
+<holding path="797"/>
+</event>
+<event x="-50.00" y="100.00" z="110.00" t="0.00" hand="399:right">
+<holding path="798"/>
+</event>
+<event x="-70.00" y="50.00" z="110.00" t="0.00" hand="400:left">
+<holding path="799"/>
+</event>
+<event x="-70.00" y="100.00" z="110.00" t="0.00" hand="400:right">
+<holding path="800"/>
+</event>
+<event x="-90.00" y="50.00" z="110.00" t="0.00" hand="401:left">
+<holding path="801"/>
+</event>
+<event x="-90.00" y="100.00" z="110.00" t="0.00" hand="401:right">
+<holding path="802"/>
+</event>
+<event x="-110.00" y="50.00" z="110.00" t="0.00" hand="402:left">
+<holding path="803"/>
+</event>
+<event x="-110.00" y="100.00" z="110.00" t="0.00" hand="402:right">
+<holding path="804"/>
+</event>
+<event x="-130.00" y="50.00" z="110.00" t="0.00" hand="403:left">
+<holding path="805"/>
+</event>
+<event x="-130.00" y="100.00" z="110.00" t="0.00" hand="403:right">
+<holding path="806"/>
+</event>
+<event x="-150.00" y="50.00" z="110.00" t="0.00" hand="404:left">
+<holding path="807"/>
+</event>
+<event x="-150.00" y="100.00" z="110.00" t="0.00" hand="404:right">
+<holding path="808"/>
+</event>
+<event x="-170.00" y="50.00" z="110.00" t="0.00" hand="405:left">
+<holding path="809"/>
+</event>
+<event x="-170.00" y="100.00" z="110.00" t="0.00" hand="405:right">
+<holding path="810"/>
+</event>
+<event x="-190.00" y="50.00" z="110.00" t="0.00" hand="406:left">
+<holding path="811"/>
+</event>
+<event x="-190.00" y="100.00" z="110.00" t="0.00" hand="406:right">
+<holding path="812"/>
+</event>
+<event x="-210.00" y="50.00" z="110.00" t="0.00" hand="407:left">
+<holding path="813"/>
+</event>
+<event x="-210.00" y="100.00" z="110.00" t="0.00" hand="407:right">
+<holding path="814"/>
+</event>
+<event x="-230.00" y="50.00" z="110.00" t="0.00" hand="408:left">
+<holding path="815"/>
+</event>
+<event x="-230.00" y="100.00" z="110.00" t="0.00" hand="408:right">
+<holding path="816"/>
+</event>
+<event x="230.00" y="50.00" z="90.00" t="0.00" hand="409:left">
+<holding path="817"/>
+</event>
+<event x="230.00" y="100.00" z="90.00" t="0.00" hand="409:right">
+<holding path="818"/>
+</event>
+<event x="210.00" y="50.00" z="90.00" t="0.00" hand="410:left">
+<holding path="819"/>
+</event>
+<event x="210.00" y="100.00" z="90.00" t="0.00" hand="410:right">
+<holding path="820"/>
+</event>
+<event x="190.00" y="50.00" z="90.00" t="0.00" hand="411:left">
+<holding path="821"/>
+</event>
+<event x="190.00" y="100.00" z="90.00" t="0.00" hand="411:right">
+<holding path="822"/>
+</event>
+<event x="170.00" y="50.00" z="90.00" t="0.00" hand="412:left">
+<holding path="823"/>
+</event>
+<event x="170.00" y="100.00" z="90.00" t="0.00" hand="412:right">
+<holding path="824"/>
+</event>
+<event x="150.00" y="50.00" z="90.00" t="0.00" hand="413:left">
+<holding path="825"/>
+</event>
+<event x="150.00" y="100.00" z="90.00" t="0.00" hand="413:right">
+<holding path="826"/>
+</event>
+<event x="130.00" y="50.00" z="90.00" t="0.00" hand="414:left">
+<holding path="827"/>
+</event>
+<event x="130.00" y="100.00" z="90.00" t="0.00" hand="414:right">
+<holding path="828"/>
+</event>
+<event x="110.00" y="50.00" z="90.00" t="0.00" hand="415:left">
+<holding path="829"/>
+</event>
+<event x="110.00" y="100.00" z="90.00" t="0.00" hand="415:right">
+<holding path="830"/>
+</event>
+<event x="90.00" y="50.00" z="90.00" t="0.00" hand="416:left">
+<holding path="831"/>
+</event>
+<event x="90.00" y="100.00" z="90.00" t="0.00" hand="416:right">
+<holding path="832"/>
+</event>
+<event x="70.00" y="50.00" z="90.00" t="0.00" hand="417:left">
+<holding path="833"/>
+</event>
+<event x="70.00" y="100.00" z="90.00" t="0.00" hand="417:right">
+<holding path="834"/>
+</event>
+<event x="50.00" y="50.00" z="90.00" t="0.00" hand="418:left">
+<holding path="835"/>
+</event>
+<event x="50.00" y="100.00" z="90.00" t="0.00" hand="418:right">
+<holding path="836"/>
+</event>
+<event x="30.00" y="50.00" z="90.00" t="0.00" hand="419:left">
+<holding path="837"/>
+</event>
+<event x="30.00" y="100.00" z="90.00" t="0.00" hand="419:right">
+<holding path="838"/>
+</event>
+<event x="10.00" y="50.00" z="90.00" t="0.00" hand="420:left">
+<holding path="839"/>
+</event>
+<event x="10.00" y="100.00" z="90.00" t="0.00" hand="420:right">
+<holding path="840"/>
+</event>
+<event x="-10.00" y="50.00" z="90.00" t="0.00" hand="421:left">
+<holding path="841"/>
+</event>
+<event x="-10.00" y="100.00" z="90.00" t="0.00" hand="421:right">
+<holding path="842"/>
+</event>
+<event x="-30.00" y="50.00" z="90.00" t="0.00" hand="422:left">
+<holding path="843"/>
+</event>
+<event x="-30.00" y="100.00" z="90.00" t="0.00" hand="422:right">
+<holding path="844"/>
+</event>
+<event x="-50.00" y="50.00" z="90.00" t="0.00" hand="423:left">
+<holding path="845"/>
+</event>
+<event x="-50.00" y="100.00" z="90.00" t="0.00" hand="423:right">
+<holding path="846"/>
+</event>
+<event x="-70.00" y="50.00" z="90.00" t="0.00" hand="424:left">
+<holding path="847"/>
+</event>
+<event x="-70.00" y="100.00" z="90.00" t="0.00" hand="424:right">
+<holding path="848"/>
+</event>
+<event x="-90.00" y="50.00" z="90.00" t="0.00" hand="425:left">
+<holding path="849"/>
+</event>
+<event x="-90.00" y="100.00" z="90.00" t="0.00" hand="425:right">
+<holding path="850"/>
+</event>
+<event x="-110.00" y="50.00" z="90.00" t="0.00" hand="426:left">
+<holding path="851"/>
+</event>
+<event x="-110.00" y="100.00" z="90.00" t="0.00" hand="426:right">
+<holding path="852"/>
+</event>
+<event x="-130.00" y="50.00" z="90.00" t="0.00" hand="427:left">
+<holding path="853"/>
+</event>
+<event x="-130.00" y="100.00" z="90.00" t="0.00" hand="427:right">
+<holding path="854"/>
+</event>
+<event x="-150.00" y="50.00" z="90.00" t="0.00" hand="428:left">
+<holding path="855"/>
+</event>
+<event x="-150.00" y="100.00" z="90.00" t="0.00" hand="428:right">
+<holding path="856"/>
+</event>
+<event x="-170.00" y="50.00" z="90.00" t="0.00" hand="429:left">
+<holding path="857"/>
+</event>
+<event x="-170.00" y="100.00" z="90.00" t="0.00" hand="429:right">
+<holding path="858"/>
+</event>
+<event x="-190.00" y="50.00" z="90.00" t="0.00" hand="430:left">
+<holding path="859"/>
+</event>
+<event x="-190.00" y="100.00" z="90.00" t="0.00" hand="430:right">
+<holding path="860"/>
+</event>
+<event x="-210.00" y="50.00" z="90.00" t="0.00" hand="431:left">
+<holding path="861"/>
+</event>
+<event x="-210.00" y="100.00" z="90.00" t="0.00" hand="431:right">
+<holding path="862"/>
+</event>
+<event x="-230.00" y="50.00" z="90.00" t="0.00" hand="432:left">
+<holding path="863"/>
+</event>
+<event x="-230.00" y="100.00" z="90.00" t="0.00" hand="432:right">
+<holding path="864"/>
+</event>
+
+</pattern>
+</jml>
