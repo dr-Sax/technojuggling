@@ -1,12 +1,12 @@
 /**
  * Audio Processor - Web Audio API + Tone.js integration for dynamic audio effects
- * Handles audio routing: Video → Tone.js PitchShift → Effect Nodes → Speakers
+ * Handles audio routing: Video/Stream → Tone.js PitchShift → Effect Nodes → Speakers
  */
 
 export class AudioProcessor {
   constructor() {
     this.audioContext = null;
-    this.videos = new Map(); // videoId → { source, nodes, element, toneNodes }
+    this.videos = new Map(); // id → { source, nodes, element, toneNodes }
     this.masterCompressor = null;
     this.reverbImpulse = null;
     this.initialized = false;
@@ -78,20 +78,15 @@ export class AudioProcessor {
     if (!this.initialized) {
       this.initialize();
     }
-    
     if (!this.audioContext || !this.toneStarted) {
       console.warn('AudioContext/Tone.js not available');
       return;
     }
-    
     if (this.videos.has(videoId)) {
       this.removeVideo(videoId);
     }
     
     try {
-      // Create Web Audio source from video
-      // Guard: a video element can only be connected to one MediaElementSourceNode ever.
-      // If it was already connected (e.g. reused from MediaPool), reuse the existing source.
       let source;
       if (videoElement._audioSource) {
         source = videoElement._audioSource;
@@ -99,116 +94,138 @@ export class AudioProcessor {
         source = this.audioContext.createMediaElementSource(videoElement);
         videoElement._audioSource = source;
       }
-      
-      // Create a Tone.js Gain node to act as input bridge
-      const toneInputGain = new Tone.Gain(1.0);
-      
-      // Create Tone.js PitchShift node
-      const pitchShift = new Tone.PitchShift({
-        pitch: 0,  // Semitones (-12 to +12)
-        windowSize: 0.1,
-        delayTime: 0,
-        feedback: 0
-      });
-      
-      // Create output bridge - a Web Audio gain node
-      const outputBridge = this.audioContext.createGain();
-      outputBridge.gain.value = 1.0;
-      
-      // Create Web Audio effect nodes
-      const gainNode = this.audioContext.createGain();
-      const panNode = this.audioContext.createStereoPanner();
-      const lowpassFilter = this.audioContext.createBiquadFilter();
-      const highpassFilter = this.audioContext.createBiquadFilter();
-      
-      // Reverb nodes
-      const reverbConvolver = this.audioContext.createConvolver();
-      reverbConvolver.buffer = this.reverbImpulse;
-      const reverbGain = this.audioContext.createGain();
-      reverbGain.gain.value = 0;
-      const dryGain = this.audioContext.createGain();
-      dryGain.gain.value = 1;
-      
-      // Delay nodes
-      const delayNode = this.audioContext.createDelay(5.0);
-      delayNode.delayTime.value = 0.5;
-      const delayGain = this.audioContext.createGain();
-      delayGain.gain.value = 0;
-      const delayFeedback = this.audioContext.createGain();
-      delayFeedback.gain.value = 0.3;
-      
-      // Configure filters
-      lowpassFilter.type = 'lowpass';
-      lowpassFilter.frequency.value = 20000;
-      lowpassFilter.Q.value = 1;
-      
-      highpassFilter.type = 'highpass';
-      highpassFilter.frequency.value = 0;
-      highpassFilter.Q.value = 1;
-      
-      const mixer = this.audioContext.createGain();
-      
-      // Audio graph connections:
-      // Web Audio: source → Tone.js input gain
-      source.connect(toneInputGain.input);
-      
-      // Tone.js chain: inputGain → pitchShift → outputBridge
-      toneInputGain.connect(pitchShift);
-      pitchShift.connect(outputBridge);
-      
-      // Web Audio chain: outputBridge → filters → effects → speakers
-      outputBridge.connect(highpassFilter);
-      highpassFilter.connect(lowpassFilter);
-      lowpassFilter.connect(gainNode);
-      gainNode.connect(panNode);
-      
-      // Dry path
-      panNode.connect(dryGain);
-      dryGain.connect(mixer);
-      
-      // Reverb path
-      panNode.connect(reverbConvolver);
-      reverbConvolver.connect(reverbGain);
-      reverbGain.connect(mixer);
-      
-      // Delay path with feedback
-      panNode.connect(delayNode);
-      delayNode.connect(delayGain);
-      delayGain.connect(mixer);
-      delayNode.connect(delayFeedback);
-      delayFeedback.connect(delayNode);
-      
-      // Final output
-      mixer.connect(this.masterCompressor);
-      
-      // Store references
-      this.videos.set(videoId, {
-        element: videoElement,
-        source: source,
-        toneNodes: {
-          inputGain: toneInputGain,
-          pitchShift: pitchShift,
-          outputBridge: outputBridge
-        },
-        nodes: {
-          gain: gainNode,
-          pan: panNode,
-          lowpass: lowpassFilter,
-          highpass: highpassFilter,
-          dryGain: dryGain,
-          reverbGain: reverbGain,
-          delayNode: delayNode,
-          delayGain: delayGain,
-          delayFeedback: delayFeedback,
-          mixer: mixer
-        }
-      });
-      
+      this._buildAudioGraph(source, videoId, videoElement);
       console.log(`✓ Audio graph with pitch shift connected for ${videoId}`);
-      
     } catch (error) {
       console.error(`Failed to add video ${videoId} to audio processor:`, error);
     }
+  }
+
+  /**
+   * Add a MediaStream to audio processing (capture card, mic, WebRTC, etc.)
+   */
+  addStream(mediaStream, streamId) {
+    if (!this.initialized) {
+      this.initialize();
+    }
+    if (!this.audioContext || !this.toneStarted) {
+      console.warn('AudioContext/Tone.js not available');
+      return;
+    }
+    if (this.videos.has(streamId)) {
+      this.removeVideo(streamId);
+    }
+
+    try {
+      const source = this.audioContext.createMediaStreamSource(mediaStream);
+      this._buildAudioGraph(source, streamId, null);
+      console.log(`✓ Audio graph with pitch shift connected for stream ${streamId}`);
+    } catch (error) {
+      console.error(`Failed to add stream ${streamId}:`, error);
+    }
+  }
+
+  /**
+   * Shared audio graph builder used by both addVideo and addStream.
+   * Wires: source → Tone.js pitch shift → filters → effects → master compressor → speakers
+   */
+  _buildAudioGraph(source, id, videoElement) {
+    // Tone.js bridge nodes
+    const toneInputGain = new Tone.Gain(1.0);
+    const pitchShift = new Tone.PitchShift({
+      pitch: 0,
+      windowSize: 0.1,
+      delayTime: 0,
+      feedback: 0
+    });
+    const outputBridge = this.audioContext.createGain();
+    outputBridge.gain.value = 1.0;
+
+    // Web Audio effect nodes
+    const gainNode = this.audioContext.createGain();
+    const panNode = this.audioContext.createStereoPanner();
+    const lowpassFilter = this.audioContext.createBiquadFilter();
+    const highpassFilter = this.audioContext.createBiquadFilter();
+
+    // Reverb nodes
+    const reverbConvolver = this.audioContext.createConvolver();
+    reverbConvolver.buffer = this.reverbImpulse;
+    const reverbGain = this.audioContext.createGain();
+    reverbGain.gain.value = 0;
+    const dryGain = this.audioContext.createGain();
+    dryGain.gain.value = 1;
+
+    // Delay nodes
+    const delayNode = this.audioContext.createDelay(5.0);
+    delayNode.delayTime.value = 0.5;
+    const delayGain = this.audioContext.createGain();
+    delayGain.gain.value = 0;
+    const delayFeedback = this.audioContext.createGain();
+    delayFeedback.gain.value = 0.3;
+
+    // Configure filters
+    lowpassFilter.type = 'lowpass';
+    lowpassFilter.frequency.value = 20000;
+    lowpassFilter.Q.value = 1;
+    highpassFilter.type = 'highpass';
+    highpassFilter.frequency.value = 0;
+    highpassFilter.Q.value = 1;
+
+    const mixer = this.audioContext.createGain();
+
+    // Audio graph connections:
+    // source → Tone.js pitch shift
+    source.connect(toneInputGain.input);
+    toneInputGain.connect(pitchShift);
+    pitchShift.connect(outputBridge);
+
+    // Tone.js output → Web Audio filters → effects
+    outputBridge.connect(highpassFilter);
+    highpassFilter.connect(lowpassFilter);
+    lowpassFilter.connect(gainNode);
+    gainNode.connect(panNode);
+
+    // Dry path
+    panNode.connect(dryGain);
+    dryGain.connect(mixer);
+
+    // Reverb path
+    panNode.connect(reverbConvolver);
+    reverbConvolver.connect(reverbGain);
+    reverbGain.connect(mixer);
+
+    // Delay path with feedback
+    panNode.connect(delayNode);
+    delayNode.connect(delayGain);
+    delayGain.connect(mixer);
+    delayNode.connect(delayFeedback);
+    delayFeedback.connect(delayNode);
+
+    // Final output
+    mixer.connect(this.masterCompressor);
+
+    // Store references
+    this.videos.set(id, {
+      element: videoElement,
+      source: source,
+      toneNodes: {
+        inputGain: toneInputGain,
+        pitchShift: pitchShift,
+        outputBridge: outputBridge
+      },
+      nodes: {
+        gain: gainNode,
+        pan: panNode,
+        lowpass: lowpassFilter,
+        highpass: highpassFilter,
+        dryGain: dryGain,
+        reverbGain: reverbGain,
+        delayNode: delayNode,
+        delayGain: delayGain,
+        delayFeedback: delayFeedback,
+        mixer: mixer
+      }
+    });
   }
   
   removeVideo(videoId) {
@@ -249,14 +266,15 @@ export class AudioProcessor {
   }
   
   /**
-   * Apply audio parameters to a video
+   * Apply audio parameters to a video or stream
+   * @param {string} id - Video or stream ID
    * @param {Object} params - Audio parameters {volume, pan, lowpass, highpass, reverb, delay, delayTime, delayFeedback, pitch}
    */
-  applyParameters(videoId, params) {
-    const video = this.videos.get(videoId);
+  applyParameters(id, params) {
+    const video = this.videos.get(id);
     if (!video) return;
     
-    const cached = this.lastParams.get(videoId) || {};
+    const cached = this.lastParams.get(id) || {};
     
     const audioParams = ['volume', 'pan', 'lowpass', 'highpass', 'reverb', 'delay', 'delayTime', 'delayFeedback', 'pitch'];
     const hasAudioParams = audioParams.some(key => params[key] !== undefined);
@@ -338,10 +356,10 @@ export class AudioProcessor {
         cached.delayFeedback = feedbackValue;
       }
       
-      this.lastParams.set(videoId, cached);
+      this.lastParams.set(id, cached);
       
     } catch (error) {
-      console.error(`Error applying audio parameters to ${videoId}:`, error);
+      console.error(`Error applying audio parameters to ${id}:`, error);
     }
   }
   

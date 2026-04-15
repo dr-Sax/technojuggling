@@ -1,7 +1,6 @@
 /.venv
 node_modules
 *.pdf
-*.mp4
 *.pyc
 *.gif
 *.txt

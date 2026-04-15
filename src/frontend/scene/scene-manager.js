@@ -18,6 +18,7 @@ export class SceneManager {
     this.ballManager = ballManager;
     this.wsClient = wsClient;
     this.threeSceneRef = null;
+    this.audioProcessorRef = null;
     
     // Current active config (replaces this.scenes array)
     this.activeConfig = null;
@@ -32,6 +33,10 @@ export class SceneManager {
     this.mediaPool = new MediaPool();
     this.parameterManager = new ParameterManager();
     this.sequenceActive = false;
+    
+    // Cache for captureAudio to detect expression usage
+    this._captureAudioHasExpressions = false;
+    this._captureAudioRaw = null;
   }
   
   // ============================================================================
@@ -67,6 +72,9 @@ export class SceneManager {
     // Auto-apply all registered effects
     this.applyAllEffects(config);
     
+    // Apply capture card audio parameters
+    this.applyCaptureAudio(config);
+    
     this.resetTime();
   }
   
@@ -84,6 +92,65 @@ export class SceneManager {
     
     // Auto-update all registered effects
     this.applyAllEffects(config);
+    
+    // Update capture card audio parameters
+    this.applyCaptureAudio(config);
+  }
+
+  // ============================================================================
+  // CAPTURE CARD AUDIO
+  // ============================================================================
+  
+  /**
+   * Apply captureAudio config to the audio processor.
+   * Supports both static values and expression strings.
+   *   captureAudio: { pitch: 3, pan: "sin(t * 0.5)", reverb: 30 }
+   */
+  applyCaptureAudio(config) {
+    if (!config.captureAudio || !this.audioProcessorRef) return;
+    
+    this._captureAudioRaw = config.captureAudio;
+    this._captureAudioHasExpressions = this.hasCaptureAudioExpressions(config.captureAudio);
+    
+    // Apply immediate (static) values now
+    const resolved = this.resolveCaptureAudioParams(config.captureAudio);
+    this.audioProcessorRef.applyParameters('capture-card', resolved);
+  }
+  
+  /**
+   * Check if any captureAudio params contain expressions
+   */
+  hasCaptureAudioExpressions(captureAudio) {
+    if (!captureAudio) return false;
+    return Object.values(captureAudio).some(v =>
+      typeof v === 'string' && this.evaluator.isExpression(v)
+    );
+  }
+  
+  /**
+   * Resolve all captureAudio params, evaluating expressions with current time context
+   */
+  resolveCaptureAudioParams(captureAudio) {
+    const time = this.sequenceActive
+      ? this.sequencePlayer.getCurrentTime()
+      : this.getTime();
+    
+    const ballData = this.ballManager.getBallData();
+    const context = { time, t: time, ...ballData };
+    
+    const resolved = {};
+    const audioKeys = [
+      'volume', 'pan', 'lowpass', 'highpass',
+      'reverb', 'delay', 'delayTime', 'delayFeedback', 'pitch'
+    ];
+    
+    for (const key of audioKeys) {
+      if (captureAudio[key] !== undefined) {
+        resolved[key] = this.evaluateParam(captureAudio[key], context);
+      }
+    }
+    
+    return resolved;
   }
 
   // ============================================================================
@@ -250,6 +317,19 @@ export class SceneManager {
     }
     
     this.updateBallConnections();
+    
+    // Update captureAudio expressions every frame
+    this.updateCaptureAudioExpressions();
+  }
+  
+  /**
+   * If captureAudio has expression params, re-evaluate them each frame
+   */
+  updateCaptureAudioExpressions() {
+    if (!this._captureAudioHasExpressions || !this._captureAudioRaw || !this.audioProcessorRef) return;
+    
+    const resolved = this.resolveCaptureAudioParams(this._captureAudioRaw);
+    this.audioProcessorRef.applyParameters('capture-card', resolved);
   }
   
   updateSequenceDynamicParameters(ballData = {}) {
@@ -403,6 +483,10 @@ export class SceneManager {
 
   setThreeSceneRef(threeScene) {
     this.threeSceneRef = threeScene;
+  }
+  
+  setAudioProcessor(audioProcessor) {
+    this.audioProcessorRef = audioProcessor;
   }
 }
 
