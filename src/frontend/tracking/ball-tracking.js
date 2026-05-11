@@ -2,24 +2,18 @@
  * BallTrackingManager - Uses EffectRegistry for ALL visual effects
  *
  * Active effects: trails, connections, spacetime, sincwaves
- * (trails/connections/spacetime register in effects-library.js,
- *  sincwaves registers here below).
+ * Each effect file in ./effects/ registers itself with the registry on import.
  */
 
-// Import the effects library — this triggers all registrations
-import './effects-library.js';
+// Side-effect imports — each file registers its effect with the registry
+import './effects/trails.js';
+import './effects/connections.js';
+import './effects/spacetime.js';
+import './effects/sincwaves.js';
 
 // BallMedia is still special (manages video elements on tracked balls)
 import { BallMedia } from './ball-media.js';
-import { BallSincWaves } from './ball-sinc-waves.js';
 import { effectRegistry } from './effect-registry.js';
-
-// Register sincwaves here (custom shader, too unique for base classes)
-effectRegistry.register('sincwaves', BallSincWaves, {
-  updateMethod: 'updateBall', requiresWorldPos: true,
-  hasEnabled: true, hasConfig: true,
-  clearMethod: 'clear', removeBallMethod: 'removeBall'
-});
 
 export class BallTrackingManager {
   constructor(sceneManager, audioProcessor, visualFX) {

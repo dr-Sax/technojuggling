@@ -7,8 +7,7 @@
  */
 import { CONFIG } from '../core/config.js';
 import { ExpressionEvaluator } from './expression-system.js';
-import { SequenceConfig } from './sequence-core.js';
-import { SequencePlayer } from './sequence-player.js';
+import { SequenceConfig, SequencePlayer } from './sequence.js';
 import { MediaPool } from './media-pool.js';
 import { ParameterManager } from './parameter-manager.js';
 import { effectRegistry } from '../tracking/effect-registry.js';

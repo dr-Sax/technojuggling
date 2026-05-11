@@ -10,8 +10,8 @@
  * - RGB channels can be scaled/offset independently for glitchy effects
  */
 
-import { GeometryBase } from '../rendering/geometry-base.js';
-import { MaterialFactory } from '../rendering/material-factory.js';
+import { GeometryBase } from './_shared.js';
+import { effectRegistry } from '../effect-registry.js';
 
 export class BallSincWaves extends GeometryBase {
   constructor(sceneManager) {
@@ -355,3 +355,10 @@ export class BallSincWaves extends GeometryBase {
   createGeometry(id, params) { return null; }
   updateGeometry(id, params) {}
 }
+
+// Registration
+effectRegistry.register('sincwaves', BallSincWaves, {
+    updateMethod: 'updateBall', requiresWorldPos: true,
+    hasEnabled: true, hasConfig: true,
+    clearMethod: 'clear', removeBallMethod: 'removeBall'
+});

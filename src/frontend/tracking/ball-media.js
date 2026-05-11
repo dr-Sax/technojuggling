@@ -2,7 +2,7 @@
  * BallMedia - Manages media (video/image) display on tracked balls.
  * Accepts pre-loaded elements from MediaPool via attachFromPool().
  */
-import { MediaObject } from '../rendering/media-object.js';
+import { MediaObject } from '../media/media-object.js';
 
 export class BallMedia {
   constructor(sceneManager, audioProcessor, visualFX) {

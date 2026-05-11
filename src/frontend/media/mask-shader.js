@@ -131,8 +131,7 @@ export class MaskShader {
     
     if (params.maskShape !== undefined) {
       const shapeMap = { triangle: 0, circle: 1, rectangle: 2, polygon: 3 };
-      const shapeValue = typeof params.maskShape === 'string' ? 
-        (shapeMap[params.maskShape] || 0) : params.maskShape;
+      const shapeValue = typeof params.maskShape === 'string' ? (shapeMap[params.maskShape] || 0) : params.maskShape;
       u.maskShape.value = Math.floor(Math.max(0, Math.min(3, shapeValue)));
     }
     

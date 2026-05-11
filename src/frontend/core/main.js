@@ -3,13 +3,13 @@
  * Coordinates all modules and initializes the application
  */
 
-import { ThreeSceneManager } from '../rendering/three-scene.js';
+import { ThreeSceneManager } from './three-scene.js';
 import { WebSocketClient } from './websocket-client.js';
 import { BallTrackingManager } from '../tracking/ball-tracking.js';
 import { SceneManager } from '../scene/scene-manager.js';
 import { UIController } from '../ui/ui-controller.js';
 import { AudioProcessor } from '../audio/audio-processor.js';
-import { VisualEffectsProcessor } from '../rendering/visual-effects-processor.js';
+import { VisualEffectsProcessor } from '../media/visual-effects-processor.js';
 
 class TellAVision {
   constructor() {

@@ -45,7 +45,8 @@
  *   }
  */
 
-import { GeometryBase } from '../rendering/geometry-base.js';
+import { GeometryBase, MaterialFactory } from './_shared.js';
+import { effectRegistry } from '../effect-registry.js';
 
 // All unique pairs from n balls
 function pairs(ids) {
@@ -852,3 +853,7 @@ export class BallSpacetime extends GeometryBase {
     return (r << 16) | (g << 8) | b;
   }
 }
+
+effectRegistry.register('spacetime', BallSpacetime, {
+     updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
+   });

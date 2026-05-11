@@ -1,7 +1,7 @@
 /**
  * Three.js scene setup and management (WebGL only)
  */
-import { CONFIG } from '../core/config.js';
+import { CONFIG } from './config.js';
 import { effectRegistry } from '../tracking/effect-registry.js';
 
 export class ThreeSceneManager {

@@ -95,7 +95,9 @@ export class VisualEffectsProcessor {
   }
 
   /**
-   * Apply parameters to a video. Now only handles `opacity` — all the legacy
+   * Apply parameters to a video.
+   *
+   * Now only handles `opacity` — all the legacy
    * effect params (chromatic, glitch, etc.) are silently ignored.
    *
    * Signature kept (videoId, params, time) for backwards compatibility with
