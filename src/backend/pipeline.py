@@ -1,6 +1,5 @@
 """
 Frame Pipeline - Camera capture, JPEG encoding, and ball tracking in one loop.
-Supports dual cameras: one for tracking, one for streaming.
 """
 import cv2
 import time
@@ -103,7 +102,7 @@ class Camera:
 
 class FramePipeline:
     """
-    Single-camera processing loop (legacy compatibility).
+    Single-camera processing loop.
     Read frame → detect balls → encode JPEG → store latest.
     """
     
@@ -191,154 +190,5 @@ class FramePipeline:
         return {
             'fps': fps,
             'encode_time': avg_encode,
-            'ball_count': len(self.latest_ball_data['balls'])
-        }
-
-
-class DualFramePipeline:
-    """
-    Dual-camera processing loop.
-    
-    Reads from two cameras in one thread:
-    - tracking_camera: used for ball detection only (frames not streamed)
-    - streaming_camera: JPEG encoded and sent to frontend (not tracked)
-    
-    If both sources are the same camera, falls back to single-camera behavior
-    (track + encode from the same frame).
-    """
-    
-    def __init__(self, tracking_camera, streaming_camera, ball_tracker=None):
-        self.tracking_camera = tracking_camera
-        self.streaming_camera = streaming_camera
-        self.ball_tracker = ball_tracker
-        self.same_camera = (tracking_camera is streaming_camera)
-        
-        # State
-        self.latest_frame = None
-        self.latest_encoded_frame = None
-        self.latest_ball_data = {'balls': []}
-        self.frame_id = 0
-        
-        # Encoding target dimensions (from streaming camera config)
-        self.encode_width = streaming_camera.width
-        self.encode_height = streaming_camera.height
-        
-        # Performance tracking
-        self.frame_times = deque(maxlen=FRAME_BUFFER_SIZE)
-        self.encode_times = deque(maxlen=FRAME_BUFFER_SIZE)
-        self.track_times = deque(maxlen=FRAME_BUFFER_SIZE)
-        self.last_frame_time = time.time()
-        self.frame_counter = 0
-        
-        # Thread control
-        self.running = False
-        self.thread = None
-    
-    def start(self):
-        self.running = True
-        self.thread = threading.Thread(target=self._loop, daemon=True)
-        self.thread.start()
-        mode = "single source" if self.same_camera else "dual source"
-        print(f"Dual frame pipeline started ({mode})")
-    
-    def stop(self):
-        self.running = False
-        if self.thread:
-            self.thread.join(timeout=1.0)
-    
-    def _loop(self):
-        while self.running:
-            if self.same_camera:
-                self._loop_single()
-            else:
-                self._loop_dual()
-    
-    def _loop_single(self):
-        """Same camera for tracking + streaming"""
-        ret, frame = self.streaming_camera.read()
-        if not ret:
-            time.sleep(0.001)
-            return
-        
-        self.latest_frame = frame
-        self.frame_counter += 1
-        self.frame_id += 1
-        
-        # Track on this frame
-        if self.ball_tracker:
-            track_start = time.time()
-            balls = self.ball_tracker.detect(frame)
-            self.latest_ball_data = {'balls': balls}
-            self.track_times.append((time.time() - track_start) * 1000)
-        
-        # Encode this frame
-        self._encode_frame(frame)
-        
-        now = time.time()
-        self.frame_times.append(now - self.last_frame_time)
-        self.last_frame_time = now
-    
-    def _loop_dual(self):
-        """Separate cameras for tracking and streaming"""
-        # Read tracking camera (for ball detection only)
-        if self.ball_tracker:
-            ret_track, track_frame = self.tracking_camera.read()
-            if ret_track:
-                track_start = time.time()
-                balls = self.ball_tracker.detect(track_frame)
-                self.latest_ball_data = {'balls': balls}
-                self.track_times.append((time.time() - track_start) * 1000)
-        
-        # Read streaming camera (for JPEG encoding)
-        ret_stream, stream_frame = self.streaming_camera.read()
-        if not ret_stream:
-            time.sleep(0.001)
-            return
-        
-        self.latest_frame = stream_frame
-        self.frame_counter += 1
-        self.frame_id += 1
-        
-        # Encode streaming frame
-        self._encode_frame(stream_frame)
-        
-        now = time.time()
-        self.frame_times.append(now - self.last_frame_time)
-        self.last_frame_time = now
-    
-    def _encode_frame(self, frame):
-        """Resize if needed and JPEG encode"""
-        h_actual, w_actual = frame.shape[:2]
-        if w_actual != self.encode_width or h_actual != self.encode_height:
-            encode_frame = cv2.resize(
-                frame,
-                (self.encode_width, self.encode_height),
-                interpolation=cv2.INTER_LINEAR
-            )
-        else:
-            encode_frame = frame
-        
-        encode_start = time.time()
-        _, buffer = cv2.imencode('.jpg', encode_frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
-        self.latest_encoded_frame = buffer.tobytes()
-        self.encode_times.append((time.time() - encode_start) * 1000)
-    
-    def get_latest_frame_data(self):
-        return {
-            'encoded_frame': self.latest_encoded_frame,
-            'balls': self.latest_ball_data,
-            'frame_id': self.frame_id
-        }
-    
-    def get_performance_stats(self):
-        avg_frame_time = sum(self.frame_times) / len(self.frame_times) if self.frame_times else 0
-        fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 0
-        avg_encode = sum(self.encode_times) / len(self.encode_times) if self.encode_times else 0
-        avg_track = sum(self.track_times) / len(self.track_times) if self.track_times else 0
-        
-        return {
-            'fps': fps,
-            'encode_time': avg_encode,
-            'track_time': avg_track,
             'ball_count': len(self.latest_ball_data['balls'])
         }

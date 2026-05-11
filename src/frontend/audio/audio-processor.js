@@ -1,6 +1,6 @@
 /**
  * Audio Processor - Web Audio API + Tone.js integration for dynamic audio effects
- * Handles audio routing: Video/Stream → Tone.js PitchShift → Effect Nodes → Speakers
+ * Handles audio routing: Video → Tone.js PitchShift → Effect Nodes → Speakers
  */
 
 export class AudioProcessor {
@@ -102,31 +102,7 @@ export class AudioProcessor {
   }
 
   /**
-   * Add a MediaStream to audio processing (capture card, mic, WebRTC, etc.)
-   */
-  addStream(mediaStream, streamId) {
-    if (!this.initialized) {
-      this.initialize();
-    }
-    if (!this.audioContext || !this.toneStarted) {
-      console.warn('AudioContext/Tone.js not available');
-      return;
-    }
-    if (this.videos.has(streamId)) {
-      this.removeVideo(streamId);
-    }
-
-    try {
-      const source = this.audioContext.createMediaStreamSource(mediaStream);
-      this._buildAudioGraph(source, streamId, null);
-      console.log(`✓ Audio graph with pitch shift connected for stream ${streamId}`);
-    } catch (error) {
-      console.error(`Failed to add stream ${streamId}:`, error);
-    }
-  }
-
-  /**
-   * Shared audio graph builder used by both addVideo and addStream.
+   * Audio graph builder used by addVideo.
    * Wires: source → Tone.js pitch shift → filters → effects → master compressor → speakers
    */
   _buildAudioGraph(source, id, videoElement) {
@@ -266,8 +242,8 @@ export class AudioProcessor {
   }
   
   /**
-   * Apply audio parameters to a video or stream
-   * @param {string} id - Video or stream ID
+   * Apply audio parameters to a video
+   * @param {string} id - Video ID
    * @param {Object} params - Audio parameters {volume, pan, lowpass, highpass, reverb, delay, delayTime, delayFeedback, pitch}
    */
   applyParameters(id, params) {

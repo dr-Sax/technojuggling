@@ -3,7 +3,7 @@
  *
  * Protocol:
  * - Binary messages = JPEG frame data (displayed directly via blob URL)
- * - JSON messages = ball data, calibration, cursor events, param scrub, etc.
+ * - JSON messages = ball data, calibration messages
  */
 import { CONFIG } from './config.js';
 
@@ -20,13 +20,6 @@ export class WebSocketClient {
     this.onConnectionChange  = null;
     this.onCalibrationRequest = null;
     this.onCalibrationComplete = null;
-
-    // Foot mouse callbacks (set by CursorNavigationHandler)
-    this.onCursorNavigate  = null;
-    this.onCursorClick     = null;
-    this.onParamScrub      = null;   // { type, direction }
-    this.onScrubModeToggle = null;   // { type, active }
-    this.onFootMouseMove   = null;   // { type, dx, dy } — raw trackball deltas
 
     // Performance tracking
     this.frameCount   = 0;
@@ -101,29 +94,6 @@ export class WebSocketClient {
         // Legacy combined frame+balls
         case 'frame':
           this.handleLegacyFrame(data);
-          break;
-
-        // ── Foot mouse navigation ──────────────────────────────────────────
-        case 'cursor_navigate':
-          if (this.onCursorNavigate) this.onCursorNavigate(data);
-          break;
-
-        case 'cursor_click':
-          if (this.onCursorClick) this.onCursorClick(data);
-          break;
-
-        // ── Param scrub (NEW) ──────────────────────────────────────────────
-        case 'param_scrub':
-          if (this.onParamScrub) this.onParamScrub(data);
-          break;
-
-        case 'scrub_mode_toggle':
-          if (this.onScrubModeToggle) this.onScrubModeToggle(data);
-          break;
-
-        // ── Foot mouse continuous input ────────────────────────────────────
-        case 'foot_mouse_move':
-          if (this.onFootMouseMove) this.onFootMouseMove(data);
           break;
       }
 

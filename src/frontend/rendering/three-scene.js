@@ -1,6 +1,5 @@
 /**
- * Three.js scene setup and management
- * Updated to remove CSS3DRenderer (WebGL only)
+ * Three.js scene setup and management (WebGL only)
  */
 import { CONFIG } from '../core/config.js';
 import { effectRegistry } from '../tracking/effect-registry.js';

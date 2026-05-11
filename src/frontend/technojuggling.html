@@ -7,8 +7,6 @@
   
   <!-- Three.js from CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   
   <!-- CodeMirror 5 (same as Hydra uses) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
@@ -32,23 +30,15 @@
       font-family: 'Courier New', monospace;
     }
     
-    /* 3D rendering containers */
-    #webgl-container,
-    #css3d-container {
+    /* 3D rendering container */
+    #webgl-container {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
-    }
-    
-    #webgl-container {
       z-index: 0;
-    }
-    
-    #css3d-container {
-      z-index: 1;
     }
     
     /* Loading screen */
@@ -180,11 +170,9 @@
     </div>
   </div>
   
-  <!-- 3D rendering containers -->
+  <!-- 3D rendering container -->
   <div id="webgl-container"></div>
-  <div id="css3d-container"></div>
   
-  <!-- Code editor -->
   <!-- Code editor container -->
   <div id="code-editor" data-initial-code='{
   clips: {
@@ -206,15 +194,6 @@
     ball_0: {stream: "streamA", offset: 0},
     ball_1: {stream: "streamB", offset: 0},
     ball_2: {stream: "streamC", offset: 0},
-  },
-
-  captureAudio: {
-    pitch: "sin(t * 0.5) * 6",
-    pan: "sin(t * 0.3)",
-    lowpass: "5000 + sin(t) * 4000",
-    reverb: "50 + sin(t * 0.2) * 50",
-    delay: 20,
-    delayTime: "0.1 + sin(t * 0.5) * 0.4"
   },
   
   ballConnections: {

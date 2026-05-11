@@ -1,7 +1,6 @@
 /**
  * Tell-A-Vision Client - Main Entry Point
  * Coordinates all modules and initializes the application
- * Updated to remove hand tracking
  */
 
 import { ThreeSceneManager } from '../rendering/three-scene.js';
@@ -10,7 +9,6 @@ import { BallTrackingManager } from '../tracking/ball-tracking.js';
 import { SceneManager } from '../scene/scene-manager.js';
 import { UIController } from '../ui/ui-controller.js';
 import { AudioProcessor } from '../audio/audio-processor.js';
-import { AudioCapture } from '../audio/audio-capture.js';
 import { VisualEffectsProcessor } from '../rendering/visual-effects-processor.js';
 
 class TellAVision {
@@ -18,7 +16,6 @@ class TellAVision {
     this.threeScene = null;
     this.wsClient = null;
     this.audioProcessor = null;
-    this.audioCapture = null;
     this.visualFX = null;
     this.ballManager = null;
     this.sceneManager = null;
@@ -46,23 +43,20 @@ class TellAVision {
     this.audioProcessor = new AudioProcessor();
     this.audioProcessor.initialize();
     
-    // 3. Initialize audio capture (from HDMI capture card)
-    this.audioCapture = new AudioCapture(this.audioProcessor);
-    
-    // 4. Initialize visual effects processor
+    // 3. Initialize visual effects processor
     this.visualFX = new VisualEffectsProcessor();
     this.visualFX.initialize();
     
-    // 5. Initialize ball tracking manager
+    // 4. Initialize ball tracking manager
     this.ballManager = new BallTrackingManager(this.threeScene, this.audioProcessor, this.visualFX);
     
-    // 6. Initialize WebSocket client with callbacks
+    // 5. Initialize WebSocket client with callbacks
     this.wsClient = new WebSocketClient(
       (frameData) => this.onFrameData(frameData),
       (ballData) => this.onBallData(ballData)
     );
     
-    // 7. Initialize scene manager
+    // 6. Initialize scene manager
     this.sceneManager = new SceneManager(
       this.ballManager,
       this.wsClient
@@ -71,17 +65,17 @@ class TellAVision {
     this.threeScene.setSceneManager(this.sceneManager);
     this.threeScene.setVisualFX(this.visualFX);
     
-    // 8. Give scene manager access to audio processor (for captureAudio config)
+    // 7. Give scene manager access to audio processor (for video clip audio effects)
     this.sceneManager.setAudioProcessor(this.audioProcessor);
     
-    // 9. Initialize UI controller with WebSocket client (for cursor navigation)
+    // 8. Initialize UI controller
     const codeEditorDiv = document.getElementById('code-editor');
     const initialCode = codeEditorDiv.dataset.initialCode || '';
     
     this.uiController = new UIController(this.sceneManager, this.wsClient);
     await this.uiController.initialize(initialCode);
     
-    // 10. Set up WebSocket callbacks
+    // 9. Set up WebSocket callbacks
     this.wsClient.onConnectionChange = (connected, message) => {
       this.onConnectionChange(connected, message);
     };
@@ -94,10 +88,10 @@ class TellAVision {
       this.onCalibrationComplete();
     };
     
-    // 11. Start Three.js animation loop
+    // 10. Start Three.js animation loop
     this.threeScene.startAnimation();
     
-    // 12. Connect to WebSocket server
+    // 11. Connect to WebSocket server
     this.wsClient.connect();
     
     console.log('Tell-A-Vision initialized');
@@ -161,41 +155,10 @@ class TellAVision {
     // Resume audio context (required after user interaction)
     this.audioProcessor.resume();
     
-    // Start audio capture from HDMI capture card
-    this.startAudioCapture();
-    
     // Hide loading screen and start app
     setTimeout(() => {
       this.uiController.onCalibrationComplete();
     }, 500);
-  }
-  
-  /**
-   * Initialize and start audio capture from the HDMI capture card.
-   * Called after calibration (user gesture already happened).
-   */
-  async startAudioCapture() {
-    try {
-      await this.audioCapture.initialize();
-      
-      // Auto-detect should find it, but fall back to manual selection if needed
-      if (!this.audioCapture.deviceId) {
-        this.audioCapture.selectDevice('USB3 Digital Audio');
-      }
-      
-      if (!this.audioCapture.deviceId) {
-        console.warn('Could not find capture card audio device. Available devices:');
-        this.audioCapture.listDevices().forEach(d => console.log(`  [${d.index}] ${d.label}`));
-        return;
-      }
-      
-      const started = await this.audioCapture.start();
-      if (started) {
-        console.log('✓ HDMI audio capture active — phone audio routed through effects chain');
-      }
-    } catch (error) {
-      console.error('Failed to start audio capture:', error);
-    }
   }
   
   // Callback: Handle frame data from WebSocket

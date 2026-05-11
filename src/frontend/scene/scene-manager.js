@@ -33,10 +33,6 @@ export class SceneManager {
     this.mediaPool = new MediaPool();
     this.parameterManager = new ParameterManager();
     this.sequenceActive = false;
-    
-    // Cache for captureAudio to detect expression usage
-    this._captureAudioHasExpressions = false;
-    this._captureAudioRaw = null;
   }
   
   // ============================================================================
@@ -72,9 +68,6 @@ export class SceneManager {
     // Auto-apply all registered effects
     this.applyAllEffects(config);
     
-    // Apply capture card audio parameters
-    this.applyCaptureAudio(config);
-    
     this.resetTime();
   }
   
@@ -92,65 +85,6 @@ export class SceneManager {
     
     // Auto-update all registered effects
     this.applyAllEffects(config);
-    
-    // Update capture card audio parameters
-    this.applyCaptureAudio(config);
-  }
-
-  // ============================================================================
-  // CAPTURE CARD AUDIO
-  // ============================================================================
-  
-  /**
-   * Apply captureAudio config to the audio processor.
-   * Supports both static values and expression strings.
-   *   captureAudio: { pitch: 3, pan: "sin(t * 0.5)", reverb: 30 }
-   */
-  applyCaptureAudio(config) {
-    if (!config.captureAudio || !this.audioProcessorRef) return;
-    
-    this._captureAudioRaw = config.captureAudio;
-    this._captureAudioHasExpressions = this.hasCaptureAudioExpressions(config.captureAudio);
-    
-    // Apply immediate (static) values now
-    const resolved = this.resolveCaptureAudioParams(config.captureAudio);
-    this.audioProcessorRef.applyParameters('capture-card', resolved);
-  }
-  
-  /**
-   * Check if any captureAudio params contain expressions
-   */
-  hasCaptureAudioExpressions(captureAudio) {
-    if (!captureAudio) return false;
-    return Object.values(captureAudio).some(v =>
-      typeof v === 'string' && this.evaluator.isExpression(v)
-    );
-  }
-  
-  /**
-   * Resolve all captureAudio params, evaluating expressions with current time context
-   */
-  resolveCaptureAudioParams(captureAudio) {
-    const time = this.sequenceActive
-      ? this.sequencePlayer.getCurrentTime()
-      : this.getTime();
-    
-    const ballData = this.ballManager.getBallData();
-    const context = { time, t: time, ...ballData };
-    
-    const resolved = {};
-    const audioKeys = [
-      'volume', 'pan', 'lowpass', 'highpass',
-      'reverb', 'delay', 'delayTime', 'delayFeedback', 'pitch'
-    ];
-    
-    for (const key of audioKeys) {
-      if (captureAudio[key] !== undefined) {
-        resolved[key] = this.evaluateParam(captureAudio[key], context);
-      }
-    }
-    
-    return resolved;
   }
 
   // ============================================================================
@@ -181,9 +115,7 @@ export class SceneManager {
     
     const media = await this.mediaPool.assignClipToObject(objectId, newClipId, clipData.url);
     
-    const objectName = objectId.replace('right_hand', 'right')
-                              .replace('left_hand', 'left')
-                              .replace('ball_', '');
+    const objectName = objectId.replace('ball_', '');
     
     // timeOffset comes from routing config (e.g. ball_1: {stream: "streamD", offset: 5})
     // This shifts clock phase — WHERE in the clip loop we start — not the video file position
@@ -193,12 +125,12 @@ export class SceneManager {
     this.ballManager.clearBall(objectName);
     
     const mediaConfig = {
-      startTime: clipData.videoStart,   // absolute position in the video file (e.g. 30s)
-      endTime: clipData.videoEnd,       // absolute position in the video file (e.g. 60s)
+      startTime: clipData.videoStart,
+      endTime: clipData.videoEnd,
       locked: false,
       zIndex: clipData.effects.zIndex || 0.1,
       scale: 1.0,
-      timeOffset: timeOffset            // clock phase offset from routing config
+      timeOffset: timeOffset
     };
     
     await this.ballManager.displayBallMedia(objectName, media, mediaConfig);
@@ -231,9 +163,7 @@ export class SceneManager {
     }
     
     for (const objectId of objectIds) {
-      const objectName = objectId.replace('right_hand', 'right')
-                                .replace('left_hand', 'left')
-                                .replace('ball_', '');
+      const objectName = objectId.replace('ball_', '');
       
       const params = this.parameterManager.getRawParameters(objectId);
       this.ballManager.applyParameters(objectName, params);
@@ -317,19 +247,6 @@ export class SceneManager {
     }
     
     this.updateBallConnections();
-    
-    // Update captureAudio expressions every frame
-    this.updateCaptureAudioExpressions();
-  }
-  
-  /**
-   * If captureAudio has expression params, re-evaluate them each frame
-   */
-  updateCaptureAudioExpressions() {
-    if (!this._captureAudioHasExpressions || !this._captureAudioRaw || !this.audioProcessorRef) return;
-    
-    const resolved = this.resolveCaptureAudioParams(this._captureAudioRaw);
-    this.audioProcessorRef.applyParameters('capture-card', resolved);
   }
   
   updateSequenceDynamicParameters(ballData = {}) {
@@ -343,9 +260,7 @@ export class SceneManager {
     const updates = this.parameterManager.getAllUpdates(time, ballData);
     
     for (const update of updates) {
-      const objectName = update.objectId.replace('right_hand', 'right')
-                                      .replace('left_hand', 'left')
-                                      .replace('ball_', '');
+      const objectName = update.objectId.replace('ball_', '');
       this.ballManager.applyParameters(objectName, update.params);
     }
   }
