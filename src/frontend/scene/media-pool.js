@@ -1,12 +1,33 @@
 /**
  * Media Pool - Manages video and image elements for sequence playback
- * Supports: local files, direct web URLs, and m3u8 streams
+ * Supports: local files, direct web URLs, m3u8 streams, and YouTube URLs.
+ *
+ * YouTube URLs (youtube.com/watch?v=…, youtu.be/…, shorts/…) are resolved
+ * to direct stream URLs via the backend (yt-dlp). Resolutions are cached
+ * per-session so hot-reloads don't re-resolve.
  */
 export class MediaPool {
-    constructor() {
-        this.media = new Map(); // clipId -> { element, type: 'video'|'image' }
+    constructor(wsClient = null) {
+        this.wsClient = wsClient;            // used for resolve_url requests
+        this.media = new Map();              // clipId -> { element, type: 'video'|'image' }
         this.loadingPromises = new Map();
         this.assignments = new Map();
+        this.resolvedUrlCache = new Map();   // original url -> { stream_url, title, ... }
+    }
+
+    /**
+     * Allow late injection (SceneManager constructs MediaPool before wsClient is wired)
+     */
+    setWsClient(wsClient) {
+        this.wsClient = wsClient;
+    }
+
+    /**
+     * Detect if a URL is a YouTube link (any common form).
+     */
+    isYouTubeUrl(url) {
+        if (typeof url !== 'string') return false;
+        return /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.test(url);
     }
 
     /**
@@ -23,7 +44,8 @@ export class MediaPool {
         if (videoExtensions.some(ext => lowerUrl.includes(ext))) {
             return 'video';
         }
-        // Default to video for URLs without clear extension (like m3u8 streams)
+        // Default to video for URLs without clear extension (like m3u8 streams,
+        // YouTube links, and most googlevideo URLs)
         return 'video';
     }
 
@@ -32,6 +54,27 @@ export class MediaPool {
      */
     isLocalFile(url) {
         return !url.startsWith('http://') && !url.startsWith('https://');
+    }
+
+    /**
+     * Resolve a YouTube URL via the backend. Cached per session.
+     * Returns { stream_url, title, duration, video_id }.
+     */
+    async resolveYouTubeUrl(url) {
+        if (this.resolvedUrlCache.has(url)) {
+            return this.resolvedUrlCache.get(url);
+        }
+        if (!this.wsClient) {
+            throw new Error(
+                `MediaPool: cannot resolve YouTube URL without wsClient. ` +
+                `Pass wsClient to MediaPool() or call setWsClient().`
+            );
+        }
+        console.log(`[MediaPool] Resolving YouTube URL: ${url}`);
+        const result = await this.wsClient.request('resolve_url', { url });
+        console.log(`[MediaPool]   -> "${result.title}" (${result.duration}s)`);
+        this.resolvedUrlCache.set(url, result);
+        return result;
     }
 
     /**
@@ -147,9 +190,16 @@ export class MediaPool {
     }
 
     /**
-     * Load media — handles local files and direct web URLs
+     * Load media — handles local files, direct web URLs, and YouTube URLs.
      */
     async loadMedia(clipId, url) {
+        // YouTube URLs need backend resolution first
+        if (this.isYouTubeUrl(url)) {
+            const resolved = await this.resolveYouTubeUrl(url);
+            // YouTube is always video; bypass extension sniffing
+            return this.createVideoElement(resolved.stream_url, clipId);
+        }
+
         const mediaType = this.getMediaType(url);
         let mediaUrl;
 
@@ -271,7 +321,8 @@ export class MediaPool {
     }
 
     /**
-     * Clear all media
+     * Clear all media. Note: keep resolvedUrlCache so hot-reloads
+     * don't re-resolve YouTube URLs unnecessarily.
      */
     clear() {
         for (const [clipId, media] of this.media.entries()) {
@@ -287,13 +338,21 @@ export class MediaPool {
     }
 
     /**
+     * Clear the resolved-URL cache (e.g. if an m3u8 expired and playback failed).
+     */
+    clearResolvedUrlCache() {
+        this.resolvedUrlCache.clear();
+    }
+
+    /**
      * Get pool statistics
      */
     getStats() {
         return {
             loaded: this.media.size,
             loading: this.loadingPromises.size,
-            assignments: this.assignments.size
+            assignments: this.assignments.size,
+            resolved: this.resolvedUrlCache.size
         };
     }
 }

@@ -29,7 +29,7 @@ export class SceneManager {
     // Sequence playback (formerly in SequenceManager)
     this.sequenceConfig = null;
     this.sequencePlayer = null;
-    this.mediaPool = new MediaPool();
+    this.mediaPool = new MediaPool(wsClient);
     this.parameterManager = new ParameterManager();
     this.sequenceActive = false;
   }

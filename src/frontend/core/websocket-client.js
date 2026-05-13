@@ -3,7 +3,11 @@
  *
  * Protocol:
  * - Binary messages = JPEG frame data (displayed directly via blob URL)
- * - JSON messages = ball data, calibration messages
+ * - JSON messages = ball data, calibration messages, request/response messages
+ *
+ * Request/response pattern:
+ * - `request(type, payload)` returns a Promise resolved when a message arrives
+ *   with a matching `request_id`. Used for things like YouTube URL resolution.
  */
 import { CONFIG } from './config.js';
 
@@ -12,7 +16,8 @@ export class WebSocketClient {
     this.ws = null;
     this.reconnectAttempts = 0;
     this.isReady = false;
-    this.pendingRequests = new Map();
+    this.pendingRequests = new Map();   // request_id -> { resolve, reject, timeoutId }
+    this._nextRequestId = 1;
 
     // Callbacks
     this.onFrameData = onFrameData;
@@ -91,6 +96,14 @@ export class WebSocketClient {
           }
           break;
 
+        case 'resolve_url_result':
+          this._resolvePending(data.request_id, data, null);
+          break;
+
+        case 'resolve_url_error':
+          this._resolvePending(data.request_id, null, new Error(data.error || 'resolve failed'));
+          break;
+
         // Legacy combined frame+balls
         case 'frame':
           this.handleLegacyFrame(data);
@@ -106,13 +119,44 @@ export class WebSocketClient {
     if (now - this.lastStatsTime > CONFIG.STATS_UPDATE_INTERVAL) {
       const elapsed    = (now - this.lastStatsTime) / 1000;
       const fps        = this.frameCount / elapsed;
-      const avgLatency = this.latencyCount > 0 ? this.latencySum / this.latencyCount : 0;
-      console.log(`Receiving: ${fps.toFixed(1)} FPS | Latency: ${avgLatency.toFixed(1)}ms`);
+      const avgLatency = this.latencyCount > 0 ?
+        this.latencySum / this.latencyCount : 0;
       this.frameCount   = 0;
       this.lastStatsTime = now;
       this.latencySum   = 0;
       this.latencyCount = 0;
     }
+  }
+
+  _resolvePending(requestId, value, error) {
+    const pending = this.pendingRequests.get(requestId);
+    if (!pending) return;
+    clearTimeout(pending.timeoutId);
+    this.pendingRequests.delete(requestId);
+    if (error) pending.reject(error);
+    else pending.resolve(value);
+  }
+
+  /**
+   * Send a request and await a matching response by request_id.
+   * The server is expected to echo request_id in its reply.
+   */
+  request(type, payload = {}, { timeoutMs = 30000 } = {}) {
+    return new Promise((resolve, reject) => {
+      if (!this.isReady || !this.ws) {
+        reject(new Error('WebSocket not ready'));
+        return;
+      }
+      const requestId = `r${this._nextRequestId++}`;
+      const timeoutId = setTimeout(() => {
+        if (this.pendingRequests.has(requestId)) {
+          this.pendingRequests.delete(requestId);
+          reject(new Error(`Request ${type} (${requestId}) timed out after ${timeoutMs}ms`));
+        }
+      }, timeoutMs);
+      this.pendingRequests.set(requestId, { resolve, reject, timeoutId });
+      this.ws.send(JSON.stringify({ type, request_id: requestId, ...payload }));
+    });
   }
 
   handleLegacyFrame(data) {

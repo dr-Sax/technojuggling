@@ -217,7 +217,7 @@ export class BallSincWaves extends GeometryBase {
   updateBall(ballId, worldPos) {
     // Debug: log first few updates
     if (this.ballPositions.size < 3) {
-      console.log(`[BallSincWaves] updateBall ${ballId}:`, worldPos);
+        console.log();
     }
     
     this.ballPositions.set(ballId, {

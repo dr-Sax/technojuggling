@@ -5,6 +5,9 @@ Performance optimizations:
 - Frame sent as binary WebSocket message (no base64, no JSON wrapping)
 - Ball data sent as separate small JSON message
 - No fixed sleep between sends — sends as fast as new frames arrive
+
+Also handles request/response messages from the frontend:
+- resolve_url: resolves a YouTube URL to a direct stream URL via yt-dlp
 """
 import asyncio
 import json
@@ -12,6 +15,7 @@ import base64
 import time
 from config import *
 from startup_calibration_async import set_calibration_choice
+from youtube_resolver import YouTubeResolver, is_youtube_url
 
 class WebSocketHandler:
     def __init__(self, frame_processor, camera_dimensions):
@@ -22,6 +26,7 @@ class WebSocketHandler:
         self.calibration_settings = None
         self.first_connection = True
         self.on_first_connection = None
+        self.youtube_resolver = YouTubeResolver()
         
     def set_calibration_settings(self, settings):
         self.calibration_settings = settings
@@ -72,6 +77,9 @@ class WebSocketHandler:
                 elif msg_type == 'start_stream':
                     if stream_task is None:
                         stream_task = asyncio.create_task(self._handle_stream(websocket))
+                elif msg_type == 'resolve_url':
+                    # Don't block the message loop — fire and forget
+                    asyncio.create_task(self._handle_resolve_url(websocket, data))
                 
         except:
             pass
@@ -83,6 +91,53 @@ class WebSocketHandler:
     async def _handle_calibration_choice(self, websocket, data):
         use_last = data.get('use_last', True)
         set_calibration_choice(use_last)
+    
+    async def _handle_resolve_url(self, websocket, data):
+        """Resolve a YouTube URL to a direct stream URL."""
+        request_id = data.get('request_id')
+        url = data.get('url', '')
+        
+        try:
+            if not is_youtube_url(url):
+                # Not a YouTube URL — pass it through unchanged so the frontend
+                # can use this endpoint as a uniform "resolve" call
+                await websocket.send(json.dumps({
+                    'type': 'resolve_url_result',
+                    'request_id': request_id,
+                    'stream_url': url,
+                    'title': '',
+                    'duration': 0,
+                    'video_id': '',
+                }))
+                return
+            
+            print(f"[resolver] Resolving {url}")
+            result = await self.youtube_resolver.resolve(url)
+            print(
+                f"[resolver]   -> {result['title']!r}  "
+                f"({result['duration']}s, format={result.get('format_id', '?')}, "
+                f"protocol={result.get('protocol', '?')}, ext={result.get('ext', '?')})"
+            )
+            
+            await websocket.send(json.dumps({
+                'type': 'resolve_url_result',
+                'request_id': request_id,
+                'stream_url': result['stream_url'],
+                'title': result['title'],
+                'duration': result['duration'],
+                'video_id': result['video_id'],
+            }))
+        except Exception as e:
+            print(f"[resolver] ERROR resolving {url}: {e}")
+            try:
+                await websocket.send(json.dumps({
+                    'type': 'resolve_url_error',
+                    'request_id': request_id,
+                    'url': url,
+                    'error': str(e),
+                }))
+            except:
+                pass
     
     async def _handle_stream(self, websocket):
         """Stream frames and ball tracking data — optimized for throughput."""
