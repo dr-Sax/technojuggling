@@ -9,11 +9,11 @@ export const CONFIG = {
   RECONNECT_DELAY: 2000,
   
   // Camera feed dimensions (must match Python camera config)
-  CAMERA_WIDTH: 640,   // Changed from 1280
-  CAMERA_HEIGHT: 360,  // Changed from 720
+  CAMERA_WIDTH: 1280,   // Changed from 1280
+  CAMERA_HEIGHT: 720,  // Changed from 720
   
   // 3D scene dimensions
-  PLANE_HEIGHT: 16,
+  PLANE_HEIGHT: 24,  // to make the camera frame larger or  smaller
   get PLANE_WIDTH() {
     return this.PLANE_HEIGHT * (this.CAMERA_WIDTH / this.CAMERA_HEIGHT);
   },

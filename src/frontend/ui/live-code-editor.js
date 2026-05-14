@@ -60,7 +60,7 @@ export class LiveCodeEditor {
           background: rgba(0, 0, 0, 0) !important;
           transition: background-color 0.3s ease;
           color: #cccccc;
-          font-size: 18px;
+          font-size: 24px;
           height: 100%;
         }
         
@@ -71,7 +71,7 @@ export class LiveCodeEditor {
         }
         
         .CodeMirror-line span {
-          background-color: rgba(0, 0, 0, 0.6);
+          background-color: rgba(0, 0, 0, 0.3);
           transition: background-color 0.3s ease;
         }
         
@@ -80,11 +80,11 @@ export class LiveCodeEditor {
         }
         
         .CodeMirror-activeline-background {
-          background: rgba(52, 54, 0, 0.8) !important;
+          background: rgba(245, 32, 32, 0.6) !important;
         }
         
         .CodeMirror-activeline-gutter {
-          background: rgba(52, 54, 0, 0.5) !important;
+          background: rgba(245, 32, 32, 0.6) !important;
         }
         
         .CodeMirror-gutters {

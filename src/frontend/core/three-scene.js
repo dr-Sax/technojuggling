@@ -86,7 +86,7 @@ export class ThreeSceneManager {
     });
     
     this.cameraFeedPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-    this.cameraFeedPlane.rotation.z = -Math.PI// for landscape-Math.PI / 2;
+    this.cameraFeedPlane.rotation.z = -Math.PI // for portrait -Math.PI;
     this.cameraFeedPlane.position.z = 0;
     this.cameraFeedPlane.scale.x = -1;
     this.threeScene.add(this.cameraFeedPlane);
@@ -175,6 +175,8 @@ export class ThreeSceneManager {
   setCameraFeedZ(z) {
     if (this.cameraFeedPlane) {
       this.cameraFeedPlane.position.z = z;
+      
+    
     }
   }
   
@@ -221,8 +223,8 @@ export class ThreeSceneManager {
     // Since plane is rotated 90° counter-clockwise:
     // - Camera's X (0 to 1, left to right) maps to world Y (bottom to top after rotation)
     // - Camera's Y (0 to 1, top to bottom) maps to world X (right to left after rotation)
-    const worldX = (normalizedY - 0.5) * CONFIG.PLANE_HEIGHT;
-    const worldY = (normalizedX - 0.5) * CONFIG.PLANE_WIDTH;
+    const worldY = -(normalizedY - 0.5) * CONFIG.PLANE_HEIGHT;
+    const worldX = (normalizedX - 0.5) * CONFIG.PLANE_WIDTH;
     return { x: worldX, y: worldY };
   }
   
