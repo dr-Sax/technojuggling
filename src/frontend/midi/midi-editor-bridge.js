@@ -1,70 +1,65 @@
 /**
  * MidiEditorBridge - Routes MIDI events to live-code-editor actions.
  *
- * Responsibilities:
- *   1. Joystick X (default CC 16) → step cursor through number tokens (prev/next)
- *   2. Joystick Y (default CC 17) → step cursor up/down lines
- *   3. CC1 → rewrite the numeric value under the cursor
- *   4. Pad (default note 36, MPK kick pad) → trigger Ctrl-Enter (re-execute code)
+ * Two knobs + one pad:
+ *   cursorKnob (CC 70) → absolute position over all numeric tokens in the
+ *                        buffer. Knob at 0 = first token, 127 = last, linear.
+ *                        Same physical position always lands on the same token.
+ *   valueKnob  (CC 71) → rewrite the value under the cursor and live-execute
+ *                        the code (throttled). No Ctrl-Enter needed.
+ *   executePad (note 36) → manual re-execute (Ctrl-Enter equivalent).
  *
- * Mapping is loaded from the live config's `midi` block on each execute,
- * so the user can change which CCs/notes do what by editing code:
+ * Config overrides via the live config's `midi` block:
+ *   midi: { cursorKnob: 70, valueKnob: 71, executePad: 36,
+ *           liveExecuteMs: 33, liveExecute: true }
  *
- *   midi: {
- *     joystickX: 16,         // CC for joystick X (default 16)
- *     joystickY: 17,         // CC for joystick Y (default 17)
- *     valueKnob: 1,          // CC that rewrites value at cursor (default 1)
- *     executePad: 36,        // note that triggers re-execute (default 36)
- *     joyDeadzone: 0.15,     // joystick centered region treated as 0
- *     joyRepeatHz: 8         // how many cursor steps per second at full deflection
- *   }
+ * Range comments tell the value knob how to map 0..1 onto the highlighted
+ * number. Five forms, placed in a // comment after the number:
  *
- * Key insight: the joystick is *continuous* (a centered knob), but cursor nav
- * is *discrete* (step to next/prev token). So we convert continuous deflection
- * into a repeating "tick" stream — like keyboard auto-repeat — whose rate
- * scales with how far the stick is pushed. Stick at rest = no movement.
+ *   scale: 5          //0,100              decimal range
+ *   opacity: 0.5      //0,1                decimal range
+ *   color: 0x00ffff   //hue                sweep hue, preserve S/L
+ *   color: 0x00ffff   //hex                sweep raw 0x000000..0xffffff
+ *   color: 0x00ffff   //0x000000,0x00ffff  explicit hex range
+ *   zStep: 0.00       //[-1, 0, 1]         discrete picks, equal-width bands
+ *   zStep: 0.00       //[-1, 0, 1], 11     anchors as hard stops, N total
+ *
+ * Without a comment, the bridge infers a sensible range from the current
+ * value (0..1, -1..1, contextual for larger numbers, full 24-bit for hex).
+ *
+ * Decimal formatting preserves the original text's style: "0.00" stays
+ * 2-decimal, "5" stays integer, ".5" stays without leading zero. Hex
+ * preserves width and reformats to `0xRRGGBB` on color sweeps.
  */
 
 const DEFAULTS = {
-  joystickX: 16,
-  joystickY: 17,
-  valueKnob: 1,
+  cursorKnob: 70,
+  valueKnob: 71,
   executePad: 36,
-  joyDeadzone: 0.15,
-  joyRepeatHz: 8,
+  liveExecuteMs: 33,
+  liveExecute: true,
 };
 
 export class MidiEditorBridge {
   /**
    * @param {LiveCodeEditor} liveCodeEditor - has .editor (CodeMirror instance)
-   * @param {() => void} onExecute - called to trigger re-execute (same as Ctrl-Enter)
+   * @param {() => void} onExecute - called to trigger re-execute (Ctrl-Enter)
    */
   constructor(liveCodeEditor, onExecute) {
     this.liveCodeEditor = liveCodeEditor;
     this.onExecute = onExecute;
     this.config = { ...DEFAULTS };
 
-    // Joystick continuous state (normalized -1..1, where 0 = centered)
-    this.joyX = 0;
-    this.joyY = 0;
+    this.currentToken = null;       // { from, to, text, value }
+    this._lastCursorSlot = -1;      // last token slot the cursor knob selected
+    this._pickup = null;            // { matched, lastValue } for value knob
+    this._hueBaseline = null;       // { s, l } captured at hex-token select
 
-    // Pickup mode: knob doesn't take effect until physical position crosses current value.
-    // Map of CC# -> { matched: bool, lastValue: 0..1 }
-    this.knobPickup = new Map();
-
-    // Currently selected numeric token, if any
-    this.currentToken = null;  // { from: {line,ch}, to: {line,ch}, text: string, value: number }
-
-    // RAF loop for joystick auto-repeat
-    this._rafId = null;
-    this._lastTick = performance.now();
-    this._stepAccumX = 0;
-    this._stepAccumY = 0;
-
-    this._startLoop();
+    // Trailing-edge throttle state for live re-execute
+    this._lastExecuteAt = 0;
+    this._pendingExecuteTimer = null;
   }
 
-  /** Update mapping from a fresh config object. Call this on every execute. */
   updateMapping(midiConfig) {
     this.config = { ...DEFAULTS, ...(midiConfig || {}) };
   }
@@ -74,175 +69,41 @@ export class MidiEditorBridge {
   // ─────────────────────────────────────────────────────────────────────
 
   onCC(num, rawValue, _channel) {
-    const norm = rawValue / 127;
-
-    if (num === this.config.joystickX) {
-      // Most joysticks center at 64 (~0.5). Convert to -1..1.
-      this.joyX = this._centerNormalize(norm);
-      return;
-    }
-    if (num === this.config.joystickY) {
-      this.joyY = this._centerNormalize(norm);
-      return;
-    }
-    if (num === this.config.valueKnob) {
-      this._handleValueKnob(num, norm);
-      return;
-    }
-    // Other CCs: ignored here (they still update MidiState for expressions)
+    if (num === this.config.cursorKnob) return this._handleCursorKnob(rawValue);
+    if (num === this.config.valueKnob)  return this._handleValueKnob(rawValue / 127);
   }
 
   onNoteOn(num, _velocity, _channel) {
-    if (num === this.config.executePad) {
-      this._triggerExecute();
-    }
+    if (num === this.config.executePad) this._triggerExecute();
   }
-
-  onNoteOff(_num, _channel) { /* no-op for now */ }
-
-  onPitchBend(_value, _channel) { /* no-op */ }
-
-  onProgramChange(_num, _channel) { /* no-op */ }
+  onNoteOff()       { /* no-op */ }
+  onPitchBend()     { /* no-op */ }
+  onProgramChange() { /* no-op */ }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Joystick: convert centered CC (0..1, center 0.5) to deflection (-1..1)
+  // Cursor knob — absolute knob position maps to slot index over tokens
   // ─────────────────────────────────────────────────────────────────────
 
-  _centerNormalize(norm) {
-    const d = (norm - 0.5) * 2;  // -1..1
-    if (Math.abs(d) < this.config.joyDeadzone) return 0;
-    // Re-scale so the usable range maps to full -1..1
-    const sign = Math.sign(d);
-    const magnitude = (Math.abs(d) - this.config.joyDeadzone) / (1 - this.config.joyDeadzone);
-    return sign * magnitude;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // RAF loop: convert joystick deflection into cursor-step ticks
-  // ─────────────────────────────────────────────────────────────────────
-
-  _startLoop() {
-    const tick = (now) => {
-      const dt = (now - this._lastTick) / 1000;
-      this._lastTick = now;
-
-      // Accumulate "steps owed" — full deflection = joyRepeatHz steps/sec
-      this._stepAccumX += this.joyX * this.config.joyRepeatHz * dt;
-      this._stepAccumY += this.joyY * this.config.joyRepeatHz * dt;
-
-      // Fire off whole steps
-      while (this._stepAccumX >= 1) {
-        this._stepAccumX -= 1;
-        this._jumpToken(+1);
-      }
-      while (this._stepAccumX <= -1) {
-        this._stepAccumX += 1;
-        this._jumpToken(-1);
-      }
-      while (this._stepAccumY >= 1) {
-        this._stepAccumY -= 1;
-        this._jumpLine(+1);
-      }
-      while (this._stepAccumY <= -1) {
-        this._stepAccumY += 1;
-        this._jumpLine(-1);
-      }
-
-      this._rafId = requestAnimationFrame(tick);
-    };
-    this._rafId = requestAnimationFrame(tick);
-  }
-
-  stop() {
-    if (this._rafId) cancelAnimationFrame(this._rafId);
-    this._rafId = null;
-  }
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Token navigation (joystick X)
-  // ─────────────────────────────────────────────────────────────────────
-
-  _editor() {
-    return this.liveCodeEditor?.editor || null;
-  }
-
-  /**
-   * Find the next/previous numeric token from the current cursor position.
-   * Moves the cursor to it and selects it (for visual feedback + value editing).
-   */
-  _jumpToken(direction) {
-    const cm = this._editor();
-    if (!cm) return;
-
-    const cursor = cm.getCursor();
+  _handleCursorKnob(rawValue) {
     const tokens = this._collectNumberTokens();
     if (tokens.length === 0) return;
 
-    // Find current cursor position in flat ordering
-    const cursorPos = this._posToOffset(cm, cursor);
+    const clamped = Math.max(0, Math.min(127, rawValue));
+    const slot = tokens.length === 1
+      ? 0
+      : Math.round((clamped / 127) * (tokens.length - 1));
 
-    let target = null;
-    if (direction > 0) {
-      // First token whose start > cursor
-      target = tokens.find(t => this._posToOffset(cm, t.from) > cursorPos);
-      if (!target) target = tokens[0];  // wrap to start
-    } else {
-      // Last token whose end < cursor
-      for (let i = tokens.length - 1; i >= 0; i--) {
-        if (this._posToOffset(cm, tokens[i].to) < cursorPos) {
-          target = tokens[i];
-          break;
-        }
-      }
-      if (!target) target = tokens[tokens.length - 1];  // wrap to end
-    }
-
-    if (target) {
-      this._selectToken(target);
-    }
+    if (slot === this._lastCursorSlot) return;
+    this._lastCursorSlot = slot;
+    this._selectToken(tokens[slot]);
   }
 
-  /**
-   * Move cursor down/up a line, then snap to the first/closest number on that line.
-   */
-  _jumpLine(direction) {
-    const cm = this._editor();
-    if (!cm) return;
+  // ─────────────────────────────────────────────────────────────────────
+  // Token collection
+  // ─────────────────────────────────────────────────────────────────────
 
-    const cursor = cm.getCursor();
-    const lastLine = cm.lastLine();
-    let targetLine = cursor.line + direction;
-    if (targetLine < 0) targetLine = lastLine;
-    if (targetLine > lastLine) targetLine = 0;
+  _editor() { return this.liveCodeEditor?.editor || null; }
 
-    // Find first number token on the target line
-    const tokens = this._collectNumberTokens().filter(t => t.from.line === targetLine);
-
-    if (tokens.length > 0) {
-      // Pick token closest in column to current cursor column
-      let best = tokens[0];
-      let bestDist = Math.abs(tokens[0].from.ch - cursor.ch);
-      for (const t of tokens) {
-        const d = Math.abs(t.from.ch - cursor.ch);
-        if (d < bestDist) { best = t; bestDist = d; }
-      }
-      this._selectToken(best);
-    } else {
-      // No number on that line — just move cursor and clear selection
-      cm.setCursor({ line: targetLine, ch: 0 });
-      this.currentToken = null;
-    }
-  }
-
-  /**
-   * Walk the CodeMirror tokenizer to find every numeric token in the buffer.
-   * Returns sorted-by-position array of { from, to, text, value }.
-   *
-   * Handles:
-   *   - integers and decimals: 10, 0.5, .5
-   *   - negative numbers (preceded by '-' as part of value)
-   *   - hex literals: 0x00ffff (treated as numbers — important for color params)
-   */
   _collectNumberTokens() {
     const cm = this._editor();
     if (!cm) return [];
@@ -257,12 +118,10 @@ export class MidiEditorBridge {
         if (tok.type !== 'number') continue;
 
         let from = { line, ch: tok.start };
-        let to = { line, ch: tok.end };
+        const to = { line, ch: tok.end };
         let text = tok.string;
 
-        // Look back for unary minus: previous non-whitespace token is '-' AND
-        // the token before *that* is an operator or punctuation (so it's unary, not binary).
-        // Simple heuristic: if prev token is '-' and the one before is ':' '(' ',' '[' or absent.
+        // Capture unary minus as part of the value (e.g. `-30` not `30`)
         if (i >= 1 && lineTokens[i - 1].string === '-') {
           const prevPrev = i >= 2 ? lineTokens[i - 2] : null;
           const isUnary = !prevPrev ||
@@ -275,9 +134,7 @@ export class MidiEditorBridge {
         }
 
         const value = Number(text);
-        if (!Number.isNaN(value)) {
-          tokens.push({ from, to, text, value });
-        }
+        if (!Number.isNaN(value)) tokens.push({ from, to, text, value });
       }
     }
     return tokens;
@@ -290,124 +147,328 @@ export class MidiEditorBridge {
     cm.scrollIntoView({ from: token.from, to: token.to }, 50);
     this.currentToken = token;
 
-    // Reset pickup mode for the value knob — fresh token, knob must re-match
-    const pickup = this.knobPickup.get(this.config.valueKnob);
-    if (pickup) pickup.matched = false;
-  }
+    // Reset pickup mode — new token, knob must re-match before editing
+    if (this._pickup) this._pickup.matched = false;
 
-  _posToOffset(cm, pos) {
-    return cm.indexFromPos(pos);
+    // Capture S/L baseline for //hue tokens so sweeping preserves character
+    this._hueBaseline = null;
+    if (this._isHexText(token.text)) {
+      const range = this._parseRangeComment(token);
+      if (range && range.kind === 'hue') {
+        const { s, l } = this._rgbToHsl(token.value);
+        // Greys (s≈0) have no defined hue → fall back to vivid sweep
+        this._hueBaseline = s < 0.02 ? { s: 1, l: 0.5 } : { s, l };
+      }
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Value knob (CC1): rewrite the selected number
+  // Value knob — rewrite the selected number and live-execute
   // ─────────────────────────────────────────────────────────────────────
 
-  _handleValueKnob(ccNum, norm) {
+  _handleValueKnob(norm) {
     if (!this.currentToken) return;
     const cm = this._editor();
     if (!cm) return;
 
-    // Pickup logic: ignore knob until physical position crosses the token's current value
-    // (mapped into the knob's 0..1 space using the token's inferred range).
-    const range = this._inferRange(this.currentToken);
-    const currentNorm = this._clamp((this.currentToken.value - range.min) / (range.max - range.min), 0, 1);
+    const range = this._resolveRange(this.currentToken);
 
-    let pickup = this.knobPickup.get(ccNum);
-    if (!pickup) {
-      pickup = { matched: false, lastValue: norm };
-      this.knobPickup.set(ccNum, pickup);
+    // Pickup mode (skipped for list-kind, where every position is a slot).
+    // The knob doesn't take effect until its 0..1 position crosses the
+    // current value's normalized position — avoids jumps when selecting
+    // a fresh token mid-knob-travel.
+    if (range.kind !== 'list') {
+      const currentNorm = this._clamp(
+        this._valueToNorm(this.currentToken.value, range),
+        0, 1
+      );
+      if (!this._pickup) this._pickup = { matched: false, lastValue: norm };
+
+      if (!this._pickup.matched) {
+        const crossed =
+          (this._pickup.lastValue <= currentNorm && norm >= currentNorm) ||
+          (this._pickup.lastValue >= currentNorm && norm <= currentNorm);
+        this._pickup.lastValue = norm;
+        if (!crossed) return;
+        this._pickup.matched = true;
+      }
+      this._pickup.lastValue = norm;
     }
 
-    if (!pickup.matched) {
-      // Did we cross the current value?
-      const crossed =
-        (pickup.lastValue <= currentNorm && norm >= currentNorm) ||
-        (pickup.lastValue >= currentNorm && norm <= currentNorm);
-      pickup.lastValue = norm;
-      if (!crossed) return;
-      pickup.matched = true;
-    }
-    pickup.lastValue = norm;
+    const formatted = this._normToFormatted(norm, range, this.currentToken.text);
+    if (formatted === this.currentToken.text) return;  // idempotent
 
-    // Map knob position into the token's range and format
-    const newValue = range.min + norm * (range.max - range.min);
-    const formatted = this._formatNumber(newValue, this.currentToken.text);
-
-    // Rewrite the token in the editor — and update currentToken to reflect new bounds
-    const from = this.currentToken.from;
-    const to = this.currentToken.to;
-
-    // Replace in editor (suppress history grouping per-tick so undo is one operation per token)
-    cm.replaceRange(formatted, from, to, '+midi');
-
-    // Recompute new token bounds (length may have changed)
+    const { from } = this.currentToken;
+    cm.replaceRange(formatted, from, this.currentToken.to, '+midi');
     const newTo = { line: from.line, ch: from.ch + formatted.length };
     cm.setSelection(from, newTo);
-    this.currentToken = { from, to: newTo, text: formatted, value: newValue };
+    this.currentToken = { from, to: newTo, text: formatted, value: Number(formatted) };
+
+    this._scheduleLiveExecute();
   }
 
   /**
-   * Infer a sensible knob range from the token's current text/value.
-   * Heuristics:
-   *   - 0..1 if current value is between 0 and 1 (opacity, normalized params)
-   *   - -1..1 if current value is between -1 and 1
-   *   - 0..N*2 where N = max(current value * 2, 10) otherwise — gives headroom both ways
-   *   - hex literals (0x...): treat as 0..0xffffff for colors
+   * Trailing-edge throttle: first turn fires immediately; subsequent turns
+   * within the window coalesce into one trailing call so the final value
+   * always lands without flooding the executor.
    */
+  _scheduleLiveExecute() {
+    if (!this.config.liveExecute || !this.onExecute) return;
+    const now = performance.now();
+    const elapsed = now - this._lastExecuteAt;
+    const window = Math.max(1, this.config.liveExecuteMs);
+
+    if (elapsed >= window) {
+      this._lastExecuteAt = now;
+      this._triggerExecute();
+      return;
+    }
+    if (this._pendingExecuteTimer) return;
+    this._pendingExecuteTimer = setTimeout(() => {
+      this._pendingExecuteTimer = null;
+      this._lastExecuteAt = performance.now();
+      this._triggerExecute();
+    }, window - elapsed);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Range descriptors:
+  //   { kind: 'decimal', min, max }         linear in value
+  //   { kind: 'hex',     min, max }         linear, formatted as 0xRRGGBB
+  //   { kind: 'hue' }                       0..360° at preserved S/L
+  //   { kind: 'list',    values: [...] }    discrete picks, equal-width bins
+  // ─────────────────────────────────────────────────────────────────────
+
+  _resolveRange(token) {
+    return this._parseRangeComment(token) || this._inferRange(token);
+  }
+
+  _parseRangeComment(token) {
+    const cm = this._editor();
+    if (!cm) return null;
+    const line = cm.getLine(token.to.line);
+    if (!line) return null;
+    const tail = line.slice(token.to.ch);
+
+    // //hue — sweep hue, hex tokens only
+    if (/^\s*\/\/\s*hue\b/i.test(tail)) {
+      return this._isHexText(token.text) ? { kind: 'hue' } : null;
+    }
+
+    // //hex — full 24-bit raw sweep, hex tokens only
+    if (/^\s*\/\/\s*hex\b/i.test(tail)) {
+      return this._isHexText(token.text)
+        ? { kind: 'hex', min: 0, max: 0xffffff }
+        : null;
+    }
+
+    // //0xMIN,0xMAX — explicit hex range
+    const hex = tail.match(/\/\/\s*0x([0-9a-f]+)\s*,\s*0x([0-9a-f]+)/i);
+    if (hex) {
+      const a = parseInt(hex[1], 16);
+      const b = parseInt(hex[2], 16);
+      return this._makeRange('hex', a, b);
+    }
+
+    // //[a, b, c] or //[a, b, c], N — discrete list, optionally with anchor expansion
+    const list = tail.match(/\/\/\s*\[([^\]]+)\]\s*(?:,\s*(\d+))?/);
+    if (list) {
+      const anchors = list[1].split(',')
+        .map(s => Number(s.trim()))
+        .filter(Number.isFinite);
+      if (anchors.length < 2) return null;
+      anchors.sort((a, b) => a - b);
+      const count = list[2] ? parseInt(list[2], 10) : null;
+      const values = count ? this._expandAnchorsToStops(anchors, count) : anchors;
+      return { kind: 'list', values };
+    }
+
+    // //min,max — decimal range
+    const dec = tail.match(/\/\/\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    if (dec) return this._makeRange('decimal', Number(dec[1]), Number(dec[2]));
+
+    return null;
+  }
+
+  /** Build a 2-endpoint range, ordered min..max, rejecting degenerate cases. */
+  _makeRange(kind, a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) return null;
+    return a < b ? { kind, min: a, max: b } : { kind, min: b, max: a };
+  }
+
   _inferRange(token) {
-    if (token.text.startsWith('0x') || token.text.startsWith('0X')) {
-      return { min: 0, max: 0xffffff };
-    }
-    const v = Math.abs(token.value);
-    if (token.value >= 0 && token.value <= 1) return { min: 0, max: 1 };
-    if (token.value >= -1 && token.value <= 1) return { min: -1, max: 1 };
-    // Otherwise give 2x headroom on both sides of current value
-    const span = Math.max(v * 2, 10);
-    if (token.value < 0) return { min: -span, max: span };
-    return { min: 0, max: span };
+    if (this._isHexText(token.text)) return { kind: 'hex', min: 0, max: 0xffffff };
+    const v = token.value;
+    if (v >=  0 && v <= 1) return { kind: 'decimal', min:  0, max: 1 };
+    if (v >= -1 && v <= 1) return { kind: 'decimal', min: -1, max: 1 };
+    const span = Math.max(Math.abs(v) * 2, 10);
+    return v < 0
+      ? { kind: 'decimal', min: -span, max: span }
+      : { kind: 'decimal', min: 0,     max: span };
   }
 
+  _isHexText(text) { return text.startsWith('0x') || text.startsWith('0X'); }
+
   /**
-   * Format a number to match the precision/style of the original text.
-   * "10" → "13" (integer)
-   * "0.5" → "0.73" (2 decimals)
-   * ".5" → ".73" (preserve leading-dot style)
-   * "0x00ffff" → "0x00aabb" (hex with same width)
+   * Expand sorted anchors into ~targetCount stops, keeping every anchor as
+   * a hard stop. Interior stops are spread across gaps proportionally to
+   * span using largest-remainder apportionment to avoid rounding drift.
    */
-  _formatNumber(value, originalText) {
-    if (originalText.startsWith('0x') || originalText.startsWith('0X')) {
-      const intVal = Math.round(this._clamp(value, 0, 0xffffff));
-      const hexWidth = originalText.length - 2;
-      return '0x' + intVal.toString(16).padStart(hexWidth, '0');
+  _expandAnchorsToStops(anchors, targetCount) {
+    if (targetCount <= anchors.length) return anchors.slice();
+
+    const remaining = targetCount - anchors.length;
+    const gapCount = anchors.length - 1;
+    const totalSpan = anchors[anchors.length - 1] - anchors[0];
+
+    const shares = [];
+    for (let i = 0; i < gapCount; i++) {
+      const span = anchors[i + 1] - anchors[i];
+      const share = totalSpan > 0
+        ? remaining * (span / totalSpan)
+        : remaining / gapCount;
+      shares.push({ floor: Math.floor(share), frac: share - Math.floor(share) });
     }
 
-    // Negative sign handling
-    const stripped = originalText.replace(/^-/, '');
+    // Largest-remainder: distribute leftover units to the biggest fractions
+    const allocated = shares.reduce((sum, s) => sum + s.floor, 0);
+    const leftover = remaining - allocated;
+    const byFrac = shares.slice().sort((a, b) => b.frac - a.frac);
+    for (let i = 0; i < leftover; i++) byFrac[i % byFrac.length].floor += 1;
 
+    const stops = [];
+    for (let i = 0; i < gapCount; i++) {
+      const lo = anchors[i], hi = anchors[i + 1];
+      stops.push(lo);
+      for (let k = 1; k <= shares[i].floor; k++) {
+        stops.push(lo + (hi - lo) * (k / (shares[i].floor + 1)));
+      }
+    }
+    stops.push(anchors[anchors.length - 1]);
+    return stops;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Value <-> normalized 0..1 knob position
+  // ─────────────────────────────────────────────────────────────────────
+
+  _valueToNorm(value, range) {
+    if (range.kind === 'hue') return this._rgbToHsl(value).h / 360;
+    if (range.kind === 'list') {
+      // Closest list index, normalized
+      let bestIdx = 0, bestDist = Math.abs(range.values[0] - value);
+      for (let i = 1; i < range.values.length; i++) {
+        const d = Math.abs(range.values[i] - value);
+        if (d < bestDist) { bestIdx = i; bestDist = d; }
+      }
+      return range.values.length <= 1 ? 0 : bestIdx / (range.values.length - 1);
+    }
+    return (value - range.min) / (range.max - range.min);
+  }
+
+  _normToFormatted(norm, range, originalText) {
+    if (range.kind === 'hue') {
+      const s = this._hueBaseline ? this._hueBaseline.s : 1;
+      const l = this._hueBaseline ? this._hueBaseline.l : 0.5;
+      return this._formatHex(this._hslToHex(norm * 360, s, l), originalText);
+    }
+    if (range.kind === 'hex') {
+      const raw = Math.round(range.min + norm * (range.max - range.min));
+      return this._formatHex(raw, originalText);
+    }
+    if (range.kind === 'list') {
+      const n = range.values.length;
+      const slot = Math.min(n - 1, Math.floor(this._clamp(norm, 0, 1) * n));
+      // Build a synthetic range so decimal formatting picks int vs float
+      // based on the value extremes, just like a real decimal range would.
+      const minV = Math.min(...range.values);
+      const maxV = Math.max(...range.values);
+      return this._formatDecimal(range.values[slot], originalText,
+                                 { min: minV, max: maxV });
+    }
+    return this._formatDecimal(range.min + norm * (range.max - range.min),
+                               originalText, range);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Output formatting
+  // ─────────────────────────────────────────────────────────────────────
+
+  _formatHex(intVal, originalText) {
+    const clamped = this._clamp(Math.round(intVal), 0, 0xffffff);
+    // Preserve original width but expand to full 6 for proper RGB
+    const width = Math.max(originalText.length - 2, 6);
+    return '0x' + clamped.toString(16).padStart(width, '0');
+  }
+
+  _formatDecimal(value, originalText, range) {
+    const stripped = originalText.replace(/^-/, '');
+    const rangeIsInteger = Number.isInteger(range.min) && Number.isInteger(range.max);
+
+    if (!stripped.includes('.') && rangeIsInteger) {
+      return Math.round(value).toString();
+    }
     if (stripped.includes('.')) {
-      const decimalPart = stripped.split('.')[1] || '';
-      const decimals = Math.max(1, Math.min(decimalPart.length, 4));
-      // Preserve leading-dot style (.5 not 0.5)
+      const decimals = Math.max(1, Math.min((stripped.split('.')[1] || '').length, 4));
       let out = value.toFixed(decimals);
-      if (stripped.startsWith('.') && out.startsWith('0.')) {
-        out = out.slice(1);  // "0.73" → ".73"
-      } else if (stripped.startsWith('.') && out.startsWith('-0.')) {
-        out = '-' + out.slice(2);
+      // Preserve ".5" rather than "0.5" if the original had no leading zero
+      if (stripped.startsWith('.')) {
+        if (out.startsWith('0.'))       out = out.slice(1);
+        else if (out.startsWith('-0.')) out = '-' + out.slice(2);
       }
       return out;
     }
-    // Integer original — round to integer
     return Math.round(value).toString();
   }
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Color math
+  // ─────────────────────────────────────────────────────────────────────
+
+  /** 24-bit RGB int → { h: 0..360, s: 0..1, l: 0..1 } */
+  _rgbToHsl(rgbInt) {
+    const r = ((rgbInt >> 16) & 0xff) / 255;
+    const g = ((rgbInt >> 8)  & 0xff) / 255;
+    const b = ( rgbInt        & 0xff) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const d = max - min;
+    const l = (max + min) / 2;
+    if (d === 0) return { h: 0, s: 0, l };
+
+    const s = d / (1 - Math.abs(2 * l - 1));
+    let h;
+    if      (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else                h = (r - g) / d + 4;
+    h *= 60;
+    return { h: h < 0 ? h + 360 : h, s, l };
+  }
+
+  /** HSL (h:0..360, s:0..1, l:0..1) → 24-bit RGB int */
+  _hslToHex(h, s, l) {
+    h = ((h % 360) + 360) % 360;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = l - c / 2;
+    let r1, g1, b1;
+    if      (h < 60)  [r1, g1, b1] = [c, x, 0];
+    else if (h < 120) [r1, g1, b1] = [x, c, 0];
+    else if (h < 180) [r1, g1, b1] = [0, c, x];
+    else if (h < 240) [r1, g1, b1] = [0, x, c];
+    else if (h < 300) [r1, g1, b1] = [x, 0, c];
+    else              [r1, g1, b1] = [c, 0, x];
+    return (Math.round((r1 + m) * 255) << 16) |
+           (Math.round((g1 + m) * 255) <<  8) |
+            Math.round((b1 + m) * 255);
+  }
+
   _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  _triggerExecute() { if (this.onExecute) this.onExecute(); }
 
-  // ─────────────────────────────────────────────────────────────────────
-  // Pad → execute
-  // ─────────────────────────────────────────────────────────────────────
-
-  _triggerExecute() {
-    if (this.onExecute) this.onExecute();
+  stop() {
+    if (this._pendingExecuteTimer) {
+      clearTimeout(this._pendingExecuteTimer);
+      this._pendingExecuteTimer = null;
+    }
   }
 }
