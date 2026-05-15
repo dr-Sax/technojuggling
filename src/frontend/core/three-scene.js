@@ -205,6 +205,11 @@ export class ThreeSceneManager {
       this.visualFXRef.updateTextures();
     }
     
+    // Animated GIF texture refresh on tracked balls
+    if (this.sceneManagerRef?.ballManager?.media?.tickTextures) {
+      this.sceneManagerRef.ballManager.media.tickTextures();
+    }
+    
     this.renderer.render(this.threeScene, this.camera);
   }
   

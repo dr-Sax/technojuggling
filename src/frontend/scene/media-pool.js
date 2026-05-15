@@ -29,7 +29,10 @@ export class MediaPool {
         if (typeof url !== 'string') return false;
         return /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.test(url);
     }
-
+    isGif(url) {
+        if (typeof url !== 'string') return false;
+        return /\.gif(\?|#|$)/i.test(url);
+    }
     /**
      * Detect media type from URL
      */
@@ -125,6 +128,7 @@ export class MediaPool {
             }
             
             // Images can be safely shared (stateless)
+            console.log(`[GIF-DEBUG] assignClipToObject returning master: type=${master.type} animated=${master.animated}`);
             return master;
         } catch (error) {
             console.error(`[MediaPool] Failed to assign ${clipId} to ${objectId}:`, error);
@@ -254,10 +258,12 @@ export class MediaPool {
             img.crossOrigin = 'anonymous';
 
             img.addEventListener('load', () => {
+                console.log(`[GIF-DEBUG] createImageElement: url=${url} isGif=${this.isGif(url)}`);
                 resolve({
                     element: img,
                     type: 'image',
-                    src: url
+                    src: url,
+                    animated: this.isGif(url)
                 });
             });
 
