@@ -1,9 +1,41 @@
 /**
- * Connections - Lines and circles between balls (unified)
+ * Connections - Lines and circles between balls
  *
- * GlobalEffect supporting 3 modes: mesh, sequential, circles.
- * Configured via `ballConnections` block in user code.
- * Registers itself with effectRegistry on import.
+ * A GlobalEffect that draws geometry *between* tracked balls rather than on
+ * them. Every frame it receives all ball positions and connects them by pairs.
+ *
+ * Three modes:
+ *   - mesh        every ball connected to every other ball with a tube
+ *   - sequential  balls connected in a ring (sorted order, last → first)
+ *   - circles     a circle spanning each ball pair (its diameter)
+ *
+ * Circles can be hollow rings or filled discs. Filled discs may be tinted per
+ * pair (perCircleColors + circleContents) or mapped with a ball's video
+ * texture when circleContents holds a stream name and routing is wired up.
+ *
+ * Geometry uses a recreate-on-move pattern: a connection is only rebuilt when
+ * its endpoints actually shift, so a still scene does no per-frame work.
+ *
+ * Live-code config example:
+ *
+ *   ballConnections: {
+ *     enabled: true,            // on/off for this scene group
+ *     mode: "circles",          // "none" | "mesh" | "sequential" | "circles"
+ *     color: 0x00ffff,          // line color / circle color when not per-circle
+ *     opacity: 0.9,             // 0..1 material opacity
+ *     lineWidth: 0.08,          // tube radius (mesh/sequential) or ring thickness
+ *     zIndex: 0.05,             // base draw depth; circles fan out behind this
+ *     segments: 32,             // circle smoothness (low = polygonal)
+ *     filled: true,             // circles only: filled disc vs hollow ring
+ *     perCircleColors: true,    // circles only: color each pair from circleContents
+ *     circleContents: [0xff0000, 0x00ff00, 0x0000ff]
+ *                               // per-pair colors, or stream names for video fill
+ *   }
+ *
+ * Notes:
+ *   - An absent `ballConnections` block (or mode "none") turns the effect off.
+ *   - circleContents indexes by pair, wrapping if there are more pairs than
+ *     entries.
  */
 
 import {
@@ -17,119 +49,119 @@ import { effectRegistry } from '../effect-registry.js';
 
 export class Connections extends GlobalEffect {
   static defaults = {
-    mode: 'none',         // 'none', 'mesh', 'sequential', 'circles'
+    mode: 'none',
     color: 0xffffff,
     opacity: 1.0,
     lineWidth: 0.1,
     zIndex: 0.05,
-    segments: 32,         // For circle mode
-    filled: false,        // For circle mode: filled disc vs ring
+    segments: 32,
+    filled: false,
     perCircleColors: false,
     circleContents: [0xff0000, 0x00ff00, 0x0000ff]
   };
+  // Changing any of these needs geometry rebuilt, not just recolored.
   static recreateKeys = ['lineWidth', 'segments', 'filled'];
 
-  constructor(sceneManager, audioProcessor, visualFX) {
+  constructor(sceneManager) {
     super(sceneManager);
     this._ballMedia = null;
     this._routing = {};
     this._onVisibilityChange = null;
+    this._intendedMode = null;
   }
 
-  /** Called by BallTrackingManager to wire up the media dependency */
+  /** Wire up the media dependency (used for video-textured circles). */
   setBallMedia(ballMedia) { this._ballMedia = ballMedia; }
 
-  /** Callback for when circle fill mode needs to toggle ball media visibility */
+  /** Callback fired when filled-circle mode needs ball media hidden/shown. */
   onVisibilityChange(fn) { this._onVisibilityChange = fn; }
 
-  /** Set routing for texture-mapped circles */
+  /** Routing map (ballId → stream name) for texture-mapped circles. */
   setRouting(routing) { this._routing = routing; }
 
-  // --- Mode control ---
+  // --- Mode / enable control ----------------------------------------------
 
   setMode(mode) {
-    // Remember the last real mode so a disable→enable cycle (which happens
-    // on every hot-reload) can restore it instead of staying 'none'.
+    // Remember the last real mode so a disable→enable cycle (which happens on
+    // every hot-reload) can restore it instead of staying stranded at 'none'.
     if (mode && mode !== 'none') this._intendedMode = mode;
     if (mode === this.config.mode) return;
     this.clear();
     this.config.mode = mode;
-    // When switching to filled circles, hide ball media
-    if (this._onVisibilityChange) {
-      this._onVisibilityChange(!(mode === 'circles' && this.config.filled));
-    }
+    this._syncMediaVisibility();
   }
 
   setEnabled(enabled) {
     if (!enabled) {
-      this.config.mode = 'none';
-      // Forget the intended mode too — otherwise updateConnections' self-heal
+      // Full off: forget the intended mode too, or updateConnections' self-heal
       // would resurrect the effect in a group that turned it off.
+      this.config.mode = 'none';
       this._intendedMode = null;
       this.clear();
       if (this._onVisibilityChange) this._onVisibilityChange(true);
     } else if (this.config.mode === 'none' && this._intendedMode) {
-      // Re-enabled after a disable: restore the mode that was last requested,
-      // otherwise the effect stays silently 'none' after a reload.
+      // Re-enabled after a disable: restore the last requested mode.
       this.setMode(this._intendedMode);
     }
   }
 
-  // --- Main update: receives all ball positions each frame ---
-  // positions[] holds world coordinates straight from the ball mesh
-  // (same source as trails), so no coordinate transform is applied here.
+  /** Ball media is hidden only under filled-circle mode (the disc covers it). */
+  _syncMediaVisibility() {
+    if (!this._onVisibilityChange) return;
+    this._onVisibilityChange(!(this.config.mode === 'circles' && this.config.filled));
+  }
+
+  // --- Per-frame update ----------------------------------------------------
+  // positions = { ballId: { x, y }, ... } in world coordinates.
 
   updateConnections(positions) {
-    let mode = this.config.mode;
-
-    // Self-heal: if the mode was stranded at 'none' but a real mode was last
-    // requested (e.g. across a hot-reload), restore it rather than going dark.
-    if (mode === 'none' && this._intendedMode && this._intendedMode !== 'none') {
+    // Self-heal a mode stranded at 'none' across a hot-reload.
+    if (this.config.mode === 'none' && this._intendedMode && this._intendedMode !== 'none') {
       this.setMode(this._intendedMode);
-      mode = this.config.mode;
     }
-    if (mode === 'none') return;
+    if (this.config.mode === 'none') return;
 
     const ids = Object.keys(positions);
-    // Fewer than 2 balls this frame (e.g. a reload gap): leave existing
-    // geometry in place and wait — don't tear everything down. Trails behaves
-    // the same way: a missing ball simply isn't updated.
+    // Need at least one pair. During a reload gap fewer balls may report in;
+    // leave existing geometry alone and wait rather than tearing it down.
     if (ids.length < 2) return;
 
-    if (mode === 'mesh') {
-      this._updateLines(positions, ids, 'mesh');
-    } else if (mode === 'sequential') {
-      this._updateLines(positions, ids, 'sequential');
-    } else if (mode === 'circles') {
-      this._updateCircles(positions, ids);
-    }
-  }
-
-  // --- Line modes (mesh / sequential) ---
-
-  _updateLines(positions, ids, style) {
-    const pairs = style === 'sequential' ? this._sequentialPairs(ids) : this._meshPairs(ids);
+    const pairs = this._pairsFor(ids);
     const validIds = new Set();
 
-    for (const [idA, idB] of pairs) {
-      const connId = `line-${idA}-${idB}`;
+    pairs.forEach(([idA, idB], index) => {
+      const isCircle = this.config.mode === 'circles';
+      const connId = `${isCircle ? 'circle' : 'line'}-${idA}-${idB}`;
       const p1 = positions[idA];
       const p2 = positions[idB];
 
-      if (this.has(connId)) {
-        const obj = this.get(connId);
-        const moved = Math.abs(p1.x - obj._p1.x) > 0.01 || Math.abs(p1.y - obj._p1.y) > 0.01 ||
-                      Math.abs(p2.x - obj._p2.x) > 0.01 || Math.abs(p2.y - obj._p2.y) > 0.01;
-        if (moved) this.add(connId, { p1, p2, type: 'line' });
-      } else {
-        this.add(connId, { p1, p2, type: 'line' });
+      // Recreate only when an endpoint actually moved (or doesn't exist yet).
+      if (!this.has(connId) || this._moved(this.get(connId), p1, p2)) {
+        this.add(connId, {
+          p1, p2,
+          type: isCircle ? 'circle' : 'line',
+          content: this._contentFor(index),
+          index
+        });
       }
       validIds.add(connId);
+    });
+
+    if (this.config.mode === 'circles') this._layerCircles();
+
+    // Drop connections for pairs that no longer exist.
+    for (const id of this.objects.keys()) {
+      if (!validIds.has(id)) this.remove(id);
     }
-    for (const id of this.objects.keys()) { if (!validIds.has(id)) this.remove(id); }
   }
 
-  _meshPairs(ids) {
+  /** Pair list for the active mode. */
+  _pairsFor(ids) {
+    if (this.config.mode === 'sequential') {
+      const sorted = [...ids].sort();
+      return sorted.map((id, i) => [id, sorted[(i + 1) % sorted.length]]);
+    }
+    // mesh and circles both connect every unique pair.
     const pairs = [];
     for (let i = 0; i < ids.length; i++)
       for (let j = i + 1; j < ids.length; j++)
@@ -137,54 +169,35 @@ export class Connections extends GlobalEffect {
     return pairs;
   }
 
-  _sequentialPairs(ids) {
-    const sorted = [...ids].sort();
-    return sorted.map((id, i) => [id, sorted[(i + 1) % sorted.length]]);
-  }
-
-  // --- Circle mode ---
-
-  _updateCircles(positions, ids) {
-    const validIds = new Set();
-    let index = 0;
-
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        const connId = `circle-${ids[i]}-${ids[j]}`;
-        const p1 = positions[ids[i]];
-        const p2 = positions[ids[j]];
-        const content = this.config.perCircleColors
-          ? this.config.circleContents[index % this.config.circleContents.length]
-          : this.config.color;
-
-        if (this.has(connId)) {
-          const obj = this.get(connId);
-          const moved = Math.abs(p1.x - obj._p1.x) > 0.01 || Math.abs(p1.y - obj._p1.y) > 0.01 ||
-                        Math.abs(p2.x - obj._p2.x) > 0.01 || Math.abs(p2.y - obj._p2.y) > 0.01;
-          if (moved) this.add(connId, { p1, p2, type: 'circle', content, index });
-        } else {
-          this.add(connId, { p1, p2, type: 'circle', content, index });
-        }
-        validIds.add(connId);
-        index++;
-      }
+  /** Color/texture key for the pair at this index. */
+  _contentFor(index) {
+    if (this.config.mode === 'circles' && this.config.perCircleColors) {
+      const list = this.config.circleContents;
+      return list[index % list.length];
     }
-
-    // Layer by radius (biggest behind smallest)
-    const sorted = Array.from(this.objects.entries())
-      .filter(([id]) => id.startsWith('circle-'))
-      .sort(([, a], [, b]) => (b._radius || 0) - (a._radius || 0));
-    sorted.forEach(([, obj], i) => { obj.mesh.position.z = this.config.zIndex - i * 0.01; });
-
-    for (const id of this.objects.keys()) { if (!validIds.has(id)) this.remove(id); }
+    return this.config.color;
   }
 
-  // --- Geometry creation ---
+  /** True if either endpoint has shifted enough to warrant a rebuild. */
+  _moved(obj, p1, p2) {
+    return Math.abs(p1.x - obj._p1.x) > 0.01 || Math.abs(p1.y - obj._p1.y) > 0.01 ||
+           Math.abs(p2.x - obj._p2.x) > 0.01 || Math.abs(p2.y - obj._p2.y) > 0.01;
+  }
+
+  /** Stack circles biggest-behind-smallest so small ones stay visible. */
+  _layerCircles() {
+    Array.from(this.objects.values())
+      .filter(o => o._radius !== undefined)
+      .sort((a, b) => (b._radius || 0) - (a._radius || 0))
+      .forEach((obj, i) => { obj.mesh.position.z = this.config.zIndex - i * 0.01; });
+  }
+
+  // --- Geometry creation ---------------------------------------------------
 
   createGeometry(id, { p1, p2, type, content, index }) {
-    if (type === 'line') return this._createLine(p1, p2);
-    if (type === 'circle') return this._createCircle(p1, p2, content, index);
-    return null;
+    return type === 'circle'
+      ? this._createCircle(p1, p2, content, index)
+      : this._createLine(p1, p2);
   }
 
   _createLine(p1, p2) {
@@ -199,76 +212,102 @@ export class Connections extends GlobalEffect {
       .build();
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.z = this.config.zIndex;
-    return { mesh, geometry, material, _p1: { ...p1 }, _p2: { ...p2 } };
+    // `content` is stored so _updateMaterials can recolor without resolveColor.
+    return { mesh, geometry, material, content: this.config.color, _p1: { ...p1 }, _p2: { ...p2 } };
   }
 
   _createCircle(p1, p2, content, index) {
-    const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
-    const radius = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2) / 2;
+    const cx = (p1.x + p2.x) / 2;
+    const cy = (p1.y + p2.y) / 2;
+    const radius = Math.hypot(p2.x - p1.x, p2.y - p1.y) / 2;
 
-    if (this.config.filled) {
-      return this._createFilledCircle(cx, cy, radius, content, p1, p2, index);
-    }
-    return this._createRingCircle(cx, cy, radius, content, p1, p2, index);
-  }
+    const filled = this.config.filled;
+    const geometry = filled
+      ? GeometryPrimitives.circle(radius, this.config.segments, this.config.lineWidth)
+      : GeometryPrimitives.ring(Math.max(0.01, radius - this.config.lineWidth), radius, this.config.segments);
 
-  _createFilledCircle(cx, cy, radius, content, p1, p2, index) {
-    const material = this._circleContentMaterial(content);
-    const geoms = GeometryPrimitives.circle(radius, this.config.segments, this.config.lineWidth);
-    const mesh = new THREE.Mesh(geoms.fill, material);
+    // Filled discs may carry a video texture; rings are always a flat color.
+    const fillGeom = filled ? geometry.fill : geometry;
+    const material = filled
+      ? this._circleMaterial(content)
+      : new MaterialBuilder()
+          .color(typeof content === 'number' ? content : this.config.color)
+          .opacity(this.config.opacity).doubleSided().additive().build();
+
+    const mesh = new THREE.Mesh(fillGeom, material);
     mesh.position.set(cx, cy, 0);
 
-    let perimeterMesh = null;
-    if (geoms.perimeter) {
+    const obj = {
+      mesh, geometry: fillGeom, material,
+      content, index, _radius: radius, _p1: { ...p1 }, _p2: { ...p2 }
+    };
+
+    // Optional white perimeter ring around a filled disc.
+    if (filled && geometry.perimeter) {
       const pMat = new MaterialBuilder().color(0xffffff).doubleSided().build();
-      perimeterMesh = new THREE.Mesh(geoms.perimeter, pMat);
+      const perimeterMesh = new THREE.Mesh(geometry.perimeter, pMat);
       perimeterMesh.position.set(cx, cy, 0.001);
       this.scene.add(perimeterMesh);
+      obj.perimeterMesh = perimeterMesh;
+      obj.perimeterGeometry = geometry.perimeter;
+      obj.perimeterMaterial = pMat;
     }
 
-    return {
-      mesh, geometry: geoms.fill, material,
-      perimeterMesh, perimeterGeometry: geoms.perimeter, perimeterMaterial: perimeterMesh?.material,
-      _p1: { ...p1 }, _p2: { ...p2 }, _radius: radius, content, index
-    };
+    return obj;
   }
 
-  _createRingCircle(cx, cy, radius, content, p1, p2, index) {
-    const innerRad = Math.max(0.01, radius - this.config.lineWidth);
-    const geometry = GeometryPrimitives.ring(innerRad, radius, this.config.segments);
-    const color = typeof content === 'number' ? content : this.config.color;
-    const material = new MaterialBuilder().color(color).opacity(this.config.opacity).doubleSided().additive().build();
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(cx, cy, 0);
-    return { mesh, geometry, material, _p1: { ...p1 }, _p2: { ...p2 }, _radius: radius, content, index };
-  }
-
-  _circleContentMaterial(content) {
-    // Try to use video texture from ball media routing
+  /** Material for a filled circle: video texture if routed, else flat color. */
+  _circleMaterial(content) {
     if (typeof content === 'string' && this._ballMedia) {
       for (const [ballId, stream] of Object.entries(this._routing)) {
-        if (stream === content) {
-          const el = this._ballMedia.getElement(ballId.replace('ball_', ''));
-          if (el) {
-            try {
-              const texture = new THREE.Texture(el);
-              texture.minFilter = THREE.LinearFilter;
-              texture.magFilter = THREE.LinearFilter;
-              texture.needsUpdate = true;
-              return new THREE.MeshBasicMaterial({
-                map: texture, transparent: true, opacity: this.config.opacity,
-                side: THREE.DoubleSide, blending: THREE.AdditiveBlending
-              });
-            } catch (e) { /* fall through to color */ }
-          }
-        }
+        if (stream !== content) continue;
+        const el = this._ballMedia.getElement(ballId.replace('ball_', ''));
+        if (!el) continue;
+        try {
+          const texture = new THREE.Texture(el);
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.needsUpdate = true;
+          return new THREE.MeshBasicMaterial({
+            map: texture, transparent: true, opacity: this.config.opacity,
+            side: THREE.DoubleSide, blending: THREE.AdditiveBlending
+          });
+        } catch (e) { /* fall through to flat color */ }
       }
     }
     const color = typeof content === 'number' ? content : this.config.color;
     return new MaterialBuilder().color(color).opacity(this.config.opacity).doubleSided().additive().build();
   }
 
-  updateGeometry() {} // Handled by recreate-on-move pattern
+  updateGeometry() {} // Unused — geometry is recreated on move, never mutated.
+
+  /**
+   * Recolor/re-opacity existing objects for a params-only config change.
+   *
+   * Overrides EffectBase._updateMaterials(), which resolves color via
+   * resolveColor(config, obj.ballId, ...). Connection objects have no
+   * `ballId`, so the base version would collapse every line and circle to the
+   * default `config.color` and wipe out perCircleColors. Here each object is
+   * recolored from its own stored `content` instead. Texture-mapped circles
+   * keep their texture; transparency is never forced off (additive and
+   * textured materials require it).
+   */
+  _updateMaterials() {
+    for (const obj of this.getAll()) {
+      const mat = obj.material;
+      if (!mat) continue;
+
+      if (mat.color && !mat.map) {
+        mat.color.setHex(typeof obj.content === 'number' ? obj.content : this.config.color);
+      }
+      if (this.config.opacity !== undefined) {
+        mat.opacity = this.config.opacity;
+        if (this.config.opacity < 1.0 || mat.map || mat.blending === THREE.AdditiveBlending) {
+          mat.transparent = true;
+        }
+      }
+    }
+  }
 
   remove(id) {
     const obj = this.objects.get(id);
@@ -285,10 +324,11 @@ export class Connections extends GlobalEffect {
     this.objects.delete(id);
   }
 
+  // --- Config plumbing -----------------------------------------------------
+
   setConfig(config) {
-    // applyConfig() funnels the whole ballConnections block through here.
-    // Route a `mode` key through setMode() so the intended-mode tracking
-    // and visibility side-effects fire; let the base class handle the rest.
+    // A `mode` key must route through setMode() for intended-mode tracking and
+    // the visibility side-effect; the base class handles every other key.
     if (config && config.mode !== undefined) {
       const { mode, ...rest } = config;
       this.setMode(mode);
@@ -299,10 +339,12 @@ export class Connections extends GlobalEffect {
   }
 
   _onConfigChange(changed, prev) {
-    // Handle filled toggle visibility side-effect
     if (changed.filled !== undefined && this._onVisibilityChange) {
       this._onVisibilityChange(!changed.filled);
     }
+    // updateBallConnections() re-feeds the whole config every frame; skip all
+    // work when nothing actually changed so a steady scene stays untouched.
+    if (!Object.keys(changed).some(k => changed[k] !== prev[k])) return;
     super._onConfigChange(changed, prev);
   }
 }

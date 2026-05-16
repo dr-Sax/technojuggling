@@ -93,25 +93,43 @@ export class BallTrackingManager {
           x: pos.y, y: 1 - pos.x,
           vx: ball.vx || 0, vy: ball.vy || 0
         };
-
-        // When the ball's mesh exists, refresh the cached world position
-        // and drive per-ball effects (trails) from it. The cache lets global
-        // effects (connections) keep a stable position through reloads and
-        // media-visibility toggles that briefly drop the mesh.
-        const mediaObj = this.media.media[ball.id];
-        if (mediaObj && mediaObj.mesh) {
-          const worldPos = {
-            x: mediaObj.mesh.position.x,
-            y: mediaObj.mesh.position.y
-          };
-          this._lastWorldPos[ball.id] = worldPos;
-          effectRegistry.updateBall(ball.id, worldPos, this.enabledEffects);
-        }
       }
 
-      // Feed connections from the cache: the last known mesh position,
-      // or the live one if it was just refreshed above.
-      if (this._lastWorldPos[ball.id]) {
+      // World position for effects.
+      //
+      // Preferred source: the media object's mesh. When a ball carries media,
+      // its mesh position is the authoritative world coordinate, and per-ball
+      // effects (trails) are driven from it.
+      //
+      // Fallback source: the raw tracker coords mapped to world space. A scene
+      // group with no `streams` attaches no media, so `this.media.media[id]`
+      // is undefined and there is no mesh. Without this fallback the positions
+      // map ends up with fewer than 2 entries and updateConnections() bails at
+      // its `ids.length < 2` guard — which is exactly why ballConnections
+      // stopped rendering when the `streams` line was removed between reloads.
+      //
+      // Per-ball effects stay gated on the media mesh (unchanged behavior);
+      // only the global `positions` map gets the fallback.
+      const mediaObj = this.media.media[ball.id];
+      let worldPos = null;
+
+      if (mediaObj && mediaObj.mesh) {
+        worldPos = {
+          x: mediaObj.mesh.position.x,
+          y: mediaObj.mesh.position.y
+        };
+        effectRegistry.updateBall(ball.id, worldPos, this.enabledEffects);
+      } else {
+        // No media for this ball — map the raw tracker coords directly.
+        worldPos = this.sceneManager.mapCameraToWorld(ball.x, ball.y);
+      }
+
+      if (worldPos) {
+        this._lastWorldPos[ball.id] = worldPos;
+        positions[ball.id] = worldPos;
+      } else if (this._lastWorldPos[ball.id]) {
+        // Couldn't resolve a position this frame — reuse the cached one so
+        // connections don't flicker through a transient gap.
         positions[ball.id] = this._lastWorldPos[ball.id];
       }
     });
