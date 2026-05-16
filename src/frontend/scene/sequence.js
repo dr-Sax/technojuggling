@@ -1,14 +1,17 @@
 /**
  * Sequence - Configuration, parsing, and playback for video sequences
  *
- * Merged from sequence-core.js + sequence-player.js.
- *
  * Exports:
- *   SequenceConfig  — holds clips/presets/streams/routing, validates references
+ *   SequenceConfig  — holds clips/streams/routing, validates references
  *   SequenceParser  — turns a stream pattern string into a timeline
  *   SequencePlayer  — drives the central clock and emits 'clipChange' events
  *
- * StreamPlayer stays module-internal (only used by SequencePlayer).
+ * StreamPlayer is module-internal (only used by SequencePlayer).
+ *
+ * A stream pattern looks like:  "A{scale: 20, opacity: .5}"
+ *   - clip letter, optional *N repeat, optional {…} effects string
+ * Effects strings are plain `key: value` pairs; values may be numbers,
+ * enums, or live expressions (evaluated later by the parameter system).
  */
 
 
@@ -19,33 +22,28 @@
 export class SequenceConfig {
   constructor() {
     this.clips = {};
-    this.presets = {};
     this.streams = {};
     this.routing = {};
   }
 
   loadFromObject(config) {
     this.clips = config.clips || {};
-    this.presets = config.presets || {};
     this.streams = config.streams || {};
     this.routing = config.routing || {};
-    
+
     this.validate();
   }
 
   validate() {
     for (const [name, clip] of Object.entries(this.clips)) {
-      if (!clip.url) {
-        console.warn(`Clip ${name} missing url`);
-      }
+      if (!clip.url) console.warn(`Clip ${name} missing url`);
       if (clip.start === undefined || clip.end === undefined) {
         console.warn(`Clip ${name} missing start/end times`);
       }
     }
 
     for (const [streamName, pattern] of Object.entries(this.streams)) {
-      const clipRefs = this.extractClipReferences(pattern);
-      for (const clipRef of clipRefs) {
+      for (const clipRef of this.extractClipReferences(pattern)) {
         if (!this.clips[clipRef]) {
           console.warn(`Stream ${streamName} references unknown clip: ${clipRef}`);
         }
@@ -62,25 +60,18 @@ export class SequenceConfig {
 
   extractClipReferences(pattern) {
     const matches = pattern.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
-    return [...new Set(matches.filter(m => this.clips[m]))];
+    return [...new Set(matches.filter((m) => this.clips[m]))];
   }
 
   getRoutingConfig(objectId) {
     const config = this.routing[objectId];
     if (!config) return null;
-
-    if (typeof config === 'string') {
-      return { stream: config, offset: 0 };
-    }
+    if (typeof config === 'string') return { stream: config, offset: 0 };
     return { stream: config.stream, offset: config.offset || 0 };
   }
 
   getClip(clipName) {
     return this.clips[clipName];
-  }
-
-  getPreset(presetName) {
-    return this.presets[presetName];
   }
 
   getStream(streamName) {
@@ -122,16 +113,13 @@ export class SequenceParser {
           duration: clipDuration,
           startTime: currentTime,
           endTime: currentTime + clipDuration,
-          effectsString: token.effectsString
+          effectsString: token.effectsString,
         });
         currentTime += clipDuration;
       }
     }
 
-    return {
-      timeline,
-      totalDuration: currentTime
-    };
+    return { timeline, totalDuration: currentTime };
   }
 
   tokenize(patternString) {
@@ -143,10 +131,10 @@ export class SequenceParser {
       tokens.push({
         clipName: match[1],
         repeat: match[2] ? parseInt(match[2]) : 1,
-        effectsString: match[3] || ''
+        effectsString: match[3] || '',
       });
     }
-    
+
     if (tokens.length === 0) {
       console.warn('No clips found in pattern:', patternString);
     }
@@ -165,45 +153,32 @@ class StreamPlayer {
     this.streamName = streamName;
     this.offset = offset;
     this.config = config;
-    
-    const parser = new SequenceParser(config);
-    const parsed = parser.parsePattern(pattern);
+
+    const parsed = new SequenceParser(config).parsePattern(pattern);
     this.timeline = parsed.timeline;
     this.totalDuration = parsed.totalDuration;
   }
-  
-  // Resolve effects string to actual values using current presets
+
+  /** Parse an effects string ("scale: 20, opacity: .5") into a params object. */
   resolveEffects(effectsString) {
     if (!effectsString) return {};
-    
+
     const effects = {};
-    // Split on commas that are NOT inside parentheses
-    const parts = this._splitEffectsParts(effectsString);
-    
-    for (const part of parts) {
+    for (const part of this._splitEffectsParts(effectsString)) {
       const colonIdx = part.indexOf(':');
-      if (colonIdx !== -1) {
-        // Direct param:value format — split only on first colon
-        const key = part.slice(0, colonIdx).trim();
-        const value = part.slice(colonIdx + 1).trim();
-        // Try to parse as number; keep as string if not (could be expression or enum)
-        const num = parseFloat(value);
-        effects[key] = !isNaN(num) && String(num) === value ? num : value;
-      } else {
-        // Preset reference — resolve from current config
-        const preset = this.config.getPreset(part.trim());
-        if (preset) {
-          Object.assign(effects, preset);
-        } else if (part.trim()) {
-          console.warn(`Unknown preset: ${part.trim()}`);
-        }
-      }
+      if (colonIdx === -1) continue;
+
+      const key = part.slice(0, colonIdx).trim();
+      const value = part.slice(colonIdx + 1).trim();
+      // Numeric if it round-trips cleanly; otherwise keep as string
+      // (could be an enum like `circle` or a live expression).
+      const num = parseFloat(value);
+      effects[key] = !isNaN(num) && String(num) === value ? num : value;
     }
-    
     return effects;
   }
 
-  // Split on commas that are outside parentheses
+  /** Split on commas that are outside parentheses (so func(a,b) survives). */
   _splitEffectsParts(str) {
     const parts = [];
     let depth = 0;
@@ -224,27 +199,18 @@ class StreamPlayer {
 
   getClipAtTime(globalTime) {
     if (this.timeline.length === 0) return null;
-    
-    // Apply offset
+
     const localTime = globalTime - this.offset;
     if (localTime < 0) return null;
-    
-    // Loop the pattern
+
     const loopedTime = localTime % this.totalDuration;
-    
-    // Find current clip
+
     for (let i = 0; i < this.timeline.length; i++) {
       const clip = this.timeline[i];
       if (loopedTime >= clip.startTime && loopedTime < clip.endTime) {
-        // Resolve effects at runtime using current preset values
-        return { 
-          ...clip, 
-          index: i,
-          effects: this.resolveEffects(clip.effectsString)
-        };
+        return { ...clip, index: i, effects: this.resolveEffects(clip.effectsString) };
       }
     }
-    
     return null;
   }
 
@@ -252,12 +218,7 @@ class StreamPlayer {
     if (this.timeline.length === 0) return null;
     const nextIndex = (currentClipIndex + 1) % this.timeline.length;
     const clip = this.timeline[nextIndex];
-    // Resolve effects at runtime
-    return { 
-      ...clip, 
-      index: nextIndex,
-      effects: this.resolveEffects(clip.effectsString)
-    };
+    return { ...clip, index: nextIndex, effects: this.resolveEffects(clip.effectsString) };
   }
 }
 
@@ -273,54 +234,49 @@ export class SequencePlayer {
     this.objectAssignments = new Map(); // objectId -> {streamPlayer, offset, currentClipIndex}
     this.startTime = performance.now() / 1000;
     this.listeners = new Map();
-    
+
     this.initialize();
   }
 
   initialize() {
-    // Create stream players (one per stream, shared by multiple objects)
+    // One StreamPlayer per stream, shared by any objects routed to it.
     for (const [streamName, pattern] of Object.entries(this.config.streams)) {
-      this.streamPlayers.set(streamName, 
-        new StreamPlayer(streamName, pattern, this.config, 0)
-      );
+      this.streamPlayers.set(streamName, new StreamPlayer(streamName, pattern, this.config));
     }
 
-    // Set up object routing (each object tracks its own currentClipIndex)
+    // Each object tracks its own currentClipIndex.
     for (const objectId of Object.keys(this.config.routing)) {
       const routeConfig = this.config.getRoutingConfig(objectId);
-      if (routeConfig) {
-        const streamPlayer = this.streamPlayers.get(routeConfig.stream);
-        if (streamPlayer) {
-          // Store object-specific assignment with its own state
-          this.objectAssignments.set(objectId, {
-            streamPlayer: streamPlayer,
-            offset: routeConfig.offset,
-            currentClipIndex: -1  // Track per-object, not per-stream!
-          });
-        }
+      if (!routeConfig) continue;
+
+      const streamPlayer = this.streamPlayers.get(routeConfig.stream);
+      if (streamPlayer) {
+        this.objectAssignments.set(objectId, {
+          streamPlayer,
+          offset: routeConfig.offset,
+          currentClipIndex: -1,
+        });
       }
     }
-    
-    console.log('Sequence player initialized with objects:', Array.from(this.objectAssignments.keys()));
+
+    console.log(
+      'Sequence player initialized with objects:',
+      Array.from(this.objectAssignments.keys())
+    );
   }
-  
-  /**
-   * Trigger initial clip loads for all objects
-   */
+
+  /** Fire an initial clipChange for every routed object. */
   triggerInitialClips() {
     const currentTime = this.getCurrentTime();
-    console.log('Triggering initial clips at time:', currentTime);
-    
+
     for (const [objectId, assignment] of this.objectAssignments) {
       const currentClip = assignment.streamPlayer.getClipAtTime(currentTime + assignment.offset);
-      
       if (currentClip) {
         assignment.currentClipIndex = currentClip.index;
-        console.log(`Initial clip for ${objectId}:`, currentClip.clipName);
         this.emit('clipChange', {
           objectId,
           clipData: currentClip,
-          nextClip: assignment.streamPlayer.getNextClip(currentClip.index)
+          nextClip: assignment.streamPlayer.getNextClip(currentClip.index),
         });
       } else {
         console.warn(`No initial clip found for ${objectId} at time ${currentTime}`);
@@ -329,45 +285,34 @@ export class SequencePlayer {
   }
 
   getCurrentTime() {
-    return (performance.now() / 1000) - this.startTime;
+    return performance.now() / 1000 - this.startTime;
   }
 
+  /** Per-frame: emit clipChange for any object whose clip rolled over. */
   update() {
     const currentTime = this.getCurrentTime();
-    
+
     for (const [objectId, assignment] of this.objectAssignments) {
-      const adjustedTime = currentTime + assignment.offset;
-      const currentClip = assignment.streamPlayer.getClipAtTime(adjustedTime);
-      
+      const currentClip = assignment.streamPlayer.getClipAtTime(currentTime + assignment.offset);
+
       if (currentClip && currentClip.index !== assignment.currentClipIndex) {
-        // Clip changed for this object
-        console.log(`[${objectId}] Clip change at t=${currentTime.toFixed(2)}s: index ${assignment.currentClipIndex} → ${currentClip.index} (${currentClip.clipName})`);
         assignment.currentClipIndex = currentClip.index;
         this.emit('clipChange', {
           objectId,
           clipData: currentClip,
-          nextClip: assignment.streamPlayer.getNextClip(currentClip.index)
+          nextClip: assignment.streamPlayer.getNextClip(currentClip.index),
         });
       }
     }
   }
 
   on(event, callback) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
+    if (!this.listeners.has(event)) this.listeners.set(event, []);
     this.listeners.get(event).push(callback);
   }
 
   emit(event, data) {
     const callbacks = this.listeners.get(event);
-    if (callbacks) {
-      callbacks.forEach(cb => cb(data));
-    }
-  }
-
-  getStreamPlayer(objectId) {
-    const assignment = this.objectAssignments.get(objectId);
-    return assignment ? assignment.streamPlayer : null;
+    if (callbacks) callbacks.forEach((cb) => cb(data));
   }
 }

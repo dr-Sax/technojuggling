@@ -12,89 +12,83 @@ export class ThreeSceneManager {
     this.cameraFeedPlane = null;
     this.cameraTexture = null;
     this.animating = false;
-    
+
     // Reference to scene manager (set externally)
     this.sceneManagerRef = null;
     // Reference to visual effects processor for throttled texture updates
     this.visualFXRef = null;
   }
-  
+
   initialize() {
     // WebGL scene
     this.threeScene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
-      90,  // Wider FOV to show full frame
+      90, // Wider FOV to show full frame
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     );
     this.camera.position.z = 12;
-    
+
     // Add lighting for 3D models (if needed in future)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.threeScene.add(ambientLight);
-    
+
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 10, 7.5);
     this.threeScene.add(directionalLight);
-    
+
     // WebGL renderer
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: false,
-      powerPreference: "high-performance"
+      powerPreference: 'high-performance',
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    
+
     document.getElementById('webgl-container').appendChild(this.renderer.domElement);
-    
+
     // Camera feed background
     this.setupCameraFeed();
-    
+
     // Window resize handler
     window.addEventListener('resize', () => this.handleResize());
-    
+
     console.log('✓ Three.js scene initialized (WebGL only)');
   }
-  
+
   setupCameraFeed() {
     this.frameUpdateCount = 0;
     this.lastFrameTime = Date.now();
-    this._decoding = false;      // true while createImageBitmap is in flight
-    this._pendingBlob = null;    // newest frame that arrived during a decode
-    
-    // Start with a 1x1 placeholder so Three.js never sees an incomplete texture
-    const placeholder = document.createElement('canvas');
-    placeholder.width = 1;
-    placeholder.height = 1;
-    
-    this.cameraTexture = new THREE.Texture(placeholder);
+    this._decoding = false; // true while createImageBitmap is in flight
+    this._pendingBlob = null; // newest frame that arrived during a decode
+
+    // Start with a 1x1 placeholder texture; replaced as soon as frames arrive.
+    this.cameraTexture = new THREE.Texture();
     this.cameraTexture.minFilter = THREE.LinearFilter;
     this.cameraTexture.magFilter = THREE.LinearFilter;
-    this.cameraTexture.needsUpdate = true;
-    
-    const planeGeometry = new THREE.PlaneGeometry(
-      CONFIG.PLANE_WIDTH,
-      CONFIG.PLANE_HEIGHT
-    );
-    
-    const planeMaterial = new THREE.MeshBasicMaterial({
+
+    const geometry = new THREE.PlaneGeometry(CONFIG.PLANE_WIDTH, CONFIG.PLANE_HEIGHT);
+    const material = new THREE.MeshBasicMaterial({
       map: this.cameraTexture,
-      transparent: false,
-      opacity: 1.0
+      side: THREE.DoubleSide,
     });
-    
-    this.cameraFeedPlane = new THREE.Mesh(planeGeometry, planeMaterial);
-    this.cameraFeedPlane.rotation.z = -Math.PI // for portrait -Math.PI;
-    this.cameraFeedPlane.position.z = 0;
-    this.cameraFeedPlane.scale.x = -1;
+
+    this.cameraFeedPlane = new THREE.Mesh(geometry, material);
+    // Rotated 90° counter-clockwise — see mapCameraToWorld().
+    this.cameraFeedPlane.rotation.z = 0;
+    this.cameraFeedPlane.scale.y = -1;   // mirror horizontally
     this.threeScene.add(this.cameraFeedPlane);
   }
-  
+
+  /**
+   * Decode an incoming camera frame Blob into an ImageBitmap and upload it.
+   * Single-frame backpressure: if a decode is already in flight, only the
+   * newest blob is kept so we never fall more than one frame behind.
+   */
   _processBlob(blob) {
-    // Drop incoming frame if a decode is already in flight — we'll pick up
-    // the next one. This gives us backpressure without ever queuing stale frames.
+    // This gives us backpressure without ever queuing stale frames.
     if (this._decoding) {
       // Keep only the very latest blob so we never fall more than 1 frame behind
       this._pendingBlob = blob;
@@ -104,31 +98,33 @@ export class ThreeSceneManager {
     this._decoding = true;
     this._pendingBlob = null;
 
-    createImageBitmap(blob).then((bitmap) => {
-      // Release previous ImageBitmap from GPU memory
-      if (this.cameraTexture.image && this.cameraTexture.image.close) {
-        this.cameraTexture.image.close();
-      }
-      this.cameraTexture.image = bitmap;
-      this.cameraTexture.needsUpdate = true;
-      this.frameUpdateCount++;
-      this.lastFrameTime = Date.now();
-      this._decoding = false;
+    createImageBitmap(blob)
+      .then((bitmap) => {
+        // Release previous ImageBitmap from GPU memory
+        if (this.cameraTexture.image && this.cameraTexture.image.close) {
+          this.cameraTexture.image.close();
+        }
+        this.cameraTexture.image = bitmap;
+        this.cameraTexture.needsUpdate = true;
+        this.frameUpdateCount++;
+        this.lastFrameTime = Date.now();
+        this._decoding = false;
 
-      // If a newer frame arrived while we were decoding, process it now
-      if (this._pendingBlob) {
-        const next = this._pendingBlob;
-        this._pendingBlob = null;
-        this._processBlob(next);
-      }
-    }).catch(() => {
-      this._decoding = false;
-      if (this._pendingBlob) {
-        const next = this._pendingBlob;
-        this._pendingBlob = null;
-        this._processBlob(next);
-      }
-    });
+        // If a newer frame arrived while we were decoding, process it now
+        if (this._pendingBlob) {
+          const next = this._pendingBlob;
+          this._pendingBlob = null;
+          this._processBlob(next);
+        }
+      })
+      .catch(() => {
+        this._decoding = false;
+        if (this._pendingBlob) {
+          const next = this._pendingBlob;
+          this._pendingBlob = null;
+          this._processBlob(next);
+        }
+      });
   }
 
   updateCameraFrame(frameData) {
@@ -140,7 +136,7 @@ export class ThreeSceneManager {
       this._loadLegacyFrame(frameData);
     }
   }
-  
+
   _loadLegacyFrame(url) {
     // Fallback for string URLs
     if (!this._legacyImg) {
@@ -152,13 +148,15 @@ export class ThreeSceneManager {
         }
         this.imageLoading = false;
       };
-      this._legacyImg.onerror = () => { this.imageLoading = false; };
+      this._legacyImg.onerror = () => {
+        this.imageLoading = false;
+      };
     }
     if (this.imageLoading) return;
     this._legacyImg.src = url;
     this.imageLoading = true;
   }
-  
+
   // Toggle camera feed visibility
   setCameraVisible(visible) {
     if (this.cameraFeedPlane) {
@@ -175,54 +173,56 @@ export class ThreeSceneManager {
   setCameraFeedZ(z) {
     if (this.cameraFeedPlane) {
       this.cameraFeedPlane.position.z = z;
-      
-    
     }
   }
-  
+
   startAnimation() {
     if (this.animating) return;
     this.animating = true;
     this.animate();
   }
-  
+
   animate() {
     if (!this.animating) return;
-    
+
     requestAnimationFrame(() => this.animate());
-    
+
     // Update dynamic parameters if scene manager is available
     if (this.sceneManagerRef) {
       this.sceneManagerRef.updateDynamicParameters();
 
       // Advance spacetime Z and keep camera locked to present
       const spacetime = effectRegistry.get('spacetime');
-      if (spacetime?.active) spacetime.tick();
+      if (spacetime?.active) {
+        spacetime.tick();
+        // Drive Z-position-based media routing off the advancing front.
+        this.sceneManagerRef.zRouting?.tick(spacetime.currentZ);
+      }
     }
-    
+
     // Throttled video texture uploads (20fps instead of 60fps)
     if (this.visualFXRef) {
       this.visualFXRef.updateTextures();
     }
-    
+
     // Animated GIF texture refresh on tracked balls
     if (this.sceneManagerRef?.ballManager?.media?.tickTextures) {
       this.sceneManagerRef.ballManager.media.tickTextures();
     }
-    
+
     this.renderer.render(this.threeScene, this.camera);
   }
-  
+
   stopAnimation() {
     this.animating = false;
   }
-  
+
   handleResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
-  
+
   // Coordinate mapping
   mapCameraToWorld(normalizedX, normalizedY) {
     // Since plane is rotated 90° counter-clockwise:
@@ -232,7 +232,7 @@ export class ThreeSceneManager {
     const worldX = (normalizedX - 0.5) * CONFIG.PLANE_WIDTH;
     return { x: worldX, y: worldY };
   }
-  
+
   // Getters for other modules
   getWebGLScene() {
     return this.threeScene;
@@ -241,16 +241,16 @@ export class ThreeSceneManager {
   getCamera() {
     return this.camera;
   }
-  
+
   getPlaneHeight() {
     return CONFIG.PLANE_HEIGHT;
   }
-  
+
   setSceneManager(sceneManager) {
     this.sceneManagerRef = sceneManager;
     sceneManager.setThreeSceneRef(this);
   }
-  
+
   setVisualFX(visualFX) {
     this.visualFXRef = visualFX;
   }

@@ -1,19 +1,24 @@
 /**
  * Scene Manager - Unified scene loading, sequence playback, and parameter evaluation
  *
- * Merges the former SceneManager + SequenceManager into one class.
- * Single expression evaluation path via ExpressionEvaluator + ParameterManager.
- * No more "scene array" abstraction — there's always one active config.
+ * Owns the single active config. Drives sequence playback (clips/streams/
+ * routing), per-frame parameter evaluation, and effect application.
  *
- * MIDI integration: setMidiState(midiState) forwards the state to both this
- * scene manager's evaluator AND the ParameterManager's evaluator, so MIDI
- * variables (cc1, cc2, ...) work in every expression-capable parameter.
+ * Scene groups: when the config has `clipGroups` (media only) or `sceneGroups`
+ * (media + effects), SceneGroupController synthesizes the `routing` block and
+ * overlays the active group's effect blocks onto the config before it loads.
+ * Switching `activeGroup` via hot-reload re-binds every ball and re-applies
+ * the group's effects.
+ *
+ * MIDI: setMidiState() forwards state to both this evaluator and the
+ * ParameterManager's evaluator, so MIDI vars (cc1, ...) work in expressions.
  */
 import { CONFIG } from '../core/config.js';
 import { ExpressionEvaluator } from './expression-system.js';
 import { SequenceConfig, SequencePlayer } from './sequence.js';
 import { MediaPool } from './media-pool.js';
 import { ParameterManager } from './parameter-manager.js';
+import { SceneGroupController } from './scene-groups.js';
 import { effectRegistry } from '../tracking/effect-registry.js';
 
 export class SceneManager {
@@ -24,61 +29,75 @@ export class SceneManager {
     this.audioProcessorRef = null;
     this.midiState = null;
 
-    // Current active config (replaces this.scenes array)
     this.activeConfig = null;
 
-    // Single expression evaluator (replaces ParameterAnimator)
     this.evaluator = new ExpressionEvaluator();
     this.startTime = performance.now() / 1000;
 
-    // Sequence playback (formerly in SequenceManager)
     this.sequenceConfig = null;
     this.sequencePlayer = null;
     this.mediaPool = new MediaPool(wsClient);
     this.parameterManager = new ParameterManager();
     this.sequenceActive = false;
+
+    this.sceneGroups = new SceneGroupController(this);
   }
 
   // ============================================================================
-  // CONFIG LOADING (replaces registerScene/clearScenes/loadScene)
+  // CONFIG LOADING
   // ============================================================================
 
-  /**
-   * Load a new configuration (full reload — clears everything)
-   */
+  /** Load a new configuration (full reload — clears everything). */
   async loadConfig(config) {
     this.ballManager.clearAll();
     this.clearSequence();
 
+    // Scene groups → synthesize routing + overlay effect blocks before load.
+    const usesGroups = SceneGroupController.configUsesGroups(config);
+    if (usesGroups) {
+      this.sceneGroups.applyToConfig(config);
+    }
+
     this.activeConfig = config;
 
-    // Load sequence (clips/streams/routing)
     await this.loadSequence(config);
 
-    // Camera visibility
+    // Hide balls the active group doesn't cover; drop unused clips.
+    if (usesGroups) {
+      this.sceneGroups.hideUnusedBalls();
+      this.sceneGroups.pruneMediaPool();
+    }
+
     const showCamera = config.showCamera !== undefined ? config.showCamera : true;
     this.setCameraVisible(showCamera);
 
-    // Pass routing and streams to ball connections if available
     if (config.routing && config.streams) {
       this.ballManager.setConnectionRouting(config.routing, config.streams);
     }
 
-    // Apply ball connections (special case — not in registry)
     if (config.ballConnections) {
       this.applyBallConnectionSettings(config.ballConnections);
     }
 
-    // Auto-apply all registered effects
     this.applyAllEffects(config);
 
     this.resetTime();
   }
 
   /**
-   * Update parameters without reloading sequences (hot-reload from editor)
+   * Hot-reload from the editor. If scene groups are in use and the resolved
+   * group index changed, do a full reload; otherwise apply a light update.
    */
-  updateConfig(config) {
+  async updateConfig(config) {
+    if (SceneGroupController.configUsesGroups(config)) {
+      const prevGroup = this.sceneGroups.resolvedGroup;
+      this.sceneGroups.applyToConfig(config);
+      if (this.sceneGroups.resolvedGroup !== prevGroup) {
+        await this.loadConfig(config);
+        return;
+      }
+    }
+
     this.activeConfig = config;
 
     this.updateSequenceParameters(config);
@@ -87,12 +106,11 @@ export class SceneManager {
       this.applyBallConnectionSettings(config.ballConnections);
     }
 
-    // Auto-update all registered effects
     this.applyAllEffects(config);
   }
 
   // ============================================================================
-  // SEQUENCE PLAYBACK (absorbed from SequenceManager)
+  // SEQUENCE PLAYBACK
   // ============================================================================
 
   async loadSequence(config) {
@@ -114,30 +132,25 @@ export class SceneManager {
 
     const currentClipId = this.mediaPool.getAssignment(objectId);
     const newClipId = clipData.clipName;
-
     if (currentClipId === newClipId) return;
 
     const media = await this.mediaPool.assignClipToObject(objectId, newClipId, clipData.url);
-
     const objectName = objectId.replace('ball_', '');
 
-    // timeOffset comes from routing config (e.g. ball_1: {stream: "streamD", offset: 5})
-    // This shifts clock phase — WHERE in the clip loop we start — not the video file position
+    // offset shifts clock phase — WHERE in the clip loop we start.
     const routeConfig = this.sequenceConfig.getRoutingConfig(objectId);
     const timeOffset = routeConfig ? routeConfig.offset : 0;
 
     this.ballManager.clearBall(objectName);
 
-    const mediaConfig = {
+    await this.ballManager.displayBallMedia(objectName, media, {
       startTime: clipData.videoStart,
       endTime: clipData.videoEnd,
       locked: false,
       zIndex: clipData.effects.zIndex || 0.1,
       scale: 1.0,
-      timeOffset: timeOffset
-    };
-
-    await this.ballManager.displayBallMedia(objectName, media, mediaConfig);
+      timeOffset,
+    });
 
     const mergedParams = { ...clipData.effects };
     this.parameterManager.setParameters(objectId, mergedParams);
@@ -168,7 +181,6 @@ export class SceneManager {
 
     for (const objectId of objectIds) {
       const objectName = objectId.replace('ball_', '');
-
       const params = this.parameterManager.getRawParameters(objectId);
       this.ballManager.applyParameters(objectName, params);
     }
@@ -177,13 +189,14 @@ export class SceneManager {
   clearSequence() {
     this.mediaPool.clear();
     this.parameterManager.clearAll();
+    if (this.sceneGroups) this.sceneGroups.clear();
     this.sequenceActive = false;
     this.sequenceConfig = null;
     this.sequencePlayer = null;
   }
 
   // ============================================================================
-  // EXPRESSION EVALUATION (single path, replaces ParameterAnimator)
+  // EXPRESSION EVALUATION
   // ============================================================================
 
   resetTime() {
@@ -191,7 +204,7 @@ export class SceneManager {
   }
 
   getTime() {
-    return (performance.now() / 1000) - this.startTime;
+    return performance.now() / 1000 - this.startTime;
   }
 
   evaluateParam(value, context) {
@@ -201,42 +214,14 @@ export class SceneManager {
     return value;
   }
 
+  /** Resolve a color value. Configs use plain hex ints; expressions allowed. */
   evaluateColor(colorValue, context) {
     if (typeof colorValue === 'number') return colorValue;
-
-    if (typeof colorValue === 'object') {
-      if (colorValue.hue !== undefined) {
-        const hue = this.evaluateParam(colorValue.hue, context);
-        const saturation = colorValue.saturation !== undefined
-          ? this.evaluateParam(colorValue.saturation, context) : 1.0;
-        const lightness = colorValue.lightness !== undefined
-          ? this.evaluateParam(colorValue.lightness, context) : 0.5;
-        return hslToHex(hue % 360, saturation, lightness);
-      }
-
-      if (colorValue.r !== undefined) {
-        const r = this.evaluateParam(colorValue.r, context);
-        const g = colorValue.g !== undefined ? this.evaluateParam(colorValue.g, context) : 0;
-        const b = colorValue.b !== undefined ? this.evaluateParam(colorValue.b, context) : 0;
-        return rgbToHex(r, g, b);
-      }
+    if (typeof colorValue === 'string') {
+      const v = this.evaluateParam(colorValue, context);
+      return typeof v === 'number' ? v : 0xffffff;
     }
-
     return 0xffffff;
-  }
-
-  hasExpressions(config) {
-    if (!config) return false;
-    const checkValue = (value) => {
-      if (typeof value === 'string') return this.evaluator.isExpression(value);
-      if (typeof value === 'object' && value !== null) {
-        return Object.values(value).some(v =>
-          typeof v === 'string' && this.evaluator.isExpression(v)
-        );
-      }
-      return false;
-    };
-    return Object.values(config).some(value => checkValue(value));
   }
 
   // ============================================================================
@@ -245,11 +230,9 @@ export class SceneManager {
 
   updateDynamicParameters() {
     const ballData = this.ballManager.getBallData();
-
     if (this.sequenceActive) {
       this.updateSequenceDynamicParameters(ballData);
     }
-
     this.updateBallConnections();
   }
 
@@ -305,7 +288,6 @@ export class SceneManager {
       params.color = this.evaluateColor(connectionConfig.color, context);
     }
 
-    // Pass-through non-expression parameters
     for (const key of ['filled', 'perCircleColors', 'circleContents', 'colorMode', 'segments']) {
       if (connectionConfig[key] !== undefined) {
         params[key] = connectionConfig[key];
@@ -333,9 +315,7 @@ export class SceneManager {
   // ============================================================================
 
   applyAllEffects(config) {
-    const effectNames = effectRegistry.getAllNames();
-
-    for (const effectName of effectNames) {
+    for (const effectName of effectRegistry.getAllNames()) {
       const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
       const settings = config[configKey] || config[effectName];
 
@@ -352,17 +332,15 @@ export class SceneManager {
       this.ballManager.setEffectEnabled(effectName, settings.enabled);
     }
 
-    // Spacetime mode: call enable/disable to manage camera and scene objects
+    // Spacetime manages its own camera + scene objects via enable/disable.
     if (effectName === 'spacetime') {
       const effect = effectRegistry.get('spacetime');
-      if (effect) {
-        const camera = this.threeSceneRef ? this.threeSceneRef.getCamera() : null;
-        if (camera) {
-          if (settings.enabled && !effect.active) {
-            effect.enable(camera, this.threeSceneRef);
-          } else if (settings.enabled === false && effect.active) {
-            effect.disable(camera);
-          }
+      const camera = this.threeSceneRef ? this.threeSceneRef.getCamera() : null;
+      if (effect && camera) {
+        if (settings.enabled && !effect.active) {
+          effect.enable(camera, this.threeSceneRef);
+        } else if (settings.enabled === false && effect.active) {
+          effect.disable(camera);
         }
       }
     }
@@ -386,18 +364,15 @@ export class SceneManager {
   }
 
   getWebGLScene() {
-    if (this.threeSceneRef) return this.threeSceneRef.getWebGLScene();
-    return null;
+    return this.threeSceneRef ? this.threeSceneRef.getWebGLScene() : null;
   }
 
   getPlaneHeight() {
-    if (this.threeSceneRef) return this.threeSceneRef.getPlaneHeight();
-    return CONFIG.PLANE_HEIGHT;
+    return this.threeSceneRef ? this.threeSceneRef.getPlaneHeight() : CONFIG.PLANE_HEIGHT;
   }
 
   getCamera() {
-    if (this.threeSceneRef) return this.threeSceneRef.getCamera();
-    return null;
+    return this.threeSceneRef ? this.threeSceneRef.getCamera() : null;
   }
 
   setThreeSceneRef(threeScene) {
@@ -408,14 +383,7 @@ export class SceneManager {
     this.audioProcessorRef = audioProcessor;
   }
 
-  /**
-   * Wire MIDI state into expression evaluation.
-   * Forwards to BOTH evaluators — the one on this scene manager AND
-   * the one inside parameterManager (each is a separate instance).
-   * After this is called, any expression string in the config can
-   * reference cc1..cc127, note0..note127, noteHeld0..noteHeld127,
-   * pitchBend, and chPressure as live variables.
-   */
+  /** Wire MIDI state into both expression evaluators (this one + parameterManager's). */
   setMidiState(midiState) {
     this.midiState = midiState;
     this.evaluator.setMidiState(midiState);
@@ -423,28 +391,4 @@ export class SceneManager {
       this.parameterManager.evaluator.setMidiState(midiState);
     }
   }
-}
-
-// ============================================================================
-// Color conversion helpers (standalone functions)
-// ============================================================================
-
-function hslToHex(h, s, l) {
-  h = h / 360;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n) => {
-    const k = (n + h * 12) % 12;
-    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-  };
-  const r = Math.round(f(0) * 255);
-  const g = Math.round(f(8) * 255);
-  const b = Math.round(f(4) * 255);
-  return (r << 16) | (g << 8) | b;
-}
-
-function rgbToHex(r, g, b) {
-  r = Math.max(0, Math.min(1, r));
-  g = Math.max(0, Math.min(1, g));
-  b = Math.max(0, Math.min(1, b));
-  return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
 }
