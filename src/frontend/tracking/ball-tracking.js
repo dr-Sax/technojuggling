@@ -37,6 +37,11 @@ export class BallTrackingManager {
 
     // Data for external consumers
     this.ballData = {};
+
+    // Last known world position per ball id. Survives mesh dispose/recreate
+    // during reloads and media-visibility toggles, so global effects
+    // (connections) always have a stable position to read.
+    this._lastWorldPos = {};
   }
 
   // ============================================================================
@@ -60,12 +65,14 @@ export class BallTrackingManager {
     this.media.remove(ballId);
     effectRegistry.removeBall(ballId);
     delete this.ballData[`ball_${ballId}`];
+    delete this._lastWorldPos[ballId];
   }
 
   clearAll() {
     this.media.clear();
     effectRegistry.clearAll();
     this.ballData = {};
+    this._lastWorldPos = {};
   }
 
   // ============================================================================
@@ -82,35 +89,44 @@ export class BallTrackingManager {
 
       const pos = this.media.getPosition(ball.id);
       if (pos) {
-        positions[ball.id] = pos;
-
         this.ballData[`ball_${ball.id}`] = {
           x: pos.y, y: 1 - pos.x,
           vx: ball.vx || 0, vy: ball.vy || 0
         };
 
-        // Update all enabled per-ball effects
+        // When the ball's mesh exists, refresh the cached world position
+        // and drive per-ball effects (trails) from it. The cache lets global
+        // effects (connections) keep a stable position through reloads and
+        // media-visibility toggles that briefly drop the mesh.
         const mediaObj = this.media.media[ball.id];
         if (mediaObj && mediaObj.mesh) {
           const worldPos = {
             x: mediaObj.mesh.position.x,
             y: mediaObj.mesh.position.y
           };
+          this._lastWorldPos[ball.id] = worldPos;
           effectRegistry.updateBall(ball.id, worldPos, this.enabledEffects);
         }
       }
+
+      // Feed connections from the cache: the last known mesh position,
+      // or the live one if it was just refreshed above.
+      if (this._lastWorldPos[ball.id]) {
+        positions[ball.id] = this._lastWorldPos[ball.id];
+      }
     });
 
-    // Update global effects that need all positions
+    // Drive connections every frame, like trails. The effect's own `mode`
+    // ('none' vs mesh/sequential/circles) is the on/off switch — no external
+    // enabled-set gate, so a reload can't silently strand it.
     this._updateGlobalEffects(positions);
   }
 
   _updateGlobalEffects(positions) {
-    // Connections (the only registered global effect after cleanup)
-    if (this.enabledEffects.has('connections')) {
-      const connections = effectRegistry.get('connections');
-      if (connections) connections.updateConnections(positions);
-    }
+    // Connections (the only registered global effect). Called unconditionally;
+    // updateConnections() returns early when mode === 'none'.
+    const connections = effectRegistry.get('connections');
+    if (connections) connections.updateConnections(positions);
   }
 
   // ============================================================================
@@ -152,7 +168,15 @@ export class BallTrackingManager {
     } else {
       this.enabledEffects.delete(effectName);
       const effect = effectRegistry.get(effectName);
-      if (effect && effect.clear) effect.clear();
+      if (effect) {
+        // setEnabled(false) lets an effect fully turn itself off (connections
+        // sets mode → 'none'). Fall back to clear() for effects without it.
+        if (typeof effect.setEnabled === 'function') {
+          effect.setEnabled(false);
+        } else if (effect.clear) {
+          effect.clear();
+        }
+      }
     }
   }
 

@@ -48,6 +48,9 @@ export class Connections extends GlobalEffect {
   // --- Mode control ---
 
   setMode(mode) {
+    // Remember the last real mode so a disable→enable cycle (which happens
+    // on every hot-reload) can restore it instead of staying 'none'.
+    if (mode && mode !== 'none') this._intendedMode = mode;
     if (mode === this.config.mode) return;
     this.clear();
     this.config.mode = mode;
@@ -60,19 +63,38 @@ export class Connections extends GlobalEffect {
   setEnabled(enabled) {
     if (!enabled) {
       this.config.mode = 'none';
+      // Forget the intended mode too — otherwise updateConnections' self-heal
+      // would resurrect the effect in a group that turned it off.
+      this._intendedMode = null;
       this.clear();
       if (this._onVisibilityChange) this._onVisibilityChange(true);
+    } else if (this.config.mode === 'none' && this._intendedMode) {
+      // Re-enabled after a disable: restore the mode that was last requested,
+      // otherwise the effect stays silently 'none' after a reload.
+      this.setMode(this._intendedMode);
     }
   }
 
   // --- Main update: receives all ball positions each frame ---
+  // positions[] holds world coordinates straight from the ball mesh
+  // (same source as trails), so no coordinate transform is applied here.
 
   updateConnections(positions) {
-    const mode = this.config.mode;
+    let mode = this.config.mode;
+
+    // Self-heal: if the mode was stranded at 'none' but a real mode was last
+    // requested (e.g. across a hot-reload), restore it rather than going dark.
+    if (mode === 'none' && this._intendedMode && this._intendedMode !== 'none') {
+      this.setMode(this._intendedMode);
+      mode = this.config.mode;
+    }
     if (mode === 'none') return;
 
     const ids = Object.keys(positions);
-    if (ids.length < 2) { this.clear(); return; }
+    // Fewer than 2 balls this frame (e.g. a reload gap): leave existing
+    // geometry in place and wait — don't tear everything down. Trails behaves
+    // the same way: a missing ball simply isn't updated.
+    if (ids.length < 2) return;
 
     if (mode === 'mesh') {
       this._updateLines(positions, ids, 'mesh');
@@ -91,8 +113,8 @@ export class Connections extends GlobalEffect {
 
     for (const [idA, idB] of pairs) {
       const connId = `line-${idA}-${idB}`;
-      const p1 = this.sceneManager.mapCameraToWorld(positions[idA].x, positions[idA].y);
-      const p2 = this.sceneManager.mapCameraToWorld(positions[idB].x, positions[idB].y);
+      const p1 = positions[idA];
+      const p2 = positions[idB];
 
       if (this.has(connId)) {
         const obj = this.get(connId);
@@ -129,8 +151,8 @@ export class Connections extends GlobalEffect {
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
         const connId = `circle-${ids[i]}-${ids[j]}`;
-        const p1 = this.sceneManager.mapCameraToWorld(positions[ids[i]].x, positions[ids[i]].y);
-        const p2 = this.sceneManager.mapCameraToWorld(positions[ids[j]].x, positions[ids[j]].y);
+        const p1 = positions[ids[i]];
+        const p2 = positions[ids[j]];
         const content = this.config.perCircleColors
           ? this.config.circleContents[index % this.config.circleContents.length]
           : this.config.color;
@@ -261,6 +283,19 @@ export class Connections extends GlobalEffect {
       obj.perimeterMaterial?.dispose();
     }
     this.objects.delete(id);
+  }
+
+  setConfig(config) {
+    // applyConfig() funnels the whole ballConnections block through here.
+    // Route a `mode` key through setMode() so the intended-mode tracking
+    // and visibility side-effects fire; let the base class handle the rest.
+    if (config && config.mode !== undefined) {
+      const { mode, ...rest } = config;
+      this.setMode(mode);
+      super.setConfig(rest);
+    } else {
+      super.setConfig(config);
+    }
   }
 
   _onConfigChange(changed, prev) {
