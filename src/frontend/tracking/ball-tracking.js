@@ -98,18 +98,18 @@ export class BallTrackingManager {
       // World position for effects.
       //
       // Preferred source: the media object's mesh. When a ball carries media,
-      // its mesh position is the authoritative world coordinate, and per-ball
-      // effects (trails) are driven from it.
+      // its mesh position is the authoritative world coordinate.
       //
       // Fallback source: the raw tracker coords mapped to world space. A scene
       // group with no `streams` attaches no media, so `this.media.media[id]`
-      // is undefined and there is no mesh. Without this fallback the positions
-      // map ends up with fewer than 2 entries and updateConnections() bails at
-      // its `ids.length < 2` guard — which is exactly why ballConnections
-      // stopped rendering when the `streams` line was removed between reloads.
+      // is undefined and there is no mesh.
       //
-      // Per-ball effects stay gated on the media mesh (unchanged behavior);
-      // only the global `positions` map gets the fallback.
+      // Either way we end up with a valid worldPos, and ALL effects — per-ball
+      // (trails) and registry-driven (sincWaves) — are fed from it via the
+      // single updateBall call below. Gating updateBall on the media mesh used
+      // to silently strand sincWaves whenever `streams` was removed; routing
+      // it off worldPos unconditionally fixes that, the same way the global
+      // `positions` map already keeps connections alive without media.
       const mediaObj = this.media.media[ball.id];
       let worldPos = null;
 
@@ -118,13 +118,13 @@ export class BallTrackingManager {
           x: mediaObj.mesh.position.x,
           y: mediaObj.mesh.position.y
         };
-        effectRegistry.updateBall(ball.id, worldPos, this.enabledEffects);
       } else {
         // No media for this ball — map the raw tracker coords directly.
         worldPos = this.sceneManager.mapCameraToWorld(ball.x, ball.y);
       }
 
       if (worldPos) {
+        effectRegistry.updateBall(ball.id, worldPos, this.enabledEffects);
         this._lastWorldPos[ball.id] = worldPos;
         positions[ball.id] = worldPos;
       } else if (this._lastWorldPos[ball.id]) {
