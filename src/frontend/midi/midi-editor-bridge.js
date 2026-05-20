@@ -1,19 +1,44 @@
 /**
  * MidiEditorBridge - Routes MIDI events to live-code-editor actions.
  *
- * Two knobs + one pad:
- *   cursorKnob (CC 70) → absolute position over all numeric tokens in the
- *                        buffer. Knob at 0 = first token, 127 = last, linear.
- *                        Same physical position always lands on the same token.
- *   valueKnob  (CC 71) → rewrite the value under the cursor and live-execute
- *                        the code (throttled). No Ctrl-Enter needed.
- *   executePad (note 36) → manual re-execute (Ctrl-Enter equivalent).
+ * Eight knob/pad CHANNELS. Each channel = one knob + one pad.
+ *
+ *   knob, lock OFF  → absolute position over all numeric tokens in the
+ *                     buffer. Knob at 0 = first token, 127 = last, linear.
+ *                     The token is highlighted with CodeMirror's native
+ *                     text selection (the grey .CodeMirror-selected band) —
+ *                     exactly the original two-knob mechanism.
+ *   pad             → toggles the lock for that channel. Tap = lock,
+ *                     tap again = unlock.
+ *   knob, lock ON   → rewrites the value of the channel's selected token
+ *                     and live-executes (throttled). The knob no longer
+ *                     moves the cursor while locked.
+ *
+ * On native selection: CodeMirror shows ONE selection at a time, so the
+ * visible highlight is always the channel you last touched. Every channel
+ * still tracks its own token independently and edits it correctly when
+ * locked; only the *visible* highlight is shared. When a channel acts
+ * (cursor move, value rewrite, or lock toggle) it re-asserts its own
+ * token as the visible selection, so "what you see" always matches "the
+ * knob you just used".
+ *
+ * Default knob/pad mapping (first keyboard row, then second):
+ *   CC 70 ↔ note 40   CC 71 ↔ note 41   CC 72 ↔ note 42   CC 73 ↔ note 43
+ *   CC 74 ↔ note 36   CC 75 ↔ note 37   CC 76 ↔ note 38   CC 77 ↔ note 39
  *
  * Config overrides via the live config's `midi` block:
- *   midi: { cursorKnob: 70, valueKnob: 71, executePad: 36,
- *           liveExecuteMs: 33, liveExecute: true }
+ *   midi: {
+ *     channels: [
+ *       { knob: 70, pad: 40 }, { knob: 71, pad: 41 },
+ *       { knob: 72, pad: 42 }, { knob: 73, pad: 43 },
+ *       { knob: 74, pad: 36 }, { knob: 75, pad: 37 },
+ *       { knob: 76, pad: 38 }, { knob: 77, pad: 39 },
+ *     ],
+ *     executePad: 44,        // optional manual re-execute pad
+ *     liveExecuteMs: 33, liveExecute: true,
+ *   }
  *
- * Range comments tell the value knob how to map 0..1 onto the highlighted
+ * Range comments tell a locked knob how to map 0..1 onto the highlighted
  * number. Five forms, placed in a // comment after the number:
  *
  *   scale: 5          //0,100              decimal range
@@ -32,10 +57,22 @@
  * preserves width and reformats to `0xRRGGBB` on color sweeps.
  */
 
+// Default eight channels — first keyboard row then second, per the
+// requested knob/pad pairing.
+const DEFAULT_CHANNELS = [
+  { knob: 70, pad: 40 },
+  { knob: 71, pad: 41 },
+  { knob: 72, pad: 42 },
+  { knob: 73, pad: 43 },
+  { knob: 74, pad: 36 },
+  { knob: 75, pad: 37 },
+  { knob: 76, pad: 38 },
+  { knob: 77, pad: 39 },
+];
+
 const DEFAULTS = {
-  cursorKnob: 70,
-  valueKnob: 71,
-  executePad: 36,
+  channels: DEFAULT_CHANNELS,
+  executePad: null,        // optional: a pad that just re-executes
   liveExecuteMs: 33,
   liveExecute: true,
 };
@@ -50,18 +87,72 @@ export class MidiEditorBridge {
     this.onExecute = onExecute;
     this.config = { ...DEFAULTS };
 
-    this.currentToken = null;       // { from, to, text, value }
-    this._lastCursorSlot = -1;      // last token slot the cursor knob selected
-    this._pickup = null;            // { matched, lastValue } for value knob
-    this._hueBaseline = null;       // { s, l } captured at hex-token select
+    // One state object per channel. Index === channel number 0..7.
+    //   knob, pad    — MIDI numbers for this channel
+    //   locked       — true while the pad has toggled it into value mode
+    //   token        — { from, to, text, value } this channel is on
+    //   lastSlot     — last token slot index the cursor knob picked
+    //   pickup       — { matched, lastValue } pickup-mode state (locked only)
+    //   hueBaseline  — { s, l } captured when a //hue hex token is selected
+    this.channels = [];
 
-    // Trailing-edge throttle state for live re-execute
+    // Trailing-edge throttle state for live re-execute (shared)
     this._lastExecuteAt = 0;
     this._pendingExecuteTimer = null;
+
+    this._rebuildChannels(this.config.channels);
   }
 
   updateMapping(midiConfig) {
     this.config = { ...DEFAULTS, ...(midiConfig || {}) };
+    if (!Array.isArray(this.config.channels) || this.config.channels.length === 0) {
+      this.config.channels = DEFAULT_CHANNELS;
+    }
+    // UIController calls updateMapping() on EVERY successful execute — and a
+    // locked knob triggers an execute on every turn. Rebuilding channels
+    // here unconditionally would wipe every channel's token/lock state on
+    // each knob turn. So rebuild ONLY when the knob/pad layout changed.
+    if (this._channelLayoutChanged(this.config.channels)) {
+      this._rebuildChannels(this.config.channels);
+    }
+  }
+
+  /** True if the knob/pad numbers differ from the current channels. */
+  _channelLayoutChanged(channelDefs) {
+    if (!this.channels || this.channels.length !== channelDefs.length) return true;
+    for (let i = 0; i < channelDefs.length; i++) {
+      if (this.channels[i].knob !== channelDefs[i].knob ||
+          this.channels[i].pad  !== channelDefs[i].pad) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** (Re)build per-channel state. Only called on a genuine layout change. */
+  _rebuildChannels(channelDefs) {
+    this.channels = channelDefs.map((def, i) => ({
+      index: i,
+      knob: def.knob,
+      pad: def.pad,
+      locked: false,
+      token: null,
+      lastSlot: -1,
+      pickup: null,
+      hueBaseline: null,
+    }));
+  }
+
+  /** Find the channel owning a given knob CC number, or null. */
+  _channelByKnob(cc) {
+    for (const ch of this.channels) if (ch.knob === cc) return ch;
+    return null;
+  }
+
+  /** Find the channel owning a given pad note number, or null. */
+  _channelByPad(note) {
+    for (const ch of this.channels) if (ch.pad === note) return ch;
+    return null;
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -69,22 +160,53 @@ export class MidiEditorBridge {
   // ─────────────────────────────────────────────────────────────────────
 
   onCC(num, rawValue, _channel) {
-    if (num === this.config.cursorKnob) return this._handleCursorKnob(rawValue);
-    if (num === this.config.valueKnob)  return this._handleValueKnob(rawValue / 127);
+    const ch = this._channelByKnob(num);
+    if (!ch) return;
+    if (ch.locked) this._handleValueKnob(ch, rawValue / 127);
+    else           this._handleCursorKnob(ch, rawValue);
   }
 
   onNoteOn(num, _velocity, _channel) {
-    if (num === this.config.executePad) this._triggerExecute();
+    // Manual execute pad takes priority if configured.
+    if (this.config.executePad != null && num === this.config.executePad) {
+      this._triggerExecute();
+      return;
+    }
+    const ch = this._channelByPad(num);
+    if (ch) this._toggleLock(ch);
   }
   onNoteOff()       { /* no-op */ }
   onPitchBend()     { /* no-op */ }
   onProgramChange() { /* no-op */ }
 
   // ─────────────────────────────────────────────────────────────────────
+  // Lock toggle — pad press flips a channel between cursor and value mode
+  // ─────────────────────────────────────────────────────────────────────
+
+  _toggleLock(ch) {
+    ch.locked = !ch.locked;
+
+    if (ch.locked) {
+      // Entering value mode. Re-arm pickup so the parameter doesn't jump
+      // to the knob's current physical position the instant we lock —
+      // the knob must first sweep through the value's normalized position.
+      ch.pickup = { matched: false, lastValue: null };
+    } else {
+      // Leaving value mode. Force the next cursor move to re-select even
+      // if the knob hasn't physically moved.
+      ch.lastSlot = -1;
+      ch.pickup = null;
+    }
+    // Make this channel's token the visible selection so you can see what
+    // you just locked / unlocked.
+    if (ch.token) this._showSelection(ch.token);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
   // Cursor knob — absolute knob position maps to slot index over tokens
   // ─────────────────────────────────────────────────────────────────────
 
-  _handleCursorKnob(rawValue) {
+  _handleCursorKnob(ch, rawValue) {
     const tokens = this._collectNumberTokens();
     if (tokens.length === 0) return;
 
@@ -93,9 +215,9 @@ export class MidiEditorBridge {
       ? 0
       : Math.round((clamped / 127) * (tokens.length - 1));
 
-    if (slot === this._lastCursorSlot) return;
-    this._lastCursorSlot = slot;
-    this._selectToken(tokens[slot]);
+    if (slot === ch.lastSlot) return;  // ignore jitter within a slot
+    ch.lastSlot = slot;
+    this._selectToken(ch, tokens[slot]);
   }
 
   // ─────────────────────────────────────────────────────────────────────
@@ -140,69 +262,82 @@ export class MidiEditorBridge {
     return tokens;
   }
 
-  _selectToken(token) {
+  /**
+   * Show a token as CodeMirror's native text selection — the exact
+   * mechanism the original two-knob bridge used. The grey highlight is
+   * the editor's existing .CodeMirror-selected style; no custom CSS.
+   */
+  _showSelection(token) {
     const cm = this._editor();
     if (!cm) return;
     cm.setSelection(token.from, token.to);
     cm.scrollIntoView({ from: token.from, to: token.to }, 50);
-    this.currentToken = token;
+  }
 
-    // Reset pickup mode — new token, knob must re-match before editing
-    if (this._pickup) this._pickup.matched = false;
+  _selectToken(ch, token) {
+    ch.token = token;
+    this._showSelection(token);
 
-    // Capture S/L baseline for //hue tokens so sweeping preserves character
-    this._hueBaseline = null;
+    // Reset pickup mode — new token, knob must re-match before editing.
+    if (ch.pickup) ch.pickup.matched = false;
+
+    // Capture S/L baseline for //hue tokens so sweeping preserves character.
+    ch.hueBaseline = null;
     if (this._isHexText(token.text)) {
       const range = this._parseRangeComment(token);
       if (range && range.kind === 'hue') {
         const { s, l } = this._rgbToHsl(token.value);
-        // Greys (s≈0) have no defined hue → fall back to vivid sweep
-        this._hueBaseline = s < 0.02 ? { s: 1, l: 0.5 } : { s, l };
+        // Greys (s≈0) have no defined hue → fall back to vivid sweep.
+        ch.hueBaseline = s < 0.02 ? { s: 1, l: 0.5 } : { s, l };
       }
     }
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // Value knob — rewrite the selected number and live-execute
+  // Value knob — rewrite the channel's selected number and live-execute
   // ─────────────────────────────────────────────────────────────────────
 
-  _handleValueKnob(norm) {
-    if (!this.currentToken) return;
+  _handleValueKnob(ch, norm) {
+    if (!ch.token) return;
     const cm = this._editor();
     if (!cm) return;
 
-    const range = this._resolveRange(this.currentToken);
+    const range = this._resolveRange(ch.token);
 
     // Pickup mode (skipped for list-kind, where every position is a slot).
     // The knob doesn't take effect until its 0..1 position crosses the
-    // current value's normalized position — avoids jumps when selecting
-    // a fresh token mid-knob-travel.
+    // current value's normalized position — avoids jumps when locking a
+    // channel mid-knob-travel.
     if (range.kind !== 'list') {
       const currentNorm = this._clamp(
-        this._valueToNorm(this.currentToken.value, range),
+        this._valueToNorm(ch.token.value, range),
         0, 1
       );
-      if (!this._pickup) this._pickup = { matched: false, lastValue: norm };
+      if (!ch.pickup) ch.pickup = { matched: false, lastValue: norm };
+      if (ch.pickup.lastValue == null) ch.pickup.lastValue = norm;
 
-      if (!this._pickup.matched) {
+      if (!ch.pickup.matched) {
         const crossed =
-          (this._pickup.lastValue <= currentNorm && norm >= currentNorm) ||
-          (this._pickup.lastValue >= currentNorm && norm <= currentNorm);
-        this._pickup.lastValue = norm;
+          (ch.pickup.lastValue <= currentNorm && norm >= currentNorm) ||
+          (ch.pickup.lastValue >= currentNorm && norm <= currentNorm);
+        ch.pickup.lastValue = norm;
         if (!crossed) return;
-        this._pickup.matched = true;
+        ch.pickup.matched = true;
       }
-      this._pickup.lastValue = norm;
+      ch.pickup.lastValue = norm;
     }
 
-    const formatted = this._normToFormatted(norm, range, this.currentToken.text);
-    if (formatted === this.currentToken.text) return;  // idempotent
+    const formatted = this._normToFormatted(ch, norm, range, ch.token.text);
+    if (formatted === ch.token.text) return;  // idempotent — skip no-ops
 
-    const { from } = this.currentToken;
-    cm.replaceRange(formatted, from, this.currentToken.to, '+midi');
+    const { from } = ch.token;
+    cm.replaceRange(formatted, from, ch.token.to, '+midi');
     const newTo = { line: from.line, ch: from.ch + formatted.length };
-    cm.setSelection(from, newTo);
-    this.currentToken = { from, to: newTo, text: formatted, value: Number(formatted) };
+    ch.token = { from, to: newTo, text: formatted, value: Number(formatted) };
+
+    // Re-assert this channel's token as the visible selection so the
+    // highlight tracks the rewritten text.
+    this._showSelection(ch.token);
 
     this._scheduleLiveExecute();
   }
@@ -210,7 +345,7 @@ export class MidiEditorBridge {
   /**
    * Trailing-edge throttle: first turn fires immediately; subsequent turns
    * within the window coalesce into one trailing call so the final value
-   * always lands without flooding the executor.
+   * always lands without flooding the executor. Shared across all channels.
    */
   _scheduleLiveExecute() {
     if (!this.config.liveExecute || !this.onExecute) return;
@@ -366,10 +501,10 @@ export class MidiEditorBridge {
     return (value - range.min) / (range.max - range.min);
   }
 
-  _normToFormatted(norm, range, originalText) {
+  _normToFormatted(ch, norm, range, originalText) {
     if (range.kind === 'hue') {
-      const s = this._hueBaseline ? this._hueBaseline.s : 1;
-      const l = this._hueBaseline ? this._hueBaseline.l : 0.5;
+      const s = ch.hueBaseline ? ch.hueBaseline.s : 1;
+      const l = ch.hueBaseline ? ch.hueBaseline.l : 0.5;
       return this._formatHex(this._hslToHex(norm * 360, s, l), originalText);
     }
     if (range.kind === 'hex') {

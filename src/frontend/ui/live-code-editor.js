@@ -157,6 +157,25 @@ export class LiveCodeEditor {
           background: rgba(255, 255, 255, 0.3) !important;
           border-radius: 4px;
         }
+        /* MIDI knob highlights — markText spans, one color per channel.
+           In the same <style> block and after .CodeMirror-line span,
+           so normal cascade order wins without !important. */
+        .midi-knob-0 { background-color: rgba(255,  64,  64, 0.30); }
+        .midi-knob-1 { background-color: rgba(255, 160,  32, 0.30); }
+        .midi-knob-2 { background-color: rgba(240, 224,  32, 0.30); }
+        .midi-knob-3 { background-color: rgba( 96, 224,  64, 0.30); }
+        .midi-knob-4 { background-color: rgba( 32, 224, 224, 0.30); }
+        .midi-knob-5 { background-color: rgba( 64, 144, 255, 0.30); }
+        .midi-knob-6 { background-color: rgba(176,  96, 255, 0.30); }
+        .midi-knob-7 { background-color: rgba(255,  96, 192, 0.30); }
+        .midi-knob-locked.midi-knob-0 { background-color: rgba(255,  64,  64, 0.55); outline: 1px solid rgba(255,  64,  64, 0.95); }
+        .midi-knob-locked.midi-knob-1 { background-color: rgba(255, 160,  32, 0.55); outline: 1px solid rgba(255, 160,  32, 0.95); }
+        .midi-knob-locked.midi-knob-2 { background-color: rgba(240, 224,  32, 0.55); outline: 1px solid rgba(240, 224,  32, 0.95); }
+        .midi-knob-locked.midi-knob-3 { background-color: rgba( 96, 224,  64, 0.55); outline: 1px solid rgba( 96, 224,  64, 0.95); }
+        .midi-knob-locked.midi-knob-4 { background-color: rgba( 32, 224, 224, 0.55); outline: 1px solid rgba( 32, 224, 224, 0.95); }
+        .midi-knob-locked.midi-knob-5 { background-color: rgba( 64, 144, 255, 0.55); outline: 1px solid rgba( 64, 144, 255, 0.95); }
+        .midi-knob-locked.midi-knob-6 { background-color: rgba(176,  96, 255, 0.55); outline: 1px solid rgba(176,  96, 255, 0.95); }
+        .midi-knob-locked.midi-knob-7 { background-color: rgba(255,  96, 192, 0.55); outline: 1px solid rgba(255,  96, 192, 0.95); }
       `;
       document.head.appendChild(style);
     }
