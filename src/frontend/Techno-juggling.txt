@@ -1,0 +1,86 @@
+{
+  clips: {
+
+    // CGI Jugglers
+    A: {url: "https://www.youtube.com/watch?v=q-czprsHl9g", start: 20, end: 30}, // Adam Powers, Triple-I, 1982
+    B: {url: "https://www.youtube.com/watch?v=96xGUa1a_zs", start: 100, end: 110}, // Pixar Red's Dream, 1987
+    C: {url: "https://www.youtube.com/watch?v=-yJNGwIcLtw", start: 0, end: 10},  // Amiga Juggler, Eric Graham, 1986
+
+    // GIFs
+    D: {url: "https://storage.googleapis.com/jugglinglab/gif/abe3bde5f7472921e9be442f.gif", start: 0, end: 2},  //441
+    E: {url: "https://storage.googleapis.com/jugglinglab/gif/b897992a317fc15c6dcd7e31.gif", start: 0, end: 2},  //7441
+    F: {url: "https://storage.googleapis.com/jugglinglab/gif/742366540cf46fac1a2668de.gif", start: 0, end: 2},  //(4x,4x)
+    G: {url: "https://storage.googleapis.com/jugglinglab/gif/78fe2a9074735c0fd0eba917.gif", start: 0, end: 2},  //(8,2x)(4,2x)*
+    H: {url: "https://storage.googleapis.com/jugglinglab/gif/e5f5e856318af618625601bc.gif", start: 0, end: 2},  //633
+
+
+    // Dad's Tricks
+    I: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/reversecascade.gif", start:0, end:2},
+    J: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/halfshower.gif", start: 0, end: 2},
+    K: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/Yo-Yo.gif", start: 0, end: 2},
+    L: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/FakeColumns.gif", start: 0, end: 2},
+    M: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/Oy-Oy.gif", start: 0, end: 2},
+    N: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/SwapBox.gif", start: 0, end: 2}, //(6,2x)(2x,2x)*
+    O: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/.gif", start: 0, end: 2},
+    P: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/.gif", start: 0, end: 2},
+  },
+
+  streams: {
+    streamA: "A{scale: "sin(time)*20", opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamB: "B{scale: 20, opacity:.8, useMask: 1, maskShape: triangle, maskRadius: .5}",
+    streamC: "C{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamD: "D{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}"
+  },
+  
+  sceneGroups: [
+    
+    {
+      streams: ["streamA", "streamA", "streamA"],
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails: { enabled: true, count: 5, sides: 5 }
+    },
+
+    // Scene1: Virtual Jugglers
+    {
+      streams: ["streamA", "streamB", "streamC"],
+      ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true },
+      ballCaptions: { enabled: true, texts: {0:"Adam Powers, Triple-I, 1982",1:"Pixar Red's Dream, 1987",2:"Amiga Juggler, Eric Graham, 1986"}, fontSize: 24, scale: ".05", color:0xff0000}
+
+    },
+
+    {
+      ballConnections: {
+        enabled: true,
+        mode: "circles",
+        filled: true,
+        perCircleColors: true,
+        opacity: 0.9,
+        circleContents: [0xff0000, 0x00ff00, 0x0000ff]
+      }
+    },
+
+    {
+      ballSincWaves: {
+        enabled: true,
+        amplitude:10.0,
+        frequency: 1.5,
+        xStretch:.1,
+        yStretch:.1,
+        decay: 0.1,
+        colorMultR:1.0,
+        colorMultG: 1.0,
+        colorMultB:10.0,
+        intensityScale: 0.3,
+        intensityBias: 0.5,
+        planeSize: 40
+      }
+    },
+
+    {
+      streams: ["streamD", "streamD", "streamD"],
+      ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true }
+    }
+  ],
+  activeGroup: 1,
+  showCamera: false
+}
