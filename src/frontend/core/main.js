@@ -4,12 +4,19 @@
  */
 
 import { ThreeSceneManager } from './three-scene.js';
+
 import { WebSocketClient } from './websocket-client.js';
+
+
 import { BallTrackingManager } from '../tracking/ball-tracking.js';
 import { SceneManager } from '../scene/scene-manager.js';
 import { UIController } from '../ui/ui-controller.js';
+
+// Audio and VisualEffectsProcessor
 import { AudioProcessor } from '../audio/audio-processor.js';
 import { VisualEffectsProcessor } from '../media/visual-effects-processor.js';
+
+// MIDI
 import { MidiState } from '../midi/midi-state.js';
 import { MidiController } from '../midi/midi-controller.js';
 import { MidiEditorBridge } from '../midi/midi-editor-bridge.js';

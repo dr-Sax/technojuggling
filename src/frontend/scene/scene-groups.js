@@ -49,7 +49,7 @@
 
 // Effect config-block keys the controller manages. Anything in this list that
 // a group omits is removed from the config, so applyAllEffects disables it.
-const EFFECT_KEYS = ['ballTrails', 'ballConnections', 'ballSpacetime', 'ballSincWaves'];
+const EFFECT_KEYS = ['ballTrails', 'ballConnections', 'ballSpacetime', 'ballSincWaves', 'ballCaptions'];
 
 export class SceneGroupController {
   constructor(sceneManager) {
