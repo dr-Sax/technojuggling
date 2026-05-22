@@ -7,7 +7,15 @@
  * MIDI integration: call setMidiState(midiState) to make MIDI variables
  * (cc1..cc127, note0..note127, noteHeld0..noteHeld127, pitchBend, chPressure)
  * available inside any expression string. e.g. scale: "cc1 * 10"
+ *
+ * Ball-data resilience: every evaluate() call pre-seeds default zeros for
+ * b0x..b15x, b0y..b15y, ball_0..ball_15 (and their _x/_y/_vx/_vy accessors),
+ * so an expression like "b0y * 5" returns 0 — not a ReferenceError —
+ * before tracker data has arrived. Real ball values overwrite the
+ * defaults whenever they're present in the context.
  */
+
+const MAX_BALLS = 16;
 
 export class ExpressionEvaluator {
   constructor() {
@@ -58,8 +66,21 @@ export class ExpressionEvaluator {
         Object.assign(scope, this.midiState.getScope());
       }
 
+      // Seed defaults for common ball variables so expressions referencing
+      // an as-yet-untracked ball return 0 instead of throwing
+      // ReferenceError. Real values overwrite these in the loop below.
+      for (let i = 0; i < MAX_BALLS; i++) {
+        scope[`ball_${i}`]    = { x: 0, y: 0, vx: 0, vy: 0 };
+        scope[`ball_${i}_x`]  = 0;
+        scope[`ball_${i}_y`]  = 0;
+        scope[`ball_${i}_vx`] = 0;
+        scope[`ball_${i}_vy`] = 0;
+        scope[`b${i}x`]       = 0;
+        scope[`b${i}y`]       = 0;
+      }
+
       // Flatten ball positions into scope: ball_0_x, ball_0_y, ball_0_vx, ball_0_vy
-      // Also expose as b0x, b0y etc for brevity
+      // Also expose as b0x, b0y etc for brevity. Overwrites the defaults above.
       for (const [key, val] of Object.entries(ballData)) {
         if (val && typeof val === 'object') {
           scope[key] = val; // keep full object e.g. ball_0

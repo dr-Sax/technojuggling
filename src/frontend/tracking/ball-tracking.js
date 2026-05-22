@@ -10,7 +10,7 @@ import './effects/trails.js';
 import './effects/connections.js';
 import './effects/spacetime.js';
 import './effects/sincwaves.js';
-import './effects/captions.js';f
+import './effects/captions.js';
 
 // BallMedia is still special (manages video elements on tracked balls)
 import { BallMedia } from './ball-media.js';

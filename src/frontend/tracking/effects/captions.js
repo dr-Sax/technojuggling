@@ -186,8 +186,9 @@ export class Captions extends PerBallEffect {
     const sm = this.sceneManager;
     if (typeof v === 'string' && sm?.evaluator?.isExpression?.(v)) {
       try {
-        const t = sm.getTime ? sm.getTime() : (performance.now() / 1000);
-        const r = sm.evaluator.evaluate(v, { time: t, t });
+        const ctx = sm.getBallContext ? sm.getBallContext()
+                                      : { time: sm.getTime(), t: sm.getTime() };
+        const r = sm.evaluator.evaluate(v, ctx);
         return Number.isFinite(r) ? r : fallback;
       } catch (e) {
         return fallback;

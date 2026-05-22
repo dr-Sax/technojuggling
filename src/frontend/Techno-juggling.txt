@@ -24,13 +24,12 @@
     K: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/yoyo.gif", start: 0, end: 2},
     L: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/fakecolumns.gif", start: 0, end: 2},
     M: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/oyoy.gif", start: 0, end: 2},
-    *
     O: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/columns.gif", start: 0, end: 2}, //(4,4)(4,0)
     P: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/cascade.gif", start: 0, end: 2}, //3
   },
 
   streams: {
-    streamA: "A{scale: "sin(time)*20", opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
+    streamA: "A{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
     streamB: "B{scale: 20, opacity:.8, useMask: 1, maskShape: triangle, maskRadius: .5}",
     streamC: "C{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
     streamD: "D{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}"
@@ -39,14 +38,14 @@
   sceneGroups: [
     
     {
-      streams: ["streamA", "streamA", "streamA"],
+      streams: ["streamA"],
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
       ballTrails: { enabled: true, count: 5, sides: 5 }
     },
 
     // Scene1: Virtual Jugglers
     {
-      streams: ["streamA", "streamB", "streamC"],
+      streams: ["streamC"],
       ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true },
       ballCaptions: { enabled: true, texts: {0:"Adam Powers, Triple-I, 1982",1:"Pixar Red's Dream, 1987",2:"Amiga Juggler, Eric Graham, 1986"}, fontSize: 24, scale: ".05", color:0xff0000}
 
@@ -79,12 +78,29 @@
         planeSize: 40
       }
     },
+    {
+    ballSpacetime: {
+      enabled: true,
+      zStep: 0.2,
+      feedPlaneOffset: "20*sin(time*3)",
+      maxHistory: 2000,
+      theta: "0",    // @param float 0.0 6.28 0.05
+      phi: "sin(time)",      // @param float 0.1  2.5  0.05
+      radius: 10,  // @param float 5.0  80.0 1.0
+      perBallColors: true,
+      tubeRadius: 0.25,   // @param float 0.01 0.5 0.01
+      tubeSegments: 6,    // @param int 3 16 1
+      rebuildEvery: 1,
+      ballColors: { 0: 0xFFFF00, 1: 0xFF8C00, 2: 0xADD8E6, 3: 0x00008B }
+	}
+    },
 
     {
-      streams: ["streamD", "streamD", "streamD"],
-      ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true }
+      streams: ["streamD"],
+      ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true },
+      ballCaptions: { enabled: true, texts: {0:"441"}, fontSize: 24, scale: ".05", offsetY: -4, color:0xff0000}
     }
   ],
-  activeGroup: 1,
+  activeGroup: 5, //[0,5],6
   showCamera: false
 }

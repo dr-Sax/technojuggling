@@ -198,20 +198,16 @@ export class BallSpacetime extends GeometryBase {
    */
    _resolveParam(value, fallback) {
     if (typeof value !== 'string') return value;
+    const sm = this.sceneManager;
+    if (!sm?.evaluator?.isExpression?.(value)) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
     try {
-      const t = performance.now() / 1000;
-      const fn = new Function(
-        'time', 't',
-        'sin', 'cos', 'tan', 'abs', 'sqrt', 'pow', 'min', 'max',
-        'floor', 'ceil', 'round', 'PI',
-        '"use strict"; return (' + value + ');'
-      );
-      const result = fn(
-        t, t,
-        Math.sin, Math.cos, Math.tan, Math.abs, Math.sqrt, Math.pow,
-        Math.min, Math.max, Math.floor, Math.ceil, Math.round, Math.PI
-      );
-      return (typeof result === 'number' && isFinite(result)) ? result : fallback;
+      const ctx = sm.getBallContext ? sm.getBallContext()
+                                    : { time: sm.getTime(), t: sm.getTime() };
+      const r = sm.evaluator.evaluate(value, ctx);
+      return (typeof r === 'number' && Number.isFinite(r)) ? r : fallback;
     } catch (e) {
       return fallback;
     }

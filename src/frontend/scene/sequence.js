@@ -169,7 +169,17 @@ class StreamPlayer {
       if (colonIdx === -1) continue;
 
       const key = part.slice(0, colonIdx).trim();
-      const value = part.slice(colonIdx + 1).trim();
+      let value = part.slice(colonIdx + 1).trim();
+
+      // Strip surrounding quotes if present — stream effects authored as
+      //   A{scale: "sin(time)*20"}
+      // arrive here with the literal quote characters still attached, which
+      // prevents the expression evaluator from parsing them correctly.
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
       // Numeric if it round-trips cleanly; otherwise keep as string
       // (could be an enum like `circle` or a live expression).
       const num = parseFloat(value);

@@ -12,6 +12,11 @@
  *
  * MIDI: setMidiState() forwards state to both this evaluator and the
  * ParameterManager's evaluator, so MIDI vars (cc1, ...) work in expressions.
+ *
+ * Live expressions: any numeric param in any effect block or clip-effects
+ * block may be a string expression like "sin(time)*20" or "b0y*5". These
+ * are evaluated each frame against a shared context built by
+ * getBallContext() — see updateDynamicParameters().
  */
 import { CONFIG } from '../core/config.js';
 import { ExpressionEvaluator } from './expression-system.js';
@@ -207,6 +212,23 @@ export class SceneManager {
     return performance.now() / 1000 - this.startTime;
   }
 
+  /**
+   * Build the per-frame expression scope.
+   * Single source of truth — connections, captions, spacetime, trails,
+   * sincwaves, and clip media params all evaluate against this.
+   *
+   *   time, t                 — seconds since resetTime()
+   *   ball_0, ball_1, ...     — { x, y, vx, vy } objects
+   *   ball_0_x/_y/_vx/_vy ... — flattened scalar accessors
+   *   b0x, b0y, b1x, b1y, ... — short aliases (positions only)
+   *   cc1..cc127, note0..., pitchBend, chPressure  — via MIDI state
+   */
+  getBallContext() {
+    const time = this.getTime();
+    const ballData = this.ballManager?.getBallData?.() || {};
+    return { time, t: time, ...ballData };
+  }
+
   evaluateParam(value, context) {
     if (this.evaluator.isExpression(value)) {
       return this.evaluator.evaluate(value, context);
@@ -224,26 +246,71 @@ export class SceneManager {
     return 0xffffff;
   }
 
+  /**
+   * Evaluate every expression-typed field in a flat effect-config object.
+   * - Numbers / booleans / arrays / nested objects pass through unchanged.
+   * - Strings are evaluated only if isExpression() (so enums like "mesh",
+   *   "circle", "triangle" survive).
+   * - The `color` / `gridColor` keys get the color-aware path so hex ints
+   *   don't get parsed as expressions.
+   * - Returns a shallow copy — does NOT mutate the input.
+   */
+  evaluateEffectConfig(rawConfig, context) {
+    if (!rawConfig || typeof rawConfig !== 'object') return rawConfig;
+    const out = {};
+    for (const [key, value] of Object.entries(rawConfig)) {
+      if (key === 'color' || key === 'gridColor') {
+        out[key] = this.evaluateColor(value, context);
+      } else if (typeof value === 'string' && this.evaluator.isExpression(value)) {
+        const r = this.evaluator.evaluate(value, context);
+        out[key] = Number.isFinite(r) ? r : value;
+      } else {
+        out[key] = value;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * True if any value in a flat effect-config object is an expression string.
+   * Used to decide whether an effect block needs per-frame re-evaluation.
+   */
+  configHasExpressions(rawConfig) {
+    if (!rawConfig || typeof rawConfig !== 'object') return false;
+    for (const value of Object.values(rawConfig)) {
+      if (typeof value === 'string' && this.evaluator.isExpression(value)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // ============================================================================
   // PER-FRAME UPDATE (called from animation loop)
   // ============================================================================
 
   updateDynamicParameters() {
-    const ballData = this.ballManager.getBallData();
+    const context = this.getBallContext();
+
+    // 1. Per-ball media params (scale, rotation, opacity, ...)
     if (this.sequenceActive) {
-      this.updateSequenceDynamicParameters(ballData);
+      this.updateSequenceDynamicParameters(context);
     }
-    this.updateBallConnections();
+
+    // 2. Effect-block params (ballTrails, ballConnections, ballSpacetime,
+    //    ballSincWaves, ballCaptions) — push live-evaluated configs into
+    //    every effect whose raw config contains expressions.
+    this.updateEffectExpressions(context);
   }
 
-  updateSequenceDynamicParameters(ballData = {}) {
+  updateSequenceDynamicParameters(context) {
     if (!this.sequenceActive) return;
-
     this.sequencePlayer.update();
 
     if (!this.parameterManager.hasExpressions()) return;
 
-    const time = this.sequencePlayer.getCurrentTime();
+    // ParameterManager takes (time, ballData) — split context back apart.
+    const { time, t: _t, ...ballData } = context;
     const updates = this.parameterManager.getAllUpdates(time, ballData);
 
     for (const update of updates) {
@@ -252,50 +319,31 @@ export class SceneManager {
     }
   }
 
+  /**
+   * For each effect with expressions in its raw config block, evaluate the
+   * block against the current frame's context and push the result through
+   * the effect's setConfig (via the registry). Effects whose config has
+   * no expressions are skipped — no per-frame cost.
+   */
+  updateEffectExpressions(context) {
+    if (!this.activeConfig) return;
+
+    for (const effectName of effectRegistry.getAllNames()) {
+      const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
+      const raw = this.activeConfig[configKey] || this.activeConfig[effectName];
+      if (!raw || raw.enabled === false) continue;
+      if (!this.configHasExpressions(raw)) continue;
+
+      const evaluated = this.evaluateEffectConfig(raw, context);
+      // Strip `enabled` — that's a structural flag, not a per-frame param.
+      const { enabled, ...params } = evaluated;
+      effectRegistry.applyConfig(effectName, params);
+    }
+  }
+
   // ============================================================================
   // BALL CONNECTIONS
   // ============================================================================
-
-  updateBallConnections() {
-    if (!this.activeConfig || !this.activeConfig.ballConnections) return;
-
-    const connections = this.activeConfig.ballConnections;
-    if (!connections.enabled) return;
-
-    const params = this.evaluateConnectionParameters(connections);
-    if (params) {
-      this.ballManager.setConnectionParameters(params);
-    }
-  }
-
-  evaluateConnectionParameters(connectionConfig) {
-    if (!connectionConfig || !connectionConfig.enabled) return null;
-
-    const time = this.getTime();
-    const context = { time, t: time };
-    const params = {};
-
-    if (connectionConfig.lineWidth !== undefined) {
-      params.lineWidth = this.evaluateParam(connectionConfig.lineWidth, context);
-    }
-    if (connectionConfig.opacity !== undefined) {
-      params.opacity = this.evaluateParam(connectionConfig.opacity, context);
-    }
-    if (connectionConfig.zIndex !== undefined) {
-      params.zIndex = this.evaluateParam(connectionConfig.zIndex, context);
-    }
-    if (connectionConfig.color !== undefined) {
-      params.color = this.evaluateColor(connectionConfig.color, context);
-    }
-
-    for (const key of ['filled', 'perCircleColors', 'circleContents', 'colorMode', 'segments']) {
-      if (connectionConfig[key] !== undefined) {
-        params[key] = connectionConfig[key];
-      }
-    }
-
-    return Object.keys(params).length > 0 ? params : null;
-  }
 
   applyBallConnectionSettings(settings) {
     if (settings.enabled !== undefined) {
@@ -304,8 +352,13 @@ export class SceneManager {
     if (settings.mode !== undefined) {
       this.ballManager.setConnectionMode(settings.mode);
     }
-    const params = this.evaluateConnectionParameters(settings);
-    if (params) {
+    // Apply non-expression keys once now (and the current snapshot of any
+    // expression keys); per-frame re-evaluation of expressions is handled
+    // by updateEffectExpressions().
+    const context = this.getBallContext();
+    const evaluated = this.evaluateEffectConfig(settings, context);
+    const { enabled, mode, ...params } = evaluated;
+    if (Object.keys(params).length > 0) {
       this.ballManager.setConnectionParameters(params);
     }
   }
@@ -315,17 +368,16 @@ export class SceneManager {
   // ============================================================================
 
   applyAllEffects(config) {
-    for (const effectName of effectRegistry.getAllNames()) {
-      const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
-      const settings = config[configKey] || config[effectName];
+  for (const effectName of effectRegistry.getAllNames()) {
+    const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
+    const settings = config[configKey] || config[effectName];
 
-      if (settings) {
-        this.applyEffectSettings(effectName, settings);
-      } else {
-        this.ballManager.setEffectEnabled(effectName, false);
-      }
-    }
+    // Always go through applyEffectSettings so per-effect teardown
+    // (e.g. spacetime.disable → camera reset, feed-Z reset) runs on
+    // group switches that drop the block entirely.
+    this.applyEffectSettings(effectName, settings || { enabled: false });
   }
+}
 
   applyEffectSettings(effectName, settings) {
     if (settings.enabled !== undefined) {
@@ -346,6 +398,9 @@ export class SceneManager {
     }
 
     if (effectRegistry.has(effectName)) {
+      // Apply the raw config once on (re)load — strings live in this.config
+      // until updateEffectExpressions() overwrites them per-frame with
+      // evaluated values. Non-expression keys settle here and stay put.
       effectRegistry.applyConfig(effectName, settings);
     }
   }
