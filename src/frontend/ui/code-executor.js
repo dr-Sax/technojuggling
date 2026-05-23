@@ -2,9 +2,12 @@
  * Code Executor - parses and executes user code, routing it to the
  * SceneManager's loadConfig (full reload) or updateConfig (light update).
  *
- * Scene groups: a change to the `clipGroups` or `sceneGroups` array is
- * structural (full reload). A change to only `activeGroup` falls through to
- * updateConfig(), which detects the group switch and reloads internally.
+ * Schema: { clips, channels, scenes, activeScene } — see SceneManager.
+ *
+ * A change to a scene's clip assignments, channel keys, or which effect
+ * blocks a scene declares is structural (full reload). A change to only
+ * `activeScene`, channel param values, or numeric values inside an effect
+ * block falls through to updateConfig() for live application.
  */
 
 export class CodeExecutor {
@@ -16,8 +19,7 @@ export class CodeExecutor {
     const trimmed = code.trim();
     const config = eval(`(${trimmed})`);
 
-    if (!config.clips && !config.streams && !config.routing &&
-        !config.clipGroups && !config.sceneGroups) {
+    if (!config.clips && !config.scenes) {
       console.warn('No sequence properties found in config');
       return lastConfig;
     }
@@ -34,92 +36,95 @@ export class CodeExecutor {
   }
 
   hasStructuralChanges(oldConfig, newConfig) {
-  if (!oldConfig) return true;
+    if (!oldConfig) return true;
 
-  const oldClips = Object.keys(oldConfig.clips || {}).sort();
-  const newClips = Object.keys(newConfig.clips || {}).sort();
+    // --- Clip library: any change to the set of clips, or any clip's url /
+    // start / end, is structural. Optional fields (label, dwell, tags) are
+    // metadata only and don't force a reload.
+    const oldClips = Object.keys(oldConfig.clips || {}).sort();
+    const newClips = Object.keys(newConfig.clips || {}).sort();
 
-  if (oldClips.length !== newClips.length || oldClips.some((c, i) => c !== newClips[i])) {
-    return true;
-  }
-
-  for (const clipName of newClips) {
-    const oldClip = oldConfig.clips[clipName];
-    const newClip = newConfig.clips[clipName];
-    if (oldClip.url !== newClip.url || oldClip.start !== newClip.start || oldClip.end !== newClip.end) {
-      return true;
-    }
-  }
-
-  if (JSON.stringify(oldConfig.streams || {}) !== JSON.stringify(newConfig.streams || {})) {
-    return true;
-  }
-
-  if (JSON.stringify(oldConfig.routing || {}) !== JSON.stringify(newConfig.routing || {})) {
-    return true;
-  }
-
-  // Groups: structural if the group COUNT, per-group STREAMS, or the SET of
-  // effect blocks present changes. A change to a numeric value *inside* an
-  // effect block is NOT structural — it falls through to updateConfig(),
-  // which applies effect params live via applyAllEffects() without reloading
-  // clips. This is what makes MIDI knob tweaks cheap.
-  if (this.groupsStructurallyDiffer(oldConfig.clipGroups, newConfig.clipGroups)) {
-    return true;
-  }
-  if (this.groupsStructurallyDiffer(oldConfig.sceneGroups, newConfig.sceneGroups)) {
-    return true;
-  }
-
-  if (oldConfig.showCamera !== newConfig.showCamera) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Compare two group arrays for STRUCTURAL difference, ignoring the parameter
- * values inside effect blocks.
- *
- * Structural = different group count, different `streams` array on any group,
- * or a different set of effect-block keys on any group (e.g. ballTrails added
- * or removed). NOT structural = same shape, only numbers/colors changed inside
- * an effect block — those are handled live by updateConfig → applyAllEffects.
- */
-groupsStructurallyDiffer(oldGroups, newGroups) {
-  const a = oldGroups || [];
-  const b = newGroups || [];
-  if (a.length !== b.length) return true;
-
-  for (let i = 0; i < a.length; i++) {
-    const ga = a[i] || {};
-    const gb = b[i] || {};
-
-    // streams array: compared by value — a routing change IS structural.
-    if (JSON.stringify(ga.streams || null) !== JSON.stringify(gb.streams || null)) {
+    if (oldClips.length !== newClips.length || oldClips.some((c, i) => c !== newClips[i])) {
       return true;
     }
 
-    // Effect-block keys present on each group, e.g. ['ballTrails','ballSincWaves'].
-    // 'streams' is excluded — handled above. We compare which blocks EXIST,
-    // not their contents.
-    const keysA = Object.keys(ga).filter(k => k !== 'streams').sort();
-    const keysB = Object.keys(gb).filter(k => k !== 'streams').sort();
-    if (keysA.length !== keysB.length || keysA.some((k, j) => k !== keysB[j])) {
-      return true;
-    }
-
-    // One more guard: an effect block flipping enabled true<->false is
-    // structural enough to want a clean rebuild (enable/disable paths differ
-    // per effect). Param-only changes still fall through.
-    for (const k of keysA) {
-      const ea = ga[k], eb = gb[k];
-      if (ea && eb && typeof ea === 'object' && typeof eb === 'object') {
-        if (!!ea.enabled !== !!eb.enabled) return true;
+    for (const clipName of newClips) {
+      const oldClip = oldConfig.clips[clipName];
+      const newClip = newConfig.clips[clipName];
+      if (oldClip.url !== newClip.url || oldClip.start !== newClip.start || oldClip.end !== newClip.end) {
+        return true;
       }
     }
+
+    // --- Channels: only the SET of channel keys is structural.
+    // Per-channel param value changes (scale, volume, mask, etc.) get
+    // re-applied to live balls on the light-update path without disturbing
+    // playback.
+    if (this.channelsStructurallyDiffer(oldConfig.channels, newConfig.channels)) {
+      return true;
+    }
+
+    // --- Scenes: scene count, per-scene clip assignments, and the set of
+    // effect-block keys per scene are structural. Numeric values inside
+    // effect blocks fall through to updateConfig → applyAllEffects.
+    if (this.scenesStructurallyDiffer(oldConfig.scenes, newConfig.scenes)) {
+      return true;
+    }
+
+    if (oldConfig.showCamera !== newConfig.showCamera) {
+      return true;
+    }
+
+    return false;
   }
-  return false;
-}
+
+  /**
+   * Channels structurally differ only when the set of channel keys changes.
+   * Per-channel param changes fall through and apply live via updateConfig.
+   */
+  channelsStructurallyDiffer(oldChannels, newChannels) {
+    const a = Object.keys(oldChannels || {}).sort();
+    const b = Object.keys(newChannels || {}).sort();
+    if (a.length !== b.length) return true;
+    return a.some((k, i) => k !== b[i]);
+  }
+
+  /**
+   * Scenes structurally differ when: scene count changes, any scene's clip
+   * assignment dict differs (ball-to-clip mapping), or the set of effect
+   * blocks present on a scene changes (enable/disable of an effect type).
+   * Numeric values inside effect blocks are NOT compared here.
+   */
+  scenesStructurallyDiffer(oldScenes, newScenes) {
+    const a = oldScenes || [];
+    const b = newScenes || [];
+    if (a.length !== b.length) return true;
+    if (a.length === 0) return false;
+
+    for (let i = 0; i < a.length; i++) {
+      const sa = a[i] || {};
+      const sb = b[i] || {};
+
+      // Clip assignment dict compared by value.
+      if (JSON.stringify(sa.clips || null) !== JSON.stringify(sb.clips || null)) {
+        return true;
+      }
+
+      // Set of effect blocks present (not their values).
+      const keysA = Object.keys(sa).filter(k => k !== 'clips').sort();
+      const keysB = Object.keys(sb).filter(k => k !== 'clips').sort();
+      if (keysA.length !== keysB.length || keysA.some((k, j) => k !== keysB[j])) {
+        return true;
+      }
+
+      // enabled flag flip on any block is structural.
+      for (const k of keysA) {
+        const ea = sa[k], eb = sb[k];
+        if (ea && eb && typeof ea === 'object' && typeof eb === 'object') {
+          if (!!ea.enabled !== !!eb.enabled) return true;
+        }
+      }
+    }
+    return false;
+  }
 }

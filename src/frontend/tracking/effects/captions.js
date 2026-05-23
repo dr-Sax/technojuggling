@@ -13,6 +13,11 @@
  *     text:        "hello",            // global text (used for every ball)
  *     // OR per-ball, by ball index:
  *     texts:       { 0: "alice", 1: "bob", 2: "carol" },
+ *     // OR (new-schema only): auto-populate texts from each scene-assigned
+ *     // clip's `label` field. SceneController fills `texts` from the clips
+ *     // before this effect ever sees the config, so this flag is just a
+ *     // signal at config-build time; once we get here, texts is populated.
+ *     autoFromClipLabel: true,
  *     fontStyle:   "bold italic",      // any CSS font-style/weight tokens
  *     fontFamily:  "Arial",            // any CSS family
  *     fontSize:    48,                 // px in the canvas; world size scales with it
@@ -43,6 +48,7 @@ export class Captions extends PerBallEffect {
   static defaults = {
     text: '',
     texts: {},                  // { ballIndex: "string" } — overrides `text` per ball
+    autoFromClipLabel: false,   // populated upstream by SceneController; harmless here
     fontStyle: 'normal',        // "normal" | "italic" | "bold" | "bold italic" | etc.
     fontFamily: 'Arial',
     fontSize: 48,               // px in the source canvas

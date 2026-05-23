@@ -1,106 +1,122 @@
 {
+  // ─── Clip library ─────────────────────────────────────────────────────
+  // Optional fields: label (used by ballCaptions autoFromClipLabel),
+  // dwell (for stills/GIFs if you want scheduled advancement later),
+  // tags (free-form grouping).
   clips: {
 
     // CGI Jugglers
-    A: {url: "https://www.youtube.com/watch?v=q-czprsHl9g", start: 20, end: 30}, // Adam Powers, Triple-I, 1982
-    B: {url: "https://www.youtube.com/watch?v=96xGUa1a_zs", start: 100, end: 110}, // Pixar Red's Dream, 1987
-    C: {url: "https://www.youtube.com/watch?v=-yJNGwIcLtw", start: 0, end: 10},  // Amiga Juggler, Eric Graham, 1986
+    A: {url: "https://www.youtube.com/watch?v=q-czprsHl9g", start: 0, end: 30, label: "Adam Powers, Triple-I, 1982", tags: ["cgi"]},
+    B: {url: "https://www.youtube.com/watch?v=96xGUa1a_zs", start: 100, end: 110, label: "Pixar Red's Dream, 1987", tags: ["cgi"]},
+    C: {url: "https://www.youtube.com/watch?v=-yJNGwIcLtw", start: 0, end: 10, label: "Amiga Juggler, Eric Graham, 1986", tags: ["cgi"]},
 
     // Advanced Siteswaps
-    D: {url: "https://storage.googleapis.com/jugglinglab/gif/abe3bde5f7472921e9be442f.gif", start: 0, end: 2},  //441
-    E: {url: "https://storage.googleapis.com/jugglinglab/gif/b897992a317fc15c6dcd7e31.gif", start: 0, end: 2},  //7441
-    F: {url: "https://storage.googleapis.com/jugglinglab/gif/742366540cf46fac1a2668de.gif", start: 0, end: 2},  //(4x,4x)
-    G: {url: "https://storage.googleapis.com/jugglinglab/gif/78fe2a9074735c0fd0eba917.gif", start: 0, end: 2},  //(8,2x)(4,2x)*
-    H: {url: "https://storage.googleapis.com/jugglinglab/gif/e5f5e856318af618625601bc.gif", start: 0, end: 2},  //633
-    I: {url: "https://storage.googleapis.com/jugglinglab/gif/603d2096c62d5fe02d381f0c.gif", start: 0, end: 2}, //(6x,2x)(2x,2x)
-    I: {url: "https://storage.googleapis.com/jugglinglab/gif/bb1e346285bf3c8dc0ebd3c7.gif", start: 0, end: 2}, //(4,2x)(2x,4) - Box
-    I: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/nbox.gif", start: 0, end: 2}, //(4,2x)(2x,4) - Box
-    I: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/lukeshuffle.gif", start: 0, end: 2}, //(4,2x)(2x,4) - Box
-    N: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/swapbox.gif", start: 0, end: 2}, //(6,2x)(2x,2x)
+    D: {url: "https://storage.googleapis.com/jugglinglab/gif/abe3bde5f7472921e9be442f.gif", start: 0, end: 2, label: "441", tags: ["siteswap"]},
+    E: {url: "https://storage.googleapis.com/jugglinglab/gif/b897992a317fc15c6dcd7e31.gif", start: 0, end: 2, label: "7441", tags: ["siteswap"]},
+    F: {url: "https://storage.googleapis.com/jugglinglab/gif/742366540cf46fac1a2668de.gif", start: 0, end: 2, label: "(4x,4x)", tags: ["siteswap"]},
+    G: {url: "https://storage.googleapis.com/jugglinglab/gif/78fe2a9074735c0fd0eba917.gif", start: 0, end: 2, label: "(8,2x)(4,2x)*", tags: ["siteswap"]},
+    H: {url: "https://storage.googleapis.com/jugglinglab/gif/e5f5e856318af618625601bc.gif", start: 0, end: 2, label: "633", tags: ["siteswap"]},
+    I: {url: "https://storage.googleapis.com/jugglinglab/gif/603d2096c62d5fe02d381f0c.gif", start: 0, end: 2, label: "(6x,2x)(2x,2x)", tags: ["siteswap"]},
+    J: {url: "https://storage.googleapis.com/jugglinglab/gif/bb1e346285bf3c8dc0ebd3c7.gif", start: 0, end: 2, label: "(4,2x)(2x,4) - Box", tags: ["siteswap"]},
+    K: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/nbox.gif", start: 0, end: 2, label: "N-Box", tags: ["siteswap"]},
+    L: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/lukeshuffle.gif", start: 0, end: 2, label: "Luke's Shuffle", tags: ["siteswap"]},
+    M: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/swapbox.gif", start: 0, end: 2, label: "Swap Box", tags: ["siteswap"]},
 
     // Dad's Tricks
-    I: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/reversecascade.gif", start:0, end:2}, //3
-    J: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/halfshower.gif", start: 0, end: 2},   //3
-    K: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/yoyo.gif", start: 0, end: 2},
-    L: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/fakecolumns.gif", start: 0, end: 2},
-    M: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/oyoy.gif", start: 0, end: 2},
-    O: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/columns.gif", start: 0, end: 2}, //(4,4)(4,0)
-    P: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/cascade.gif", start: 0, end: 2}, //3
+    N: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/reversecascade.gif", start: 0, end: 2, label: "Reverse Cascade", tags: ["dad"]},
+    O: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/halfshower.gif",     start: 0, end: 2, label: "Half Shower",     tags: ["dad"]},
+    P: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/yoyo.gif",           start: 0, end: 2, label: "Yo-Yo",           tags: ["dad"]},
+    Q: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/fakecolumns.gif",    start: 0, end: 2, label: "Fake Columns",    tags: ["dad"]},
+    R: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/oyoy.gif",           start: 0, end: 2, label: "Oy-Oy",           tags: ["dad"]},
+    S: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/columns.gif",        start: 0, end: 2, label: "Columns",         tags: ["dad"]},
+    T: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/cascade.gif",        start: 0, end: 2, label: "Cascade",         tags: ["dad"]},
   },
 
-  streams: {
-    streamA: "A{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamB: "B{scale: 20, opacity:.8, useMask: 1, maskShape: triangle, maskRadius: .5}",
-    streamC: "C{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamD: "D{scale: 20, opacity:.8, useMask: 1, maskShape: circle, maskRadius: .5}"
+  // ─── Channels: per-ball persistent transform state ────────────────────
+  // These are the values MIDI knobs modify. Sticky across scenes.
+  channels: {
+    ball0: { 
+      scale: 20, 
+      volume: 30, //0,99,100
+      opacity: 0.8, 
+      useMask: 1, 
+      maskShape: "circle",   
+      maskRadius: 0.5,
+      pitch: "10-b0x"
+    },
+    ball1: { scale: 20, opacity: 0.8, volume:0, useMask: 1, maskShape: "triangle", maskRadius: 0.5 },
+    ball2: { scale: 20, opacity: 0.8, volume:0, useMask: 1, maskShape: "circle",   maskRadius: 0.5 },
   },
-  
-  sceneGroups: [
-    
+
+  // ─── Scenes: clip-on-channel + effects ────────────────────────────────
+  scenes: [
+
+    // 0: CGI mesh
     {
-      streams: ["streamA"],
+      clips: { ball0: "B" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails: { enabled: true, count: 5, sides: 5 }
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
-    // Scene1: Virtual Jugglers
+    // 1: Pixar trails
     {
-      streams: ["streamC"],
-      ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true },
-      ballCaptions: { enabled: true, texts: {0:"Adam Powers, Triple-I, 1982",1:"Pixar Red's Dream, 1987",2:"Amiga Juggler, Eric Graham, 1986"}, fontSize: 24, scale: ".05", color:0xff0000}
-
+      clips: { ball0: "C", ball1:"D", ball2: "E"},
+      ballTrails:   { enabled: true, count: 12, sides: 3, perBallColors: true },
+      ballCaptions: { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xffffff },
     },
 
+    // 2: RGB filled circles
     {
       ballConnections: {
-        enabled: true,
-        mode: "circles",
-        filled: true,
-        perCircleColors: true,
-        opacity: 0.9,
-        circleContents: [0xff0000, 0x00ff00, 0x0000ff]
-      }
+        enabled: true, mode: "circles", filled: true,
+        perCircleColors: true, opacity: 0.9,
+        circleContents: [0xff0000, 0x00ff00, 0x0000ff],
+      },
     },
 
+    // 3: sinc waves
     {
       ballSincWaves: {
         enabled: true,
-        amplitude:10.0,
-        frequency: 1.5,
-        xStretch:.1,
-        yStretch:.1,
+        amplitude: 10.0, frequency: 1.5,
+        xStretch: 0.1, yStretch: 0.1,
         decay: 0.1,
-        colorMultR:1.0,
-        colorMultG: 1.0,
-        colorMultB:10.0,
-        intensityScale: 0.3,
-        intensityBias: 0.5,
-        planeSize: 40
-      }
-    },
-    {
-    ballSpacetime: {
-      enabled: true,
-      zStep: 0.2,
-      feedPlaneOffset: "20*sin(time*3)",
-      maxHistory: 2000,
-      theta: "0",    // @param float 0.0 6.28 0.05
-      phi: "sin(time)",      // @param float 0.1  2.5  0.05
-      radius: 10,  // @param float 5.0  80.0 1.0
-      perBallColors: true,
-      tubeRadius: 0.25,   // @param float 0.01 0.5 0.01
-      tubeSegments: 6,    // @param int 3 16 1
-      rebuildEvery: 1,
-      ballColors: { 0: 0xFFFF00, 1: 0xFF8C00, 2: 0xADD8E6, 3: 0x00008B }
-	}
+        colorMultR: 1.0, colorMultG: 1.0, colorMultB: 10.0,
+        intensityScale: 0.3, intensityBias: 0.5,
+        planeSize: 40,
+      },
     },
 
+    // 4: spacetime tubes
     {
-      streams: ["streamD"],
-      ballTrails: { enabled: true, count: 12, sides: 3, perBallColors: true },
-      ballCaptions: { enabled: true, texts: {0:"441"}, fontSize: 24, scale: ".05", offsetY: -4, color:0xff0000}
-    }
+      ballSpacetime: {
+        enabled: true,
+        zStep: 0.2,
+        feedPlaneOffset: "20*sin(time*3)",
+        maxHistory: 2000,
+        theta: "0",
+        phi: "sin(time)",
+        radius: 10,
+        perBallColors: true,
+        tubeRadius: 0.25,
+        tubeSegments: 6,
+        rebuildEvery: 1,
+        ballColors: { 0: 0xFFFF00, 1: 0xFF8C00, 2: 0xADD8E6, 3: 0x00008B },
+      },
+    },
+
+    // 5: 441 siteswap with label
+    {
+      clips: { ball0: "D" },
+      ballTrails:   { enabled: true, count: 12, sides: 3, perBallColors: true },
+      ballCaptions: { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, offsetY: -4, color: 0x000000 },
+    },
   ],
-  activeGroup: 5, //[0,5],6
-  showCamera: false
+
+  // activeScene selects which scene above is live. `activeGroup` also works
+  // as an alias if you prefer the old name during the transition.
+  activeScene: 1, //[0, 5],6
+
+  showCamera: false,
 }

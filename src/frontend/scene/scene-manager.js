@@ -1,30 +1,49 @@
 /**
- * Scene Manager - Unified scene loading, sequence playback, and parameter evaluation
+ * Scene Manager - Owns the active config, manages ball-to-clip assignments,
+ * applies per-frame parameter updates, and applies effect blocks.
  *
- * Owns the single active config. Drives sequence playback (clips/streams/
- * routing), per-frame parameter evaluation, and effect application.
+ * Authored schema:
  *
- * Scene groups: when the config has `clipGroups` (media only) or `sceneGroups`
- * (media + effects), SceneGroupController synthesizes the `routing` block and
- * overlays the active group's effect blocks onto the config before it loads.
- * Switching `activeGroup` via hot-reload re-binds every ball and re-applies
- * the group's effects.
+ *   clips:        { A: {url, start, end, label?, dwell?, tags?}, ... }
+ *   channels:     { ball0: {scale, opacity, mask*, volume, ...}, ... }
+ *   scenes:       [ { clips: {ball0: "A"}, ballTrails: {...}, ... }, ... ]
+ *   activeScene:  0   // or expression string
+ *
+ * Each scene declares which clip goes on which ball channel, plus a set of
+ * effect blocks (ballTrails, ballConnections, ballSpacetime, ballSincWaves,
+ * ballCaptions). Channels are persistent transform state — MIDI knobs
+ * modify them and the values stick across scene changes.
+ *
+ * Two reload paths:
+ *
+ *   loadConfig   (full reload) — clears balls, assigns scene's clips,
+ *                                applies channel params + effect blocks.
+ *                                Called on first run and structural changes.
+ *
+ *   updateConfig (light update) — channel params change, scene index stays.
+ *                                Pushes new params to live balls WITHOUT
+ *                                touching their video elements (no seek-back,
+ *                                no reload). Effect-block param changes
+ *                                also apply live via applyAllEffects.
+ *
+ * The structural-vs-light decision lives in CodeExecutor.
  *
  * MIDI: setMidiState() forwards state to both this evaluator and the
  * ParameterManager's evaluator, so MIDI vars (cc1, ...) work in expressions.
  *
- * Live expressions: any numeric param in any effect block or clip-effects
- * block may be a string expression like "sin(time)*20" or "b0y*5". These
- * are evaluated each frame against a shared context built by
- * getBallContext() — see updateDynamicParameters().
+ * Live expressions: any numeric param in any effect block or channel param
+ * may be a string expression like "sin(time)*20" or "b0y*5". These are
+ * evaluated each frame against a shared context built by getBallContext()
+ * — see updateDynamicParameters().
  */
 import { CONFIG } from '../core/config.js';
 import { ExpressionEvaluator } from './expression-system.js';
-import { SequenceConfig, SequencePlayer } from './sequence.js';
 import { MediaPool } from './media-pool.js';
 import { ParameterManager } from './parameter-manager.js';
-import { SceneGroupController } from './scene-groups.js';
 import { effectRegistry } from '../tracking/effect-registry.js';
+
+const EFFECT_KEYS = ['ballTrails', 'ballConnections', 'ballSpacetime', 'ballSincWaves', 'ballCaptions'];
+const MAX_BALLS = 16;
 
 export class SceneManager {
   constructor(ballManager, wsClient) {
@@ -35,17 +54,18 @@ export class SceneManager {
     this.midiState = null;
 
     this.activeConfig = null;
+    this.activeSceneIndex = 0;
+
+    // Map<ballIndex (number), clipKey (string)> — what's currently on each ball.
+    // Used by the light-update path to find each ball's channel params and
+    // to know which clips are live (for prune).
+    this.ballAssignments = new Map();
 
     this.evaluator = new ExpressionEvaluator();
     this.startTime = performance.now() / 1000;
 
-    this.sequenceConfig = null;
-    this.sequencePlayer = null;
     this.mediaPool = new MediaPool(wsClient);
     this.parameterManager = new ParameterManager();
-    this.sequenceActive = false;
-
-    this.sceneGroups = new SceneGroupController(this);
   }
 
   // ============================================================================
@@ -55,149 +75,238 @@ export class SceneManager {
   /** Load a new configuration (full reload — clears everything). */
   async loadConfig(config) {
     this.ballManager.clearAll();
-    this.clearSequence();
-
-    // Scene groups → synthesize routing + overlay effect blocks before load.
-    const usesGroups = SceneGroupController.configUsesGroups(config);
-    if (usesGroups) {
-      this.sceneGroups.applyToConfig(config);
-    }
+    this._clearAssignments();
 
     this.activeConfig = config;
+    this.activeSceneIndex = this._resolveSceneIndex(
+      config.activeScene,
+      Array.isArray(config.scenes) ? config.scenes.length : 0
+    );
 
-    await this.loadSequence(config);
+    const scene = this._currentScene();
 
-    // Hide balls the active group doesn't cover; drop unused clips.
-    if (usesGroups) {
-      this.sceneGroups.hideUnusedBalls();
-      this.sceneGroups.pruneMediaPool();
-    }
+    // Resolve captions.autoFromClipLabel here, before effects apply.
+    this._applyAutoCaptions(scene);
+
+    // Assign each scene-declared clip to its ball channel.
+    await this._assignSceneClips(scene);
+
+    // Hide balls the scene doesn't use.
+    this._hideUnusedBalls(scene);
+
+    // Drop pooled clips the scene doesn't reference.
+    this._pruneMediaPool(scene);
 
     const showCamera = config.showCamera !== undefined ? config.showCamera : true;
     this.setCameraVisible(showCamera);
 
-    if (config.routing && config.streams) {
-      this.ballManager.setConnectionRouting(config.routing, config.streams);
+    if (scene.ballConnections) {
+      this.applyBallConnectionSettings(scene.ballConnections);
     }
 
-    if (config.ballConnections) {
-      this.applyBallConnectionSettings(config.ballConnections);
-    }
-
-    this.applyAllEffects(config);
+    this._applyAllEffectsFromScene(scene);
 
     this.resetTime();
   }
 
   /**
-   * Hot-reload from the editor. If scene groups are in use and the resolved
-   * group index changed, do a full reload; otherwise apply a light update.
+   * Hot-reload from the editor. If the resolved scene index changed, do a
+   * full reload; otherwise apply a light update.
+   *
+   * Light updates push new channel params and effect-block params to live
+   * balls WITHOUT touching their video elements. The currently playing
+   * video keeps its currentTime/_startTime/_endTime intact — only its
+   * render/audio params (scale, opacity, mask, volume, ...) move.
    */
   async updateConfig(config) {
-    if (SceneGroupController.configUsesGroups(config)) {
-      const prevGroup = this.sceneGroups.resolvedGroup;
-      this.sceneGroups.applyToConfig(config);
-      if (this.sceneGroups.resolvedGroup !== prevGroup) {
-        await this.loadConfig(config);
-        return;
-      }
+    const newIdx = this._resolveSceneIndex(
+      config.activeScene,
+      Array.isArray(config.scenes) ? config.scenes.length : 0
+    );
+
+    if (newIdx !== this.activeSceneIndex) {
+      await this.loadConfig(config);
+      return;
     }
 
     this.activeConfig = config;
 
-    this.updateSequenceParameters(config);
+    // Re-resolve captions.autoFromClipLabel so the active scene's caption
+    // block reflects the assignment (idempotent on the existing texts).
+    const scene = this._currentScene();
+    this._applyAutoCaptions(scene);
 
-    if (config.ballConnections) {
-      this.applyBallConnectionSettings(config.ballConnections);
+    this._applyLightChannelUpdate(config);
+
+    if (scene.ballConnections) {
+      this.applyBallConnectionSettings(scene.ballConnections);
     }
 
-    this.applyAllEffects(config);
+    this._applyAllEffectsFromScene(scene);
   }
 
   // ============================================================================
-  // SEQUENCE PLAYBACK
+  // SCENE STATE
   // ============================================================================
 
-  async loadSequence(config) {
-    this.sequenceConfig = new SequenceConfig();
-    this.sequenceConfig.loadFromObject(config);
-
-    this.sequencePlayer = new SequencePlayer(this.sequenceConfig);
-
-    this.sequencePlayer.on('clipChange', async (event) => {
-      await this.handleClipChange(event);
-    });
-
-    this.sequencePlayer.triggerInitialClips();
-    this.sequenceActive = true;
+  _currentScene() {
+    const scenes = this.activeConfig?.scenes;
+    if (!Array.isArray(scenes) || scenes.length === 0) return {};
+    return scenes[this.activeSceneIndex] || {};
   }
 
-  async handleClipChange(event) {
-    const { objectId, clipData, nextClip } = event;
+  /** Resolve activeScene (number or expression string) to a clamped integer. */
+  _resolveSceneIndex(value, sceneCount) {
+    if (sceneCount === 0) return 0;
+    let n = typeof value === 'string' ? this._evalSceneExpression(value) : Number(value);
+    if (!Number.isFinite(n)) n = 0;
+    return Math.max(0, Math.min(sceneCount - 1, Math.floor(n)));
+  }
 
-    const currentClipId = this.mediaPool.getAssignment(objectId);
-    const newClipId = clipData.clipName;
-    if (currentClipId === newClipId) return;
+  _evalSceneExpression(expr) {
+    if (this.evaluator?.isExpression?.(expr)) {
+      try {
+        const t = this.getTime();
+        const r = this.evaluator.evaluate(expr, { time: t, t });
+        if (Number.isFinite(r)) return r;
+      } catch (e) { /* fall through */ }
+    }
+    try {
+      const t = performance.now() / 1000;
+      const fn = new Function(
+        't', 'time',
+        'sin', 'cos', 'abs', 'floor', 'ceil', 'round', 'min', 'max', 'PI',
+        '"use strict"; return (' + expr + ');'
+      );
+      const r = fn(
+        t, t,
+        Math.sin, Math.cos, Math.abs, Math.floor, Math.ceil, Math.round,
+        Math.min, Math.max, Math.PI
+      );
+      return Number.isFinite(r) ? r : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
 
-    const media = await this.mediaPool.assignClipToObject(objectId, newClipId, clipData.url);
-    const objectName = objectId.replace('ball_', '');
+  /** Iterate ball<N> keys in numeric order. Returns [ballIdx, clipKey] pairs. */
+  _sceneClipAssignments(scene) {
+    const sceneClips = (scene.clips && typeof scene.clips === 'object') ? scene.clips : {};
+    return Object.keys(sceneClips)
+      .filter(k => /^ball\d+$/.test(k) && sceneClips[k])
+      .map(k => [parseInt(k.slice(4), 10), sceneClips[k]])
+      .sort((a, b) => a[0] - b[0]);
+  }
 
-    // offset shifts clock phase — WHERE in the clip loop we start.
-    const routeConfig = this.sequenceConfig.getRoutingConfig(objectId);
-    const timeOffset = routeConfig ? routeConfig.offset : 0;
+  /** Channel params for a given ball index (object or empty object). */
+  _channelParams(ballIdx) {
+    const ch = this.activeConfig?.channels?.[`ball${ballIdx}`];
+    return (ch && typeof ch === 'object') ? ch : {};
+  }
+
+  _clipDef(clipKey) {
+    return this.activeConfig?.clips?.[clipKey] || null;
+  }
+
+  // ============================================================================
+  // CLIP ASSIGNMENT
+  // ============================================================================
+
+  /**
+   * Assign each scene-declared clip to its ball channel. Loads the media,
+   * builds the ball mesh, and applies the channel's transform params.
+   * Called once per full reload.
+   */
+  async _assignSceneClips(scene) {
+    for (const [ballIdx, clipKey] of this._sceneClipAssignments(scene)) {
+      await this._assignClipToBall(ballIdx, clipKey);
+    }
+  }
+
+  async _assignClipToBall(ballIdx, clipKey) {
+    const clip = this._clipDef(clipKey);
+    if (!clip) {
+      console.warn(`[SceneManager] Scene references unknown clip: ${clipKey}`);
+      return;
+    }
+
+    const objectId = `ball_${ballIdx}`;
+    const objectName = String(ballIdx);
+
+    // Don't pass clip.start as videoStart here. MediaPool would pre-seek
+    // the cloned <video> element before handing it off, and then
+    // MediaObject._configureVideoPlayback would immediately seek again to
+    // the same time and call play(). On streaming URLs (YouTube etc.)
+    // those back-to-back seeks race — the second seek often fires while
+    // the first hasn't settled, and Chrome drops the play() call silently.
+    // Symptom: clips with start > 0 don't play. Letting _configureVideoPlayback
+    // be the only seeker eliminates the race.
+    const media = await this.mediaPool.assignClipToObject(
+      objectId, clipKey, clip.url, 0
+    );
 
     this.ballManager.clearBall(objectName);
 
+    const channelParams = this._channelParams(ballIdx);
     await this.ballManager.displayBallMedia(objectName, media, {
-      startTime: clipData.videoStart,
-      endTime: clipData.videoEnd,
+      startTime: clip.start || 0,
+      endTime: clip.end ?? null,
       locked: false,
-      zIndex: clipData.effects.zIndex || 0.1,
+      zIndex: channelParams.zIndex ?? 0.1,
       scale: 1.0,
-      timeOffset,
+      timeOffset: 0,
     });
 
-    const mergedParams = { ...clipData.effects };
-    this.parameterManager.setParameters(objectId, mergedParams);
-    this.ballManager.applyParameters(objectName, mergedParams);
+    // Channel params are the per-ball render/audio settings.
+    // ParameterManager keeps a copy so the per-frame expression evaluator
+    // can re-evaluate any string-expression params each frame.
+    this.parameterManager.setParameters(objectId, channelParams);
+    this.ballManager.applyParameters(objectName, channelParams);
 
-    if (nextClip) {
-      this.mediaPool.preloadNext(objectId, nextClip);
-    }
+    this.ballAssignments.set(ballIdx, clipKey);
   }
 
-  updateSequenceParameters(config) {
-    if (!this.sequenceActive) return;
-
-    this.sequenceConfig.loadFromObject(config);
-
-    const currentTime = this.sequencePlayer.getCurrentTime();
-    const objectIds = Object.keys(this.parameterManager.parameters);
-
-    for (const objectId of objectIds) {
-      const assignment = this.sequencePlayer.objectAssignments.get(objectId);
-      if (!assignment) continue;
-
-      const currentClip = assignment.streamPlayer.getClipAtTime(currentTime);
-      if (!currentClip) continue;
-
-      this.parameterManager.setParameters(objectId, currentClip.effects);
-    }
-
-    for (const objectId of objectIds) {
-      const objectName = objectId.replace('ball_', '');
-      const params = this.parameterManager.getRawParameters(objectId);
-      this.ballManager.applyParameters(objectName, params);
-    }
-  }
-
-  clearSequence() {
+  _clearAssignments() {
     this.mediaPool.clear();
     this.parameterManager.clearAll();
-    if (this.sceneGroups) this.sceneGroups.clear();
-    this.sequenceActive = false;
-    this.sequenceConfig = null;
-    this.sequencePlayer = null;
+    this.ballAssignments.clear();
+  }
+
+  _hideUnusedBalls(scene) {
+    const assigned = new Set(this._sceneClipAssignments(scene).map(([idx]) => String(idx)));
+    for (let i = 0; i < MAX_BALLS; i++) {
+      if (!assigned.has(String(i))) {
+        this.ballManager.media.setVisible(String(i), false);
+      }
+    }
+  }
+
+  _pruneMediaPool(scene) {
+    const liveClipIds = new Set(this._sceneClipAssignments(scene).map(([, k]) => k));
+    for (const clipId of [...this.mediaPool.media.keys()]) {
+      if (!liveClipIds.has(clipId)) this.mediaPool.removeMedia(clipId);
+    }
+  }
+
+  // ============================================================================
+  // LIGHT UPDATE — channel params change but clip identity does not
+  // ============================================================================
+
+  /**
+   * Push new channel params to each currently-assigned ball, WITHOUT
+   * touching the video element. This is the MIDI-knob path: the channel's
+   * volume/scale/opacity/mask values shift live, but the playing video
+   * keeps its currentTime intact.
+   */
+  _applyLightChannelUpdate(config) {
+    for (const [ballIdx] of this.ballAssignments) {
+      const channelParams = this._channelParams(ballIdx);
+      const objectId = `ball_${ballIdx}`;
+      const objectName = String(ballIdx);
+
+      this.parameterManager.setParameters(objectId, channelParams);
+      this.ballManager.applyParameters(objectName, channelParams);
+    }
   }
 
   // ============================================================================
@@ -215,7 +324,7 @@ export class SceneManager {
   /**
    * Build the per-frame expression scope.
    * Single source of truth — connections, captions, spacetime, trails,
-   * sincwaves, and clip media params all evaluate against this.
+   * sincwaves, and channel params all evaluate against this.
    *
    *   time, t                 — seconds since resetTime()
    *   ball_0, ball_1, ...     — { x, y, vx, vy } objects
@@ -292,21 +401,15 @@ export class SceneManager {
   updateDynamicParameters() {
     const context = this.getBallContext();
 
-    // 1. Per-ball media params (scale, rotation, opacity, ...)
-    if (this.sequenceActive) {
-      this.updateSequenceDynamicParameters(context);
-    }
+    // 1. Per-ball channel params (scale, rotation, opacity, ...) that are
+    //    expressions — re-evaluate and re-apply.
+    this._updateBallExpressions(context);
 
-    // 2. Effect-block params (ballTrails, ballConnections, ballSpacetime,
-    //    ballSincWaves, ballCaptions) — push live-evaluated configs into
-    //    every effect whose raw config contains expressions.
-    this.updateEffectExpressions(context);
+    // 2. Effect-block params with expressions — re-evaluate and push.
+    this._updateEffectExpressions(context);
   }
 
-  updateSequenceDynamicParameters(context) {
-    if (!this.sequenceActive) return;
-    this.sequencePlayer.update();
-
+  _updateBallExpressions(context) {
     if (!this.parameterManager.hasExpressions()) return;
 
     // ParameterManager takes (time, ballData) — split context back apart.
@@ -320,22 +423,21 @@ export class SceneManager {
   }
 
   /**
-   * For each effect with expressions in its raw config block, evaluate the
-   * block against the current frame's context and push the result through
-   * the effect's setConfig (via the registry). Effects whose config has
-   * no expressions are skipped — no per-frame cost.
+   * For each scene effect with expressions in its raw config block,
+   * evaluate the block against the current frame's context and push the
+   * result through the effect's setConfig (via the registry). Effects
+   * whose config has no expressions are skipped — no per-frame cost.
    */
-  updateEffectExpressions(context) {
-    if (!this.activeConfig) return;
+  _updateEffectExpressions(context) {
+    const scene = this._currentScene();
 
     for (const effectName of effectRegistry.getAllNames()) {
       const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
-      const raw = this.activeConfig[configKey] || this.activeConfig[effectName];
+      const raw = scene[configKey] || scene[effectName];
       if (!raw || raw.enabled === false) continue;
       if (!this.configHasExpressions(raw)) continue;
 
       const evaluated = this.evaluateEffectConfig(raw, context);
-      // Strip `enabled` — that's a structural flag, not a per-frame param.
       const { enabled, ...params } = evaluated;
       effectRegistry.applyConfig(effectName, params);
     }
@@ -354,7 +456,7 @@ export class SceneManager {
     }
     // Apply non-expression keys once now (and the current snapshot of any
     // expression keys); per-frame re-evaluation of expressions is handled
-    // by updateEffectExpressions().
+    // by _updateEffectExpressions().
     const context = this.getBallContext();
     const evaluated = this.evaluateEffectConfig(settings, context);
     const { enabled, mode, ...params } = evaluated;
@@ -367,17 +469,22 @@ export class SceneManager {
   // EFFECTS
   // ============================================================================
 
-  applyAllEffects(config) {
-  for (const effectName of effectRegistry.getAllNames()) {
-    const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
-    const settings = config[configKey] || config[effectName];
+  /**
+   * Walk every registered effect and either apply this scene's block for
+   * that effect, or apply { enabled: false } so the effect tears down
+   * cleanly when the scene omits it.
+   */
+  _applyAllEffectsFromScene(scene) {
+    for (const effectName of effectRegistry.getAllNames()) {
+      const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
+      const settings = scene[configKey] || scene[effectName];
 
-    // Always go through applyEffectSettings so per-effect teardown
-    // (e.g. spacetime.disable → camera reset, feed-Z reset) runs on
-    // group switches that drop the block entirely.
-    this.applyEffectSettings(effectName, settings || { enabled: false });
+      // Always route through applyEffectSettings so per-effect teardown
+      // (e.g. spacetime.disable → camera reset, feed-Z reset) runs on
+      // scene switches that drop the block entirely.
+      this.applyEffectSettings(effectName, settings || { enabled: false });
+    }
   }
-}
 
   applyEffectSettings(effectName, settings) {
     if (settings.enabled !== undefined) {
@@ -399,10 +506,35 @@ export class SceneManager {
 
     if (effectRegistry.has(effectName)) {
       // Apply the raw config once on (re)load — strings live in this.config
-      // until updateEffectExpressions() overwrites them per-frame with
+      // until _updateEffectExpressions() overwrites them per-frame with
       // evaluated values. Non-expression keys settle here and stay put.
       effectRegistry.applyConfig(effectName, settings);
     }
+  }
+
+  // ============================================================================
+  // CAPTIONS auto-from-label
+  // ============================================================================
+
+  /**
+   * If ballCaptions has autoFromClipLabel: true, populate texts from each
+   * assigned clip's label. Mutates scene.ballCaptions IN PLACE — the live
+   * config object — so per-frame effect expression evaluation reads the
+   * generated texts.
+   */
+  _applyAutoCaptions(scene) {
+    const captions = scene.ballCaptions;
+    if (!captions || !captions.autoFromClipLabel) return;
+
+    const texts = { ...(captions.texts || {}) };
+    for (const [ballIdx, clipKey] of this._sceneClipAssignments(scene)) {
+      // Honor an explicit per-ball entry already in texts.
+      if (texts[ballIdx] !== undefined || texts[String(ballIdx)] !== undefined) continue;
+      const clip = this._clipDef(clipKey);
+      if (!clip) continue;
+      texts[ballIdx] = clip.label || clipKey;
+    }
+    scene.ballCaptions = { ...captions, texts };
   }
 
   // ============================================================================
