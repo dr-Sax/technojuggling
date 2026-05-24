@@ -4,6 +4,13 @@
  * MIDI integration: setMidiEditorBridge(bridge) attaches a bridge that
  * receives the latest config.midi mapping on every successful execute.
  * The bridge is also what pads call when they want to trigger Ctrl-Enter.
+ *
+ * On the first successful execute after the bridge is attached, we also
+ * call bridge.autoAssignChannels() once — that locks each of the 8
+ * channels onto one of the first 8 range-commented tokens so the knobs
+ * are immediately driving real parameters. Subsequent executes don't
+ * re-assign (a re-assign would clobber whatever the user has since
+ * locked onto).
  */
 
 import { LiveCodeEditor } from './live-code-editor.js';
@@ -20,6 +27,7 @@ export class UIController {
     this.lastExecutedCode = '';
     this.lastConfig = null;
     this.midiEditorBridge = null;
+    this._midiAutoAssigned = false;
   }
 
   async initialize(initialCode = '') {
@@ -56,6 +64,15 @@ export class UIController {
       // Push fresh MIDI mapping to the bridge (no-op if no bridge or no midi block)
       if (this.midiEditorBridge && this.lastConfig && this.lastConfig.midi) {
         this.midiEditorBridge.updateMapping(this.lastConfig.midi);
+      }
+
+      // One-shot: after the very first successful execute (when the editor
+      // is populated and the config has been parsed), lock each channel
+      // onto one of the first 8 range-commented tokens. Gated by a flag
+      // so subsequent executes don't clobber the user's selections.
+      if (this.midiEditorBridge && !this._midiAutoAssigned) {
+        this.midiEditorBridge.autoAssignChannels();
+        this._midiAutoAssigned = true;
       }
     } catch (error) {
       console.error('Code execution error:', error);

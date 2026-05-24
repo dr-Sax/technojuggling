@@ -4,10 +4,13 @@
  * Eight knob/pad CHANNELS. Each channel = one knob + one pad.
  *
  *   knob, lock OFF  → absolute position over all numeric tokens in the
- *                     buffer. Knob at 0 = first token, 127 = last, linear.
- *                     The token is highlighted with CodeMirror's native
- *                     text selection (the grey .CodeMirror-selected band) —
- *                     exactly the original two-knob mechanism.
+ *                     buffer that have a knob-range comment after them
+ *                     (see Range comments below). Knob at 0 = first such
+ *                     token, 127 = last, linear. Numbers without a range
+ *                     comment are skipped entirely — the cursor never
+ *                     lands on them. The token is highlighted with
+ *                     CodeMirror's native text selection (the grey
+ *                     .CodeMirror-selected band).
  *   pad             → toggles the lock for that channel. Tap = lock,
  *                     tap again = unlock.
  *   knob, lock ON   → rewrites the value of the channel's selected token
@@ -39,7 +42,8 @@
  *   }
  *
  * Range comments tell a locked knob how to map 0..1 onto the highlighted
- * number. Five forms, placed in a // comment after the number:
+ * number — AND they're now what makes a number reachable by the cursor
+ * knob at all. Five forms, placed in a // comment after the number:
  *
  *   scale: 5          //0,100              decimal range
  *   opacity: 0.5      //0,1                decimal range
@@ -49,8 +53,9 @@
  *   zStep: 0.00       //[-1, 0, 1]         discrete picks, equal-width bands
  *   zStep: 0.00       //[-1, 0, 1], 11     anchors as hard stops, N total
  *
- * Without a comment, the bridge infers a sensible range from the current
- * value (0..1, -1..1, contextual for larger numbers, full 24-bit for hex).
+ * Numbers without a range comment are invisible to the cursor knob. This
+ * lets large data blocks (clip dictionaries, URL timestamps, etc.) sit in
+ * the buffer without bloating the knob's slot space.
  *
  * Decimal formatting preserves the original text's style: "0.00" stays
  * 2-decimal, "5" stays integer, ".5" stays without leading zero. Hex
@@ -224,6 +229,45 @@ export class MidiEditorBridge {
   // Token collection
   // ─────────────────────────────────────────────────────────────────────
 
+  /**
+   * One-shot startup assignment: lock each of the first 8 channels onto
+   * one of the first 8 range-commented tokens in the buffer, in order.
+   * Channels beyond the available tokens are left unlocked and untouched.
+   *
+   * Pickup mode stays armed for every locked channel, so no knob can jump
+   * its parameter until you physically sweep through the current value's
+   * position. Safe to call before MIDI input has begun.
+   */
+  autoAssignChannels() {
+    const tokens = this._collectNumberTokens();
+    if (tokens.length === 0) return;
+
+    const n = Math.min(this.channels.length, tokens.length);
+    for (let i = 0; i < n; i++) {
+      const ch = this.channels[i];
+      ch.token = tokens[i];
+      ch.lastSlot = i;
+      ch.locked = true;
+      ch.pickup = { matched: false, lastValue: null };
+
+      // Capture S/L baseline if this is a //hue hex token, same as
+      // _selectToken would. Skipping this would make a //hue sweep
+      // start from a fixed S/L instead of the token's own.
+      ch.hueBaseline = null;
+      if (this._isHexText(ch.token.text)) {
+        const range = this._parseRangeComment(ch.token);
+        if (range && range.kind === 'hue') {
+          const { s, l } = this._rgbToHsl(ch.token.value);
+          ch.hueBaseline = s < 0.02 ? { s: 1, l: 0.5 } : { s, l };
+        }
+      }
+    }
+
+    // Show the *last* assigned channel's token as the visible selection,
+    // mirroring the "last touched wins" rule used everywhere else.
+    if (n > 0) this._showSelection(this.channels[n - 1].token);
+  }
+
   _editor() { return this.liveCodeEditor?.editor || null; }
 
   _collectNumberTokens() {
@@ -256,7 +300,16 @@ export class MidiEditorBridge {
         }
 
         const value = Number(text);
-        if (!Number.isNaN(value)) tokens.push({ from, to, text, value });
+        if (Number.isNaN(value)) continue;
+
+        // Only include numbers that have a knob-range comment after them.
+        // _parseRangeComment is the single source of truth for "is this
+        // number a knob target" — if no range parses, the value knob can't
+        // drive it anyway, so the cursor knob shouldn't land on it.
+        const probe = { from, to, text, value };
+        if (!this._parseRangeComment(probe)) continue;
+
+        tokens.push(probe);
       }
     }
     return tokens;

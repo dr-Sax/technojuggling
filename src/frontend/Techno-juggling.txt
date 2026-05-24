@@ -1,43 +1,90 @@
 {
-  // ─── Clip library ─────────────────────────────────────────────────────
-  // Optional fields: label (used by ballCaptions autoFromClipLabel),
-  // dwell (for stills/GIFs if you want scheduled advancement later),
-  // tags (free-form grouping).
   clips: {
 
-    // CGI Jugglers
-    A: {url: "https://www.youtube.com/watch?v=q-czprsHl9g", start: 0, end: 30, label: "Adam Powers, Triple-I, 1982", tags: ["cgi"]},
-    B: {url: "https://www.youtube.com/watch?v=96xGUa1a_zs", start: 100, end: 110, label: "Pixar Red's Dream, 1987", tags: ["cgi"]},
-    C: {url: "https://www.youtube.com/watch?v=-yJNGwIcLtw", start: 0, end: 10, label: "Amiga Juggler, Eric Graham, 1986", tags: ["cgi"]},
+    // 0: Adam Powers
+    A: {url: "https://www.youtube.com/watch?v=q-czprsHl9g", start: 91, end: 100, label: "Adam Powers"},
+    B: {url: "https://dn710205.ca.archive.org/0/items/CineFex_1981/CineFex%201981/6/images/Cinefex-6-p28-img01.jpg", label: "The Juggler"},
+    C: {url: "https://ia903107.us.archive.org/2/items/CineFex_1981/CineFex%201981/6/images/Cinefex-6-p28-img02.jpg", label: "1981"},
 
-    // Advanced Siteswaps
-    D: {url: "https://storage.googleapis.com/jugglinglab/gif/abe3bde5f7472921e9be442f.gif", start: 0, end: 2, label: "441", tags: ["siteswap"]},
-    E: {url: "https://storage.googleapis.com/jugglinglab/gif/b897992a317fc15c6dcd7e31.gif", start: 0, end: 2, label: "7441", tags: ["siteswap"]},
-    F: {url: "https://storage.googleapis.com/jugglinglab/gif/742366540cf46fac1a2668de.gif", start: 0, end: 2, label: "(4x,4x)", tags: ["siteswap"]},
-    G: {url: "https://storage.googleapis.com/jugglinglab/gif/78fe2a9074735c0fd0eba917.gif", start: 0, end: 2, label: "(8,2x)(4,2x)*", tags: ["siteswap"]},
-    H: {url: "https://storage.googleapis.com/jugglinglab/gif/e5f5e856318af618625601bc.gif", start: 0, end: 2, label: "633", tags: ["siteswap"]},
-    I: {url: "https://storage.googleapis.com/jugglinglab/gif/603d2096c62d5fe02d381f0c.gif", start: 0, end: 2, label: "(6x,2x)(2x,2x)", tags: ["siteswap"]},
-    J: {url: "https://storage.googleapis.com/jugglinglab/gif/bb1e346285bf3c8dc0ebd3c7.gif", start: 0, end: 2, label: "(4,2x)(2x,4) - Box", tags: ["siteswap"]},
-    K: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/nbox.gif", start: 0, end: 2, label: "N-Box", tags: ["siteswap"]},
-    L: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/lukeshuffle.gif", start: 0, end: 2, label: "Luke's Shuffle", tags: ["siteswap"]},
-    M: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/swapbox.gif", start: 0, end: 2, label: "Swap Box", tags: ["siteswap"]},
+    // 1: Red's Dream
+    D: {url: "https://www.youtube.com/watch?v=96xGUa1a_zs", start: 100, end: 110, label: "Pixar Red's Dream, 1987"},
+    E: {url: "https://www.youtube.com/watch?v=naGntYNTSQM", start: 84, end: 100, label: "Ed Catmull"},
+    F: {url: "https://www.youtube.com/watch?v=ICapML8dUtI", start: 64, end: 70, label: "Fred Parke"},
+
+    // 2: Amiga Juggler
+    G: {url: "https://www.youtube.com/watch?v=-yJNGwIcLtw", start: 0, end: 12, label: "Amiga Juggler, Eric Graham, 1986"},
+    H: {url: "https://www.youtube.com/watch?v=TCFAzPl1QmE", start: 150, end: 155, label: "Tom Petty, Jammin' Me"},
+    I: {url: "http://www.etwright.org/cghist/images/amigaworld.jpg", label: "Amiga World Magazine"},
+
+    // 3: Juggling Animation in academic communities
+    J: {url: "https://www.youtube.com/shorts/dwl40B45dQE", start: 0, end: 2, label: "Jugit Recurse"},
+    K: {url: "https://www.youtube.com/shorts/vbOGp_vHhgg", start: 0, end: 2, label: "Space Bunny"},
+    L: {url: "https://www.youtube.com/shorts/FQFXjjqInvk", start: 0, end: 2, label: "Bob Mendelsohn"},  
+
+    // 4: Juggling Automatons:
+    M: {url: "https://www.dev.juggle.org/history/archives/jugmags/images/34-5/34-5,p14-5.jpg", label: "Feedback"},
+    N: {url: "https://www.youtube.com/watch?v=tXU3EPg2cgA", start: 74, end: 94, label: "Claude Shannon's WC Fields"},
+    O: {url: "https://www.youtube.com/watch?v=uyq7RJbFZEI", start: 0, end: 10, label: "Stephen Meschke Pantograph"},
+
+    // 5: Surface Juggling:
+    P: {url: "https://www.youtube.com/watch?v=pdgG3zV_2Ak", start: 0, end: 10, label: "Angled Plane Juggling"},
+    Q: {url: "https://www.youtube.com/watch?v=pQyokJBGeyE", start: 0, end: 10, label: "Billiard Juggling"},
+    R: {url: "https://www.youtube.com/shorts/qrm6l8i4Pes", start: 0, end: 10, label: "Kouta Ohashi - Pythagora Juggling"},
+    
+    // 6: Juggling as a Digital Controller
+    S: {url: "https://www.youtube.com/watch?v=8RaLIqMFRhs", start: 0, end: 10, label: "Arthur Wagenaar"},
+    T: {url: "space-invaders.png", start: 0, end: 10, label: "Joe Marshall"},
+    U: {url: "new-weapons.png", start: 0, end: 10, label: "2009"},
+    
+    // 7: Contemporary Approaches
+    V: {url: "https://www.youtube.com/watch?v=CI6Ymmx1fi0", start: 240, end: 260, label: "Andrew Olson"},
+    W: {url: "https://www.youtube.com/watch?v=s1DHupsWpNE", start: 10, end: 30, label: "Pattern Prediction"},
+    X: {url: "https://www.youtube.com/watch?v=yqaZiLn-N0k", start: 0, end: 10, label: "DJuggling"},
+    Z: {url: "https://www.youtube.com/watch?v=U2h_XPKxGQU", start: 39, end: 59, label: "BilliArT"},
+
+    // 8: VR Juggling
+    AA: {url: "https://www.youtube.com/watch?v=gPgEzQi8nVc", start: 80, end: 100, label: "Mitama Sakumaru"},
+    AB: {url: "https://www.youtube.com/watch?v=XspIzuttZgs", start: 180, end: 200, label: "Half-Life Alyx"},
+    AC: {url: "https://www.youtube.com/watch?v=iXMxoVgjnBI", start: 30, end: 60, label: "Spiderman's Doc Ock"},
+
+    // 9: Juggling Lab Jokes
+    AA: {url: "https://64.media.tumblr.com/9593ad599f54d2a4b2414a3df94c53db/c2cf79cb91b1187f-a7/s1280x1920/bdca851b89a6f500d1cc0814522b904a574281d6.gif", start: 80, end: 100, label: "Tumblr Juggling Lab"},
+    AB: {url: "https://64.media.tumblr.com/69e452f5b127f6220c12535e487bd75d/abd69075a3ba6fe1-6c/s1280x1920/6674e5f3738496e687930b158a05bfee3ab8425b.gifs", start: 180, end: 200, label: "I knew I should've put that wrist strap on"},
+    AC: {url: "https://64.media.tumblr.com/a1d33355e642521d8f77470640c4b0e6/9945240738b2355c-73/s400x600/45f46ae92be9da7123297b0fda49bc50045795f7.gif", start: 30, end: 60, label: "Trickle-Down Juggle-nomics"},
+
+    // 10: Augmented Juggling Lab
 
     // Dad's Tricks
-    N: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/reversecascade.gif", start: 0, end: 2, label: "Reverse Cascade", tags: ["dad"]},
-    O: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/halfshower.gif",     start: 0, end: 2, label: "Half Shower",     tags: ["dad"]},
-    P: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/yoyo.gif",           start: 0, end: 2, label: "Yo-Yo",           tags: ["dad"]},
-    Q: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/fakecolumns.gif",    start: 0, end: 2, label: "Fake Columns",    tags: ["dad"]},
-    R: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/oyoy.gif",           start: 0, end: 2, label: "Oy-Oy",           tags: ["dad"]},
-    S: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/columns.gif",        start: 0, end: 2, label: "Columns",         tags: ["dad"]},
-    T: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/cascade.gif",        start: 0, end: 2, label: "Cascade",         tags: ["dad"]},
+    D1: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/reversecascade.gif", start: 0, end: 2, label: "Reverse Cascade"},
+    D2: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/halfshower.gif",     start: 0, end: 2, label: "Half Shower"},
+    D3: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/yoyo.gif",           start: 0, end: 2, label: "Yo-Yo"},
+    D4: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/fakecolumns.gif",    start: 0, end: 2, label: "Fake Columns"},
+    D5: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/oyoy.gif",           start: 0, end: 2, label: "Oy-Oy"},
+    D6: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/columns.gif",        start: 0, end: 2, label: "Columns"},
+    D7: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/cascade.gif",        start: 0, end: 2, label: "Cascade"},
+
+    // Advanced Siteswaps
+    S1: {url: "https://storage.googleapis.com/jugglinglab/gif/abe3bde5f7472921e9be442f.gif", start: 0, end: 2, label: "441"},
+    S2: {url: "https://storage.googleapis.com/jugglinglab/gif/b897992a317fc15c6dcd7e31.gif", start: 0, end: 2, label: "7441"},
+    S3: {url: "https://storage.googleapis.com/jugglinglab/gif/742366540cf46fac1a2668de.gif", start: 0, end: 2, label: "(4x,4x)"},
+    S4: {url: "https://storage.googleapis.com/jugglinglab/gif/78fe2a9074735c0fd0eba917.gif", start: 0, end: 2, label: "(8,2x)(4,2x)*"},
+    S5: {url: "https://storage.googleapis.com/jugglinglab/gif/e5f5e856318af618625601bc.gif", start: 0, end: 2, label: "633"},
+    S6: {url: "https://storage.googleapis.com/jugglinglab/gif/603d2096c62d5fe02d381f0c.gif", start: 0, end: 2, label: "(6x,2x)(2x,2x)", tags: ["siteswap"]},
+    S7: {url: "https://storage.googleapis.com/jugglinglab/gif/bb1e346285bf3c8dc0ebd3c7.gif", start: 0, end: 2, label: "(4,2x)(2x,4) - Box", tags: ["siteswap"]},
+    S8: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/nbox.gif", start: 0, end: 2, label: "N-Box", tags: ["siteswap"]},
+    S9: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/lukeshuffle.gif", start: 0, end: 2, label: "Luke's Shuffle", tags: ["siteswap"]},
+    S10: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/swapbox.gif", start: 0, end: 2, label: "Swap Box", tags: ["siteswap"]},
+
+    
   },
 
-  // ─── Channels: per-ball persistent transform state ────────────────────
-  // These are the values MIDI knobs modify. Sticky across scenes.
+  activeScene: 0, //[0, 11],12
+  showCamera: false,
+
   channels: {
     ball0: { 
       scale: 20, 
-      volume: 30, //0,99,100
+      volume: 30, //[0,99], 100
       opacity: 0.8, 
       useMask: 1, 
       maskShape: "circle",   
@@ -46,24 +93,73 @@
     },
     ball1: { scale: 20, opacity: 0.8, volume:0, useMask: 1, maskShape: "triangle", maskRadius: 0.5 },
     ball2: { scale: 20, opacity: 0.8, volume:0, useMask: 1, maskShape: "circle",   maskRadius: 0.5 },
+    ball3: { scale: 20, opacity: 0.8, volume:0, useMask: 1, maskShape: "circle",   maskRadius: 0.5 },
   },
 
-  // ─── Scenes: clip-on-channel + effects ────────────────────────────────
   scenes: [
 
-    // 0: CGI mesh
+    // SCENE 0: Animated Jugglers in Early CGI
     {
-      clips: { ball0: "B" },
+      clips: { ball0: "A", ball0: "B" , ball0: "C" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
       ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
-    // 1: Pixar trails
+    // SCENE 1: Animated Jugglers in Early CGI
     {
-      clips: { ball0: "C", ball1:"D", ball2: "E"},
-      ballTrails:   { enabled: true, count: 12, sides: 3, perBallColors: true },
-      ballCaptions: { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xffffff },
+      clips: { ball0: "D", ball0: "E" , ball0: "F" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 2: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "G", ball0: "H" , ball0: "I" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 3: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "J", ball0: "K" , ball0: "L" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 4: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "M", ball0: "N" , ball0: "O" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 5: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "P", ball0: "Q" , ball0: "R" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 6: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "S", ball0: "T" , ball0: "U" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 7: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "V", ball0: "W" , ball0: "X" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // 2: RGB filled circles
@@ -112,11 +208,5 @@
       ballTrails:   { enabled: true, count: 12, sides: 3, perBallColors: true },
       ballCaptions: { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, offsetY: -4, color: 0x000000 },
     },
-  ],
-
-  // activeScene selects which scene above is live. `activeGroup` also works
-  // as an alias if you prefer the old name during the transition.
-  activeScene: 1, //[0, 5],6
-
-  showCamera: false,
+  ]
 }

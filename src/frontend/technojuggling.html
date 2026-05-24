@@ -177,48 +177,239 @@
   <!-- Code editor container -->
   <div id="code-editor" data-initial-code='{
   clips: {
-    A: {url: "hackers.png", start: 0, end: 10},
-    B: {url: "frog-scream.png", start: 0, end: 10},
-    C: {url: "hackers2.png", start: 0, end: 10},
+
+    // 0: Adam Powers
+    A: {url: "https://www.youtube.com/watch?v=q-czprsHl9g", start: 91, end: 100, label: "Adam Powers"},
+    B: {url: "https://dn710205.ca.archive.org/0/items/CineFex_1981/CineFex%201981/6/images/Cinefex-6-p28-img01.jpg", label: "The Juggler"},
+    C: {url: "https://ia903107.us.archive.org/2/items/CineFex_1981/CineFex%201981/6/images/Cinefex-6-p28-img02.jpg", label: "1981"},
+
+    // 1: Reds Dream
+    D: {url: "https://www.youtube.com/watch?v=96xGUa1a_zs", start: 100, end: 110, label: "Pixar Reds Dream, 1987"},
+    E: {url: "https://www.youtube.com/watch?v=naGntYNTSQM", start: 84, end: 100, label: "Ed Catmull"},
+    F: {url: "https://www.youtube.com/watch?v=ICapML8dUtI", start: 64, end: 70, label: "Fred Parke"},
+
+    // 2: Amiga Juggler
+    G: {url: "https://www.youtube.com/watch?v=-yJNGwIcLtw", start: 0, end: 12, label: "Amiga Juggler, Eric Graham, 1986"},
+    H: {url: "https://www.youtube.com/watch?v=TCFAzPl1QmE", start: 150, end: 155, label: "Tom Petty, Jammin Me"},
+    I: {url: "http://www.etwright.org/cghist/images/amigaworld.jpg", label: "Amiga World Magazine"},
+
+    // 3: Juggling Animation in academic communities
+    J: {url: "https://www.youtube.com/shorts/dwl40B45dQE", start: 0, end: 2, label: "Jugit Recurse"},
+    K: {url: "https://www.youtube.com/shorts/vbOGp_vHhgg", start: 0, end: 2, label: "Space Bunny"},
+    L: {url: "https://www.youtube.com/shorts/FQFXjjqInvk", start: 0, end: 2, label: "Bob Mendelsohn"},  
+
+    // 4: Juggling Automatons:
+    M: {url: "https://www.dev.juggle.org/history/archives/jugmags/images/34-5/34-5,p14-5.jpg", label: "Feedback"},
+    N: {url: "https://www.youtube.com/watch?v=tXU3EPg2cgA", start: 74, end: 94, label: "Claude Shannons WC Fields"},
+    O: {url: "https://www.youtube.com/watch?v=uyq7RJbFZEI", start: 0, end: 10, label: "Stephen Meschke Pantograph"},
+
+    // 5: Surface Juggling:
+    P: {url: "https://www.youtube.com/watch?v=pdgG3zV_2Ak", start: 0, end: 10, label: "Angled Plane Juggling"},
+    Q: {url: "https://www.youtube.com/watch?v=pQyokJBGeyE", start: 0, end: 10, label: "Billiard Juggling"},
+    R: {url: "https://www.youtube.com/shorts/qrm6l8i4Pes", start: 0, end: 10, label: "Kouta Ohashi - Pythagora Juggling"},
+    
+    // 6: Juggling as a Digital Controller
+    S: {url: "https://www.youtube.com/watch?v=8RaLIqMFRhs", start: 0, end: 10, label: "Arthur Wagenaar"},
+    T: {url: "space-invaders.png", start: 0, end: 10, label: "Joe Marshall"},
+    U: {url: "new-weapons.png", start: 0, end: 10, label: "2009"},
+    
+    // 7: Contemporary Approaches
+    V: {url: "https://www.youtube.com/watch?v=CI6Ymmx1fi0", start: 240, end: 260, label: "Andrew Olson"},
+    W: {url: "https://www.youtube.com/watch?v=s1DHupsWpNE", start: 10, end: 30, label: "Pattern Prediction"},
+    X: {url: "https://www.youtube.com/watch?v=yqaZiLn-N0k", start: 0, end: 10, label: "DJuggling"},
+    Z: {url: "https://www.youtube.com/watch?v=U2h_XPKxGQU", start: 39, end: 59, label: "BilliArT"},
+
+    // 8: VR Juggling
+    AA: {url: "https://www.youtube.com/watch?v=gPgEzQi8nVc", start: 80, end: 100, label: "Mitama Sakumaru"},
+    AB: {url: "https://www.youtube.com/watch?v=XspIzuttZgs", start: 180, end: 200, label: "Half-Life Alyx"},
+    AC: {url: "https://www.youtube.com/watch?v=iXMxoVgjnBI", start: 30, end: 60, label: "Spidermans Doc Ock"},
+
+    // 9: Juggling Lab Jokes
+    AA: {url: "https://64.media.tumblr.com/9593ad599f54d2a4b2414a3df94c53db/c2cf79cb91b1187f-a7/s1280x1920/bdca851b89a6f500d1cc0814522b904a574281d6.gif", start: 80, end: 100, label: "Tumblr Juggling Lab"},
+    AB: {url: "https://64.media.tumblr.com/69e452f5b127f6220c12535e487bd75d/abd69075a3ba6fe1-6c/s1280x1920/6674e5f3738496e687930b158a05bfee3ab8425b.gifs", start: 180, end: 200, label: "I knew I shouldve put that wrist strap on"},
+    AC: {url: "https://64.media.tumblr.com/a1d33355e642521d8f77470640c4b0e6/9945240738b2355c-73/s400x600/45f46ae92be9da7123297b0fda49bc50045795f7.gif", start: 30, end: 60, label: "Trickle-Down Juggle-nomics"},
+
+    // 10: Augmented Juggling Lab
+
+    // Dads Tricks
+    D1: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/reversecascade.gif", start: 0, end: 2, label: "Reverse Cascade"},
+    D2: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/halfshower.gif",     start: 0, end: 2, label: "Half Shower"},
+    D3: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/yoyo.gif",           start: 0, end: 2, label: "Yo-Yo"},
+    D4: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/fakecolumns.gif",    start: 0, end: 2, label: "Fake Columns"},
+    D5: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/oyoy.gif",           start: 0, end: 2, label: "Oy-Oy"},
+    D6: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/columns.gif",        start: 0, end: 2, label: "Columns"},
+    D7: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/cascade.gif",        start: 0, end: 2, label: "Cascade"},
+
+    // Advanced Siteswaps
+    S1: {url: "https://storage.googleapis.com/jugglinglab/gif/abe3bde5f7472921e9be442f.gif", start: 0, end: 2, label: "441"},
+    S2: {url: "https://storage.googleapis.com/jugglinglab/gif/b897992a317fc15c6dcd7e31.gif", start: 0, end: 2, label: "7441"},
+    S3: {url: "https://storage.googleapis.com/jugglinglab/gif/742366540cf46fac1a2668de.gif", start: 0, end: 2, label: "(4x,4x)"},
+    S4: {url: "https://storage.googleapis.com/jugglinglab/gif/78fe2a9074735c0fd0eba917.gif", start: 0, end: 2, label: "(8,2x)(4,2x)*"},
+    S5: {url: "https://storage.googleapis.com/jugglinglab/gif/e5f5e856318af618625601bc.gif", start: 0, end: 2, label: "633"},
+    S6: {url: "https://storage.googleapis.com/jugglinglab/gif/603d2096c62d5fe02d381f0c.gif", start: 0, end: 2, label: "(6x,2x)(2x,2x)", tags: ["siteswap"]},
+    S7: {url: "https://storage.googleapis.com/jugglinglab/gif/bb1e346285bf3c8dc0ebd3c7.gif", start: 0, end: 2, label: "(4,2x)(2x,4) - Box", tags: ["siteswap"]},
+    S8: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/nbox.gif", start: 0, end: 2, label: "N-Box", tags: ["siteswap"]},
+    S9: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/lukeshuffle.gif", start: 0, end: 2, label: "Lukes Shuffle", tags: ["siteswap"]},
+    S10: {url: "https://libraryofjuggling.com/JugglingGifs/3balltricks/swapbox.gif", start: 0, end: 2, label: "Swap Box", tags: ["siteswap"]},
+
+    
   },
 
-  presets: {
+  activeScene: 0, //[0, 11],12
+  showCamera: false,
+
+  channels: {
+    ball0: { 
+      scale: 18, //[0,50],51
+      volume: 30, //[0,99], 100
+      opacity: 0.8, 
+      useMask: 1, 
+      maskShape: "circle",   
+      maskRadius: 0.5,
+      pitch: "10-b0x"
+    },
+    ball1: { 
+      scale: 31, //[0,50],51
+      volume: 30, //[0,99], 100
+      opacity: 0.8, 
+      volume:0, 
+      useMask: 1, 
+      maskShape: "circle", 
+      maskRadius: 0.9 
+    },
+    ball2: { 
+      scale: 13, //[0,50],51
+      volume: 30, //[0,99], 100
+      opacity: 0.8, 
+      volume:0, 
+      useMask: 0, 
+      maskShape: "rectangle",   
+      maskRadius: 0 
+    },
+    ball3: { 
+      scale: 13, //[0,50],51
+      volume: 30, //[0,99], 100 
+      opacity: 0.8, 
+      volume:0, 
+      useMask: 1, 
+      maskShape: "circle",   
+      maskRadius: 0.5 
+    },
   },
-  
-  streams: {
-    streamA: "A{scale: 10, useMask: 1, maskShape: circle, maskRadius: .5}",
-    streamB: "B{scale: 10, useMask: 1, maskShape: triangle, maskRadius: .5}",
-    streamC: "C{scale: 10, useMask: 1, maskShape: circle, maskRadius: .5}",
-  },
-  
-  routing: {
-    ball_0: {stream: "streamA", offset: 0},
-    ball_1: {stream: "streamB", offset: 0},
-    ball_2: {stream: "streamC", offset: 0},
-  },
-  
-  ballConnections: {
-    enabled: true,
-    mode: "mesh",
-    lineWidth: 0.08,
-    opacity: 0.4,
-    color: 0x00ffff,
-    zIndex: 0.05
-  },
-  ballTrails: {
-    enabled: true,
-    count: 5,
-    maxDelay: .3,
-    radiusRange: [.5, 2],
-    sides: 5,
-    perBallColors: true,
-    ballColors: {
-      0: [0xff0000],  
-      1: [0x00ff00],  
-      2: [0xffff00],   
-    }
-  },
-  showCamera: true
+
+  scenes: [
+
+    // SCENE 0: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "A", ball1: "B" , ball2: "C" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 1: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "D", ball1: "E" , ball2: "F" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 2: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "G", ball1: "H" , ball2: "I" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 3: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "J", ball1: "K" , ball2: "L" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 4: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "M", ball1: "N" , ball2: "O" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 5: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "P", ball1: "Q" , ball2: "R" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 6: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "S", ball1: "T" , ball2: "U" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // SCENE 7: Animated Jugglers in Early CGI
+    {
+      clips: { ball0: "V", ball1: "W" , ball2: "X" },
+      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
+      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+    },
+
+    // 2: RGB filled circles
+    {
+      ballConnections: {
+        enabled: true, mode: "circles", filled: true,
+        perCircleColors: true, opacity: 0.9,
+        circleContents: [0xff0000, 0x00ff00, 0x0000ff],
+      },
+    },
+
+    // 3: sinc waves
+    {
+      ballSincWaves: {
+        enabled: true,
+        amplitude: 10.0, frequency: 1.5,
+        xStretch: 0.1, yStretch: 0.1,
+        decay: 0.1,
+        colorMultR: 1.0, colorMultG: 1.0, colorMultB: 10.0,
+        intensityScale: 0.3, intensityBias: 0.5,
+        planeSize: 40,
+      },
+    },
+
+    // 4: spacetime tubes
+    {
+      ballSpacetime: {
+        enabled: true,
+        zStep: 0.2,
+        feedPlaneOffset: "20*sin(time*3)",
+        maxHistory: 2000,
+        theta: "0",
+        phi: "sin(time)",
+        radius: 10,
+        perBallColors: true,
+        tubeRadius: 0.25,
+        tubeSegments: 6,
+        rebuildEvery: 1,
+        ballColors: { 0: 0xFFFF00, 1: 0xFF8C00, 2: 0xADD8E6, 3: 0x00008B },
+      },
+    },
+
+    // 5: 441 siteswap with label
+    {
+      clips: { ball0: "D" },
+      ballTrails:   { enabled: true, count: 12, sides: 3, perBallColors: true },
+      ballCaptions: { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, offsetY: -4, color: 0x000000 },
+    },
+  ]
 }'></div>
   
   <!-- Import modular JavaScript -->
