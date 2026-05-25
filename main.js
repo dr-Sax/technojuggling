@@ -3,8 +3,9 @@
  * Launches Python WebSocket server and creates app window
  */
 
+// object destructuring to import only needed modules
 const { app, BrowserWindow } = require('electron');
-const path = require('path');
+const path = require('path'); // built-in module for handling file paths
 const { spawn } = require('child_process');
 
 let mainWindow;
@@ -15,102 +16,13 @@ const WEBSOCKET_PORT = 5000;
  * Start Python WebSocket server
  */
 function startPythonServer() {
-  console.log('Starting Python WebSocket server...');
-  
-  const isWindows = process.platform === 'win32';
-  
-  // Path to virtual environment Python
-  const venvPython = isWindows
-    ? path.join(__dirname, '.venv', 'Scripts', 'python.exe')
-    : path.join(__dirname, '.venv', 'bin', 'python');
-  
-  // Path to Python main.py in src/python folder
-  const pythonScript = path.join(__dirname, 'src', 'backend', 'main.py');
-  
+
+  // Paths to python virtual environment and main.py script
+  const venvPython = path.join(__dirname, '.venv', 'Scripts', 'python.exe') 
+  const pythonScript = path.join(__dirname, 'src', 'backend', 'main.py'); 
+
   // Spawn Python process with UNBUFFERED output
   pythonProcess = spawn(venvPython, ['-u', pythonScript, WEBSOCKET_PORT.toString()]);
-  
-  // IMPORTANT: Set encoding to handle output properly
-  pythonProcess.stdout.setEncoding('utf8');
-  pythonProcess.stderr.setEncoding('utf8');
-  
-  // Log Python output (stdout)
-  pythonProcess.stdout.on('data', (data) => {
-    // Split by lines and log each line
-    const lines = data.toString().split('\n');
-    lines.forEach(line => {
-      if (line.trim()) {
-        console.log(`Python: ${line}`);
-      }
-    });
-  });
-  
-  // Log Python errors (stderr)
-  pythonProcess.stderr.on('data', (data) => {
-    const lines = data.toString().split('\n');
-    lines.forEach(line => {
-      if (line.trim()) {
-        console.error(`Python Error: ${line}`);
-      }
-    });
-  });
-  
-  // Handle Python process exit
-  pythonProcess.on('close', (code) => {
-    console.log(`Python process exited with code ${code}`);
-  });
-  
-  pythonProcess.on('error', (error) => {
-    console.error(`Failed to start Python server: ${error.message}`);
-  });
-  
-  console.log('Python server starting...');
-  console.log(`  Script: ${pythonScript}`);
-  console.log(`  Python: ${venvPython}`);
-  console.log(`  Port: ${WEBSOCKET_PORT}`);
-}
-
-/**
- * Create Electron window
- */
-function createWindow() {
-  console.log('Creating Electron window...');
-  
-  mainWindow = new BrowserWindow({
-    width: 1080,
-    height: 1920,
-    fullscreen: false, // Set to true for performance mode
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      enableRemoteModule: false,
-      webSecurity: false, // Allow loading video URLs from different origins
-      backgroundThrottling: false // Keep render loop running at full speed
-    },
-    backgroundColor: '#000000',
-    show: false // Don't show until ready
-  });
-
-  // Load HTML from src folder
-  const htmlPath = path.join(__dirname, 'src', 'frontend', 'technojuggling.html');
-  mainWindow.loadFile(htmlPath);
-  
-  console.log(`  Loading: ${htmlPath}`);
-  
-  // Show window when ready
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    console.log('Window ready');
-  });
-  
-  // Handle window closed
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-  
-  // Optional: Open DevTools for debugging
-  // mainWindow.webContents.openDevTools();
 }
 
 /**
@@ -163,13 +75,50 @@ function waitForServer(retries = 20) {
   });
 }
 
-// ===== APP LIFECYCLE =====
+/**
+ * Create Electron window
+ */
+function createWindow() {
+  console.log('Creating Electron window...');
+  
+  mainWindow = new BrowserWindow({
+    width: 1080,
+    height: 1920,
+    fullscreen: false, // Set to true for performance mode
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+      webSecurity: false, // Allow loading video URLs from different origins
+      backgroundThrottling: false // Keep render loop running at full speed
+    },
+    backgroundColor: '#000000',
+    show: false // Don't show until ready
+  });
 
-// GPU flags to allow hardware acceleration without triggering driver crashes.
-// These are more targeted than disableHardwareAcceleration() which kills WebGL entirely.
-// Force NVIDIA GPU instead of Intel integrated graphics.
-// On laptops with dual GPUs, Electron defaults to the power-saving Intel GPU
-// which crashes with WebGL. These flags select the high-performance NVIDIA GPU.
+  // Load HTML from src folder
+  const htmlPath = path.join(__dirname, 'src', 'frontend', 'technojuggling.html');
+  mainWindow.loadFile(htmlPath);
+  
+  // Show window when ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+  
+  // Handle window closed
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+  
+  // Optional: Open DevTools for debugging
+  // mainWindow.webContents.openDevTools();
+}
+
+///////////////////////////////////////////////////////////////
+// Main App initiatialization and termination
+
+// Forcing GPU acceleration
 app.commandLine.appendSwitch('ignore-gpu-blacklist');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('use-angle', 'd3d11');
@@ -179,64 +128,30 @@ app.commandLine.appendSwitch('force_high_performance_gpu');
 
 // When Electron is ready
 app.whenReady().then(async () => {
-  console.log('Tell-A-Vision starting...');
-  console.log(`  Platform: ${process.platform}`);
-  console.log(`  Working directory: ${__dirname}`);
-  
-  // Start Python server
-  startPythonServer();
-  
-  // Wait for server to be ready
-  await waitForServer();
-  
-  // Create window
-  createWindow();
-  
-  // macOS: Re-create window when dock icon clicked
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-  
-  console.log('Tell-A-Vision ready');
+  startPythonServer(); // Start Python server
+  await waitForServer(); // Wait for server to be ready
+  createWindow(); // Create window
 });
 
+// SHUTDOWNS, AND USER QUITS
 // All windows closed
 app.on('window-all-closed', () => {
-  console.log('Shutting down...');
-  
-  // Kill Python process
-  if (pythonProcess) {
-    console.log('  Stopping Python server...');
-    pythonProcess.kill();
-  }
-  
-  // Quit app (except on macOS)
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+    if (pythonProcess) pythonProcess.kill();
 });
 
-// App will quit
+// App is actively quitting afteer windows closed
 app.on('will-quit', () => {
-  console.log('  Cleaning up...');
-  
-  if (pythonProcess) {
-    pythonProcess.kill();
-  }
+    if (pythonProcess) pythonProcess.kill();
 });
 
-// ===== GRACEFUL SHUTDOWN =====
-
+// user presses Ctrl+C in terminal
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down...');
   if (pythonProcess) pythonProcess.kill();
   app.quit();
 });
 
+// OS level kill
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down...');
   if (pythonProcess) pythonProcess.kill();
   app.quit();
 });

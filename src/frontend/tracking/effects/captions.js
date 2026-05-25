@@ -57,7 +57,7 @@ export class Captions extends PerBallEffect {
     opacity: 1.0,
     offsetX: 0,                 // world units
     offsetY: 2.0,                // world units (positive = up in world space)
-    zIndex: 0.1,                // above ball media (which sits at ~0)
+    zIndex: 1,                // above ball media (which sits at ~0)
     padding: 8,                 // px inside the canvas around the text
     scale: 0.05,                // world units per source canvas pixel
   };

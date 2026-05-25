@@ -3,7 +3,7 @@ Configuration settings for Tell-A-Vision server
 """
 
 # ===== CAMERA SETTINGS =====
-CAMERA_INDEX = 0
+CAMERA_INDEX = 8 # 0 for logi, 8 for obs virtual cam
 CAMERA_WIDTH = 1280
 CAMERA_HEIGHT = 720
 
