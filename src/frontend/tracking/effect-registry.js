@@ -1,101 +1,69 @@
 /**
- * EffectRegistry — central registry for ball effects.
+ * EffectRegistry — manages effect instances and dispatches per-frame updates.
  *
- * Effects implement a standard interface:
- *   updateBall(ballId, worldPos)   — per-ball update (optional for global effects)
- *   removeBall(ballId)             — per-ball cleanup (optional)
- *   clear()                        — clear all state
- *   setConfig(params)              — apply config params
- *   setEnabled(bool)               — toggle (optional; spacetime uses enable/disable instead)
+ * Effects implement the Effect class interface: update(), configure(),
+ * dispose(), removeBall().
  */
 
 export class EffectRegistry {
   constructor() {
-    this.effects = new Map(); // name -> { class, instance }
+    this.classes = new Map();    // name → Effect class
+    this.instances = new Map();  // name → Effect instance
   }
 
   register(name, EffectClass) {
-    this.effects.set(name, { name, class: EffectClass, instance: null });
-    console.log(`[EffectRegistry] Registered effect: ${name}`);
+    this.classes.set(name, EffectClass);
   }
 
-  initialize(sceneManager, ...additionalArgs) {
-    for (const [name, effect] of this.effects.entries()) {
-      effect.instance = new effect.class(sceneManager, ...additionalArgs);
-      console.log(`[EffectRegistry] Initialized: ${name}`);
+  initialize(sceneManager) {
+    for (const [name, EffectClass] of this.classes) {
+      this.instances.set(name, new EffectClass(sceneManager));
     }
   }
 
-  get(name) {
-    return this.effects.get(name)?.instance ?? null;
-  }
+  get(name)         { return this.instances.get(name) ?? null; }
+  has(name)         { return this.instances.has(name); }
+  getAllNames()     { return Array.from(this.classes.keys()); }
 
-  has(name) {
-    return this.effects.has(name);
-  }
-
-  getAllNames() {
-    return Array.from(this.effects.keys());
-  }
-
-  /** Clear every effect's state (called on full reload). */
-  clearAll() {
-    for (const { instance } of this.effects.values()) {
-      if (instance && typeof instance.clear === 'function') {
-        instance.clear();
-      }
-    }
-  }
-
-  /** Per-frame: push a ball position to every enabled per-ball effect. */
-  updateBall(ballId, worldPos, enabledEffects) {
-    for (const [name, { instance }] of this.effects.entries()) {
-      if (!enabledEffects.has(name) || !instance) continue;
-      if (typeof instance.updateBall === 'function') {
-        instance.updateBall(ballId, worldPos);
-      }
-    }
-  }
-
-  /** Remove a ball from every effect that tracks per-ball state. */
-  removeBall(ballId) {
-    for (const { instance } of this.effects.values()) {
-      if (instance && typeof instance.removeBall === 'function') {
-        instance.removeBall(ballId);
-      }
-    }
-  }
-
-  /** Apply a config block to one effect. Handles enabled + setConfig. */
+  /** Apply a config block. Handles enabled toggle + dispose-on-disable. */
   applyConfig(name, config) {
-    const instance = this.get(name);
-    if (!instance) {
-      console.warn(`[EffectRegistry] Effect not found: ${name}`);
+    const effect = this.get(name);
+    if (!effect) return;
+
+    const wasEnabled = effect.enabled;
+    const willBeEnabled = config.enabled !== false;
+
+    if (wasEnabled && !willBeEnabled) {
+      effect.dispose();
+      effect.enabled = false;
       return;
     }
 
-    if (config.enabled !== undefined && typeof instance.setEnabled === 'function') {
-      instance.setEnabled(config.enabled);
-    }
+    effect.enabled = willBeEnabled;
+    const { enabled, ...params } = config;
+    effect.configure(params);
+  }
 
-    if (typeof instance.setConfig === 'function') {
-      const { enabled, ...params } = config;
-      if (Object.keys(params).length > 0) {
-        instance.setConfig(params);
-      }
+  /** Per-frame: dispatch update() to every enabled effect. */
+  tick(positions, ctx) {
+    for (const effect of this.instances.values()) {
+      if (effect.enabled) effect.update(positions, ctx);
     }
   }
 
-  getDebugInfo() {
-    const info = {};
-    for (const [name, { instance }] of this.effects.entries()) {
-      info[name] = {
-        registered: true,
-        initialized: !!instance,
-        objectCount: instance?.objects?.size || 0,
-      };
+  removeBall(ballId) {
+    for (const effect of this.instances.values()) {
+      effect.removeBall(ballId);
     }
-    return info;
+  }
+
+  disposeAll() {
+    for (const effect of this.instances.values()) {
+      if (effect.enabled) {
+        effect.dispose();
+        effect.enabled = false;
+      }
+    }
   }
 }
 

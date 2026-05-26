@@ -1,87 +1,61 @@
-/**
- * Captions - Text labels that follow each ball.
- *
- * Each ball gets one plane mesh textured with a 2D-canvas rendering of a
- * string. The plane is positioned at (worldPos.x + offsetX, worldPos.y +
- * offsetY, zIndex), so the label tracks the ball with a configurable offset
- * in world units. When the ball carries video media, this serves as a caption.
- *
- * Live-code config example:
- *
- *   ballCaptions: {
- *     enabled: true,
- *     text:        "hello",            // global text (used for every ball)
- *     // OR per-ball, by ball index:
- *     texts:       { 0: "alice", 1: "bob", 2: "carol" },
- *     // OR (new-schema only): auto-populate texts from each scene-assigned
- *     // clip's `label` field. SceneController fills `texts` from the clips
- *     // before this effect ever sees the config, so this flag is just a
- *     // signal at config-build time; once we get here, texts is populated.
- *     autoFromClipLabel: true,
- *     fontStyle:   "bold italic",      // any CSS font-style/weight tokens
- *     fontFamily:  "Arial",            // any CSS family
- *     fontSize:    48,                 // px in the canvas; world size scales with it
- *     color:       0xffffff,
- *     bgColor:     null,               // 0xRRGGBB or null for transparent
- *     opacity:     1.0,
- *     offsetX:     0,                  // world units, relative to ball center
- *     offsetY:     2.0,                // world units (positive = up)
- *     zIndex:      0.1,                // draw depth (above ball media at 0)
- *     padding:     8,                  // px padding inside the canvas
- *     scale:       0.05,               // world units per canvas pixel
- *   }
- *
- * Expression strings are supported on numeric params (offsetX, offsetY,
- * fontSize, opacity, scale) via the scene's ExpressionEvaluator — the same
- * way ballSpacetime/activeGroup work. They're evaluated on every frame in
- * animateForBall(), so e.g. offsetY: "sin(t)*2" sways the label.
- */
+import { Effect } from './_shared.js';
 
-import {
-  PerBallEffect,
-} from './_shared.js';
-
-import { effectRegistry } from '../effect-registry.js';
-
-
-export class Captions extends PerBallEffect {
+export class Captions extends Effect {
   static defaults = {
     text: '',
-    texts: {},                  // { ballIndex: "string" } — overrides `text` per ball
-    autoFromClipLabel: false,   // populated upstream by SceneController; harmless here
-    fontStyle: 'normal',        // "normal" | "italic" | "bold" | "bold italic" | etc.
+    texts: {},
+    fontStyle: 'normal',
     fontFamily: 'Arial',
-    fontSize: 48,               // px in the source canvas
+    fontSize: 48,
     color: 0xffffff,
-    bgColor: null,              // 0xRRGGBB or null
+    bgColor: null,
     opacity: 1.0,
-    offsetX: 0,                 // world units
-    offsetY: 2.0,                // world units (positive = up in world space)
-    zIndex: 1,                // above ball media (which sits at ~0)
-    padding: 8,                 // px inside the canvas around the text
-    scale: 0.05,                // world units per source canvas pixel
+    offsetX: 0,
+    offsetY: 2.0,
+    zIndex: 1,
+    padding: 8,
+    scale: 0.05,
   };
 
-  // A change to any of these requires a fresh canvas/texture (the text or its
-  // rasterization changed). Color/opacity/offsets are handled live without
-  // rebuilding the texture.
-  static recreateKeys = ['fontStyle', 'fontFamily', 'fontSize', 'padding', 'bgColor'];
+  constructor(sceneManager) {
+    super(sceneManager);
+    this.labels = new Map();  // ballId → { mesh, texture, text, canvasW, canvasH }
+  }
 
-  static idPrefix = 'caption';
+  update(positions, ctx) {
+    for (const [ballId, pos] of positions) {
+      this._ensureLabel(ballId);
+      this._updateLabel(ballId, pos, ctx);
+    }
+  }
 
-  // ─── Override points ─────────────────────────────────────────────────────
+  configure(config) {
+    const rebuild =
+      (config.fontStyle !== undefined) ||
+      (config.fontFamily !== undefined) ||
+      (config.fontSize !== undefined) ||
+      (config.padding !== undefined) ||
+      (config.bgColor !== undefined);
+    Object.assign(this.config, config);
+    if (rebuild) this._disposeAll();
+    else this._restyleAll();
+  }
 
-  getObjectCount() { return 1; }
+  dispose() {
+    this._disposeAll();
+  }
 
-  // createForBall 
-  createForBall(ballId, worldPos) {
+  removeBall(ballId) {
+    this._disposeLabel(ballId);
+  }
+
+  _ensureLabel(ballId) {
+    if (this.labels.has(ballId)) return;
     const text = this._textFor(ballId);
-    const { canvas, width, height } = this._renderTextToCanvas(text);
+    const { canvas, width, height } = this._rasterize(text);
 
     const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.needsUpdate = true;
+    texture.minFilter = texture.magFilter = THREE.LinearFilter;
 
     const material = new THREE.MeshBasicMaterial({
       map: texture,
@@ -92,171 +66,119 @@ export class Captions extends PerBallEffect {
       depthWrite: false,
     });
 
-    const scale = this._evalNum('scale', this.config.scale);
-    const worldW = width  * scale;
-    const worldH = height * scale;
-
-    const geometry = new THREE.PlaneGeometry(worldW, worldH);
+    const scale = this._eval(this.config.scale);
+    const geometry = new THREE.PlaneGeometry(width * scale, height * scale);
     const mesh = new THREE.Mesh(geometry, material);
+    this.scene.add(mesh);
 
-    const ox = this._evalNum('offsetX', this.config.offsetX);
-    const oy = this._evalNum('offsetY', this.config.offsetY);
-    mesh.position.set(worldPos.x + ox, worldPos.y + oy, this.config.zIndex);
-
-    // Remember source canvas dims and the text we baked, so we can detect
-    // text changes per-frame without redoing the texture for every ball.
-    return {
-      mesh, geometry, material, texture, canvas,
-      ballId,
-      _text: text,
-      _canvasW: width,
-      _canvasH: height,
-      _colorT: 0,
-    };
+    this.labels.set(ballId, { mesh, texture, text, canvasW: width, canvasH: height });
   }
 
-  animateForBall(obj, ballId, worldPos, dt) {
-    // 1) Re-rasterize if the text for this ball changed (e.g. config.texts updated).
-    const text = this._textFor(ballId);
-    if (text !== obj._text) {
-      const { canvas, width, height } = this._renderTextToCanvas(text);
-      obj._text = text;
-      obj.canvas = canvas;
-      obj._canvasW = width;
-      obj._canvasH = height;
+  _updateLabel(ballId, pos, ctx) {
+    const label = this.labels.get(ballId);
+    const wanted = this._textFor(ballId);
 
-      obj.texture.dispose();
-      obj.texture = new THREE.CanvasTexture(canvas);
-      obj.texture.minFilter = THREE.LinearFilter;
-      obj.texture.magFilter = THREE.LinearFilter;
-      obj.material.map = obj.texture;
-      obj.material.needsUpdate = true;
-
-      // Plane geometry needs to match new canvas dimensions.
-      const scale = this._evalNum('scale', this.config.scale);
-      obj.geometry.dispose();
-      obj.geometry = new THREE.PlaneGeometry(width * scale, height * scale);
-      obj.mesh.geometry = obj.geometry;
-    } else {
-      // 2) Re-evaluate scale every frame — expressions may move it.
-      const scale = this._evalNum('scale', this.config.scale);
-      const wantW = obj._canvasW * scale;
-      const wantH = obj._canvasH * scale;
-      // Only rebuild geometry when scale visibly changes (avoids per-frame churn).
-      if (Math.abs(obj.geometry.parameters.width  - wantW) > 1e-4 ||
-          Math.abs(obj.geometry.parameters.height - wantH) > 1e-4) {
-        obj.geometry.dispose();
-        obj.geometry = new THREE.PlaneGeometry(wantW, wantH);
-        obj.mesh.geometry = obj.geometry;
-      }
+    if (wanted !== label.text) {
+      const { canvas, width, height } = this._rasterize(wanted);
+      label.texture.dispose();
+      label.texture = new THREE.CanvasTexture(canvas);
+      label.texture.minFilter = label.texture.magFilter = THREE.LinearFilter;
+      label.mesh.material.map = label.texture;
+      label.mesh.material.needsUpdate = true;
+      label.text = wanted;
+      label.canvasW = width;
+      label.canvasH = height;
     }
 
-    // 3) Position with live-evaluated offsets.
-    const ox = this._evalNum('offsetX', this.config.offsetX);
-    const oy = this._evalNum('offsetY', this.config.offsetY);
-    obj.mesh.position.set(worldPos.x + ox, worldPos.y + oy, this.config.zIndex);
+    const scale = this._eval(this.config.scale);
+    const wantW = label.canvasW * scale;
+    const wantH = label.canvasH * scale;
+    if (Math.abs(label.mesh.geometry.parameters.width - wantW) > 1e-4 ||
+        Math.abs(label.mesh.geometry.parameters.height - wantH) > 1e-4) {
+      label.mesh.geometry.dispose();
+      label.mesh.geometry = new THREE.PlaneGeometry(wantW, wantH);
+    }
 
-    // 4) Live opacity (color is handled by EffectBase._updateMaterials on setConfig).
-    const op = this._evalNum('opacity', this.config.opacity);
-    if (obj.material.opacity !== op) obj.material.opacity = op;
+    const ox = this._eval(this.config.offsetX);
+    const oy = this._eval(this.config.offsetY);
+    label.mesh.position.set(pos.x + ox, pos.y + oy, this.config.zIndex);
+    label.mesh.material.opacity = this._eval(this.config.opacity);
   }
 
-  remove(id) {
-    const obj = this.objects.get(id);
-    if (!obj) return;
-    this.scene.remove(obj.mesh);
-    obj.geometry?.dispose();
-    obj.material?.dispose();
-    obj.texture?.dispose();
-    this.objects.delete(id);
-  }
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────
-
-  /** Pick the text string for a given ball id. texts[id] wins, else global text. */
   _textFor(ballId) {
-    const texts = this.config.texts;
-    if (texts && typeof texts === 'object') {
-      // Accept both numeric ('0') and string ('ball_0') keys.
+    const t = this.config.texts;
+    if (t) {
       const idx = String(ballId).replace(/^ball_/, '');
-      if (texts[idx] !== undefined) return String(texts[idx]);
-      if (texts[ballId] !== undefined) return String(texts[ballId]);
+      if (t[idx] !== undefined) return String(t[idx]);
+      if (t[ballId] !== undefined) return String(t[ballId]);
     }
     return String(this.config.text ?? '');
   }
 
-  /** Evaluate a numeric param that may be an expression string. */
-  _evalNum(key, fallback) {
-    const v = this.config[key];
-    if (typeof v === 'number') return v;
+  _eval(value) {
+    if (typeof value === 'number') return value;
     const sm = this.sceneManager;
-    if (typeof v === 'string' && sm?.evaluator?.isExpression?.(v)) {
+    if (typeof value === 'string' && sm?.evaluator?.isExpression?.(value)) {
       try {
-        const ctx = sm.getBallContext ? sm.getBallContext()
-                                      : { time: sm.getTime(), t: sm.getTime() };
-        const r = sm.evaluator.evaluate(v, ctx);
-        return Number.isFinite(r) ? r : fallback;
-      } catch (e) {
-        return fallback;
-      }
+        const ctx = sm.getBallContext ? sm.getBallContext() : { time: sm.getTime() };
+        const r = sm.evaluator.evaluate(value, ctx);
+        return Number.isFinite(r) ? r : 0;
+      } catch { return 0; }
     }
-    const n = Number(v);
-    return Number.isFinite(n) ? n : fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
   }
 
-  /**
-   * Render `text` to an offscreen 2D canvas sized to fit, with current font /
-   * padding / bgColor settings. Returns the canvas plus its pixel dims.
-   *
-   * The shader/material color tints WHITE pixels in the canvas, so we draw
-   * the text in white here and let the material's `color` do the work. This
-   * keeps live color changes free (no re-rasterization).
-   */
-  _renderTextToCanvas(text) {
+  _rasterize(text) {
     const cfg = this.config;
-    const fontSize = Math.max(1, this._evalNum('fontSize', cfg.fontSize));
-    const padding  = Math.max(0, cfg.padding | 0);
+    const fontSize = Math.max(1, this._eval(cfg.fontSize));
+    const padding = Math.max(0, cfg.padding | 0);
     const fontSpec = `${cfg.fontStyle} ${fontSize}px ${cfg.fontFamily}`;
 
-    // Measure first with a throwaway context.
     const probe = document.createElement('canvas').getContext('2d');
     probe.font = fontSpec;
     const lines = String(text === '' ? ' ' : text).split('\n');
     let maxW = 0;
-    for (const line of lines) {
-      const m = probe.measureText(line);
-      if (m.width > maxW) maxW = m.width;
-    }
+    for (const line of lines) maxW = Math.max(maxW, probe.measureText(line).width);
     const lineH = fontSize * 1.2;
-    const width  = Math.max(1, Math.ceil(maxW + padding * 2));
+    const width = Math.max(1, Math.ceil(maxW + padding * 2));
     const height = Math.max(1, Math.ceil(lineH * lines.length + padding * 2));
 
     const canvas = document.createElement('canvas');
-    canvas.width  = width;
+    canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
     if (cfg.bgColor != null) {
       ctx.fillStyle = '#' + (cfg.bgColor & 0xffffff).toString(16).padStart(6, '0');
       ctx.fillRect(0, 0, width, height);
-    } else {
-      ctx.clearRect(0, 0, width, height);
     }
-
-    // Always white — color is tinted by the material.
     ctx.fillStyle = '#ffffff';
     ctx.font = fontSpec;
     ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i], padding, padding + i * lineH);
-    }
+    for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], padding, padding + i * lineH);
 
     return { canvas, width, height };
   }
+
+  _restyleAll() {
+    for (const label of this.labels.values()) {
+      label.mesh.material.color.setHex(this.config.color);
+      label.mesh.material.opacity = this.config.opacity;
+    }
+  }
+
+  _disposeLabel(ballId) {
+    const label = this.labels.get(ballId);
+    if (!label) return;
+    this.scene.remove(label.mesh);
+    label.mesh.geometry.dispose();
+    label.mesh.material.dispose();
+    label.texture.dispose();
+    this.labels.delete(ballId);
+  }
+
+  _disposeAll() {
+    for (const id of [...this.labels.keys()]) this._disposeLabel(id);
+  }
 }
-
-
-// Registration. Keyed as 'captions' → config key 'ballCaptions'
-// (applyAllEffects derives the key by capitalizing the first letter).
-effectRegistry.register('captions', Captions);

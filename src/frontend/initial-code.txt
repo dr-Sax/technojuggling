@@ -123,102 +123,102 @@
     // SCENE 0: Animated Jugglers in Early CGI
     {
       clips: { ball0: "A", ball1: "B" , ball2: "C" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000, offsetY:6},
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000, offsetY:6},
     },
 
     // SCENE 1: Pixar and Reds Dream
     {
       clips: { ball0: "D", ball1: "E" , ball2: "F" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 2: Commodore Amiga
     {
       clips: { ball0: "G", ball1: "H" , ball2: "I" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 3: Academic Juggling Networks
     {
       clips: { ball0: "J", ball1: "K" , ball2: "L" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 4: Automatons
     {
       clips: { ball0: "M", ball1: "N" , ball2: "O" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 5: Inclined Surface Juggling
     {
       clips: { ball0: "P", ball1: "Q" , ball2: "R" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 6: Juggling as a Digital Controller
     {
       clips: { ball0: "S", ball1: "T" , ball2: "U" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 7: Contemporary Approaches
     {
       clips: { ball0: "V", ball1: "W" , ball2: "X", ball3: "Z"},
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 8: VR Juggling
     {
       clips: { ball0: "AA", ball1: "AB" , ball2: "AC" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 9: Juggling Lab Jokes
     {
       clips: { ball0: "AD", ball1: "AE" , ball2: "AF" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 10: Dads Tricks
     {
       clips: { ball0: "D1", ball1: "D6" , ball2: "D7" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // SCENE 11: Advanced Siteswaps
     {
       clips: { ball0: "S1", ball1: "S7" , ball2: "S5" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
     // Scene 12: RGB filled circles (Jewlery Store)
     {
-      ballConnections: {
+      connections: {
         enabled: true, mode: "circles", filled: true,
         perCircleColors: true, opacity: 0.9,
         circleContents: [0xff0000, 0x00ff00, 0x0000ff],
@@ -231,7 +231,7 @@
     // 2D sinc: sinc(x) * sinc(y)... sinc(x) = sin(x)/x
     // return amplitude * sinc(x) * sinc(y) * decayFactor;
     {
-      ballSincWaves: {
+      sincwaves: {
         enabled: true,
         amplitude: 10.0, 
         frequency: 1.5,
@@ -249,7 +249,7 @@
 
     // Scene 14: Spacetime Braids
     {
-      ballSpacetime: {
+      spacetime: {
         enabled: true,
         zStep: 0.2,
         feedPlaneOffset: "20*sin(time*3)",
@@ -268,9 +268,9 @@
     // Project QR code:
     {
       clips: { ball0: "QR", ball1: "QR" , ball2: "QR" },
-      ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5 },
-      ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
+      connections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
+      trails:      { enabled: true, count: 5, sides: 5 },
+      captions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
   ]

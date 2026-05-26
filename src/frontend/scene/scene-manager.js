@@ -103,11 +103,7 @@ export class SceneManager {
     const showCamera = config.showCamera !== undefined ? config.showCamera : true;
     this.setCameraVisible(showCamera);
 
-    if (scene.ballConnections) {
-      this.applyBallConnectionSettings(scene.ballConnections);
-    }
-
-    this._applyAllEffectsFromScene(scene);
+    this._applyAllEffects(scene);
 
     this.resetTime();
   }
@@ -141,11 +137,7 @@ export class SceneManager {
 
     this._applyLightChannelUpdate(config);
 
-    if (scene.ballConnections) {
-      this.applyBallConnectionSettings(scene.ballConnections);
-    }
-
-    this._applyAllEffectsFromScene(scene);
+    this._applyAllEffects(scene);
   }
 
   // ============================================================================
@@ -429,92 +421,38 @@ export class SceneManager {
   }
 
   /**
-   * For each scene effect with expressions in its raw config block,
-   * evaluate the block against the current frame's context and push the
-   * result through the effect's setConfig (via the registry). Effects
-   * whose config has no expressions are skipped — no per-frame cost.
+   * Walk every registered effect and apply this scene's block for it.
+   * Effects with no block in this scene get { enabled: false } and tear down.
+   *
+   * Config key naming: scene.{effectName} — no more "ball" prefix.
+   *   trails, connections, spacetime, sincwaves, captions
+   */
+  _applyAllEffects(scene) {
+    for (const effectName of effectRegistry.getAllNames()) {
+      const settings = scene[effectName] || { enabled: false };
+
+      // Pre-evaluate any expression strings in the config so effects receive
+      // plain numbers/values. Effects that want live-updating expressions
+      // (spacetime, captions) re-evaluate via ctx.expr() inside update().
+      const context = this.getBallContext();
+      const evaluated = this.evaluateEffectConfig(settings, context);
+      effectRegistry.applyConfig(effectName, evaluated);
+    }
+  }
+
+  /**
+   * Per-frame: re-evaluate expressions in effect blocks that contain them,
+   * push to the effect via configure().
    */
   _updateEffectExpressions(context) {
     const scene = this._currentScene();
-
     for (const effectName of effectRegistry.getAllNames()) {
-      const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
-      const raw = scene[configKey] || scene[effectName];
+      const raw = scene[effectName];
       if (!raw || raw.enabled === false) continue;
       if (!this.configHasExpressions(raw)) continue;
-
       const evaluated = this.evaluateEffectConfig(raw, context);
       const { enabled, ...params } = evaluated;
-      effectRegistry.applyConfig(effectName, params);
-    }
-  }
-
-  // ============================================================================
-  // BALL CONNECTIONS
-  // ============================================================================
-
-  applyBallConnectionSettings(settings) {
-    if (settings.enabled !== undefined) {
-      this.ballManager.setConnectionsEnabled(settings.enabled);
-    }
-    if (settings.mode !== undefined) {
-      this.ballManager.setConnectionMode(settings.mode);
-    }
-    // Apply non-expression keys once now (and the current snapshot of any
-    // expression keys); per-frame re-evaluation of expressions is handled
-    // by _updateEffectExpressions().
-    const context = this.getBallContext();
-    const evaluated = this.evaluateEffectConfig(settings, context);
-    const { enabled, mode, ...params } = evaluated;
-    if (Object.keys(params).length > 0) {
-      this.ballManager.setConnectionParameters(params);
-    }
-  }
-
-  // ============================================================================
-  // EFFECTS
-  // ============================================================================
-
-  /**
-   * Walk every registered effect and either apply this scene's block for
-   * that effect, or apply { enabled: false } so the effect tears down
-   * cleanly when the scene omits it.
-   */
-  _applyAllEffectsFromScene(scene) {
-    for (const effectName of effectRegistry.getAllNames()) {
-      const configKey = `ball${effectName.charAt(0).toUpperCase() + effectName.slice(1)}`;
-      const settings = scene[configKey] || scene[effectName];
-
-      // Always route through applyEffectSettings so per-effect teardown
-      // (e.g. spacetime.disable → camera reset, feed-Z reset) runs on
-      // scene switches that drop the block entirely.
-      this.applyEffectSettings(effectName, settings || { enabled: false });
-    }
-  }
-
-  applyEffectSettings(effectName, settings) {
-    if (settings.enabled !== undefined) {
-      this.ballManager.setEffectEnabled(effectName, settings.enabled);
-    }
-
-    // Spacetime manages its own camera + scene objects via enable/disable.
-    if (effectName === 'spacetime') {
-      const effect = effectRegistry.get('spacetime');
-      const camera = this.threeSceneRef ? this.threeSceneRef.getCamera() : null;
-      if (effect && camera) {
-        if (settings.enabled && !effect.active) {
-          effect.enable(camera, this.threeSceneRef);
-        } else if (settings.enabled === false && effect.active) {
-          effect.disable(camera);
-        }
-      }
-    }
-
-    if (effectRegistry.has(effectName)) {
-      // Apply the raw config once on (re)load — strings live in this.config
-      // until _updateEffectExpressions() overwrites them per-frame with
-      // evaluated values. Non-expression keys settle here and stay put.
-      effectRegistry.applyConfig(effectName, settings);
+      effectRegistry.get(effectName)?.configure(params);
     }
   }
 
@@ -529,7 +467,7 @@ export class SceneManager {
    * generated texts.
    */
   _applyAutoCaptions(scene) {
-    const captions = scene.ballCaptions;
+    const captions = scene.captions;
     if (!captions || !captions.autoFromClipLabel) return;
 
     const texts = { ...(captions.texts || {}) };

@@ -1,20 +1,6 @@
-/**
- * Trails - Delayed polygon copies trailing behind each ball
- *
- * Configured via `ballTrails` block in user code.
- * Registers itself with effectRegistry on import.
- */
+import { Effect, makeMaterial, colorFor, disposeMesh } from './_shared.js';
 
-import {
-  PerBallEffect,
-  GeometryPrimitives,
-  MaterialBuilder
-} from './_shared.js';
-
-import { effectRegistry } from '../effect-registry.js';
-
-
-export class Trails extends PerBallEffect {
+export class Trails extends Effect {
   static defaults = {
     count: 5,
     maxDelay: 0.5,
@@ -23,72 +9,118 @@ export class Trails extends PerBallEffect {
     color: 0x00ffff,
     opacity: 0.6,
     zIndex: 0.02,
-    perimeterWidth: 0.1,
-    perBallColors: false,
     ballColors: {},
-    gradient: false
+    gradient: false,
   };
-  static usesHistory = true;
-  static recreateKeys = ['count', 'sides', 'radiusRange', 'perimeterWidth'];
-  static idPrefix = 'trail';
 
-  getObjectCount() { return this.config.count; }
+  constructor(sceneManager) {
+    super(sceneManager);
+    this.history = new Map();   // ballId → [{ pos, time }]
+    this.polygons = new Map();  // ballId → mesh[]
+  }
 
-  animateAllForBall(ballId, worldPos, dt) {
-    const now = Date.now() / 1000;
-    for (let i = 1; i < this.config.count; i++) {
-      const delay = (i / (this.config.count - 1)) * this.config.maxDelay;
-      const pos = this.getPositionAtTime(ballId, now - delay);
-      const id = `${ballId}-trail-${i}`;
+  update(positions, ctx) {
+    for (const [ballId, pos] of positions) {
+      this._recordHistory(ballId, pos, ctx.time);
+      this._ensurePolygons(ballId);
+      this._animatePolygons(ballId, ctx.time);
+    }
+  }
 
-      if (this.has(id)) {
-        const obj = this.get(id);
-        obj.mesh.position.set(pos.x, pos.y, obj.mesh.position.z);
-        if (obj.perimeterMesh) obj.perimeterMesh.position.set(pos.x, pos.y, obj.perimeterMesh.position.z);
-      } else {
-        this.add(id, { ballId, index: i, position: pos });
+  configure(config) {
+    const rebuild =
+      (config.count !== undefined && config.count !== this.config.count) ||
+      (config.sides !== undefined && config.sides !== this.config.sides) ||
+      (config.radiusRange !== undefined);
+    Object.assign(this.config, config);
+    if (rebuild) this._disposeAll();
+    else this._restyleAll();
+  }
+
+  dispose() {
+    this._disposeAll();
+    this.history.clear();
+  }
+
+  removeBall(ballId) {
+    this._disposeBall(ballId);
+    this.history.delete(ballId);
+  }
+
+  _recordHistory(ballId, pos, now) {
+    if (!this.history.has(ballId)) this.history.set(ballId, []);
+    const hist = this.history.get(ballId);
+    hist.push({ pos: { x: pos.x, y: pos.y }, time: now });
+    while (hist.length > 0 && hist[0].time < now - this.config.maxDelay) hist.shift();
+  }
+
+  _ensurePolygons(ballId) {
+    if (this.polygons.has(ballId)) return;
+    const meshes = [];
+    const { count, sides, radiusRange, zIndex, opacity } = this.config;
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0 : i / (count - 1);
+      const radius = radiusRange[0] + (radiusRange[1] - radiusRange[0]) * t;
+      const geom = new THREE.CircleGeometry(radius, sides);
+      const mat = makeMaterial({
+        color: colorFor(this.config, ballId, t),
+        opacity: opacity * (1 - t * 0.5),
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.z = zIndex - i * 0.001;
+      this.scene.add(mesh);
+      meshes.push(mesh);
+    }
+    this.polygons.set(ballId, meshes);
+  }
+
+  _animatePolygons(ballId, now) {
+    const meshes = this.polygons.get(ballId);
+    const { count, maxDelay } = this.config;
+    for (let i = 0; i < count; i++) {
+      const delay = count === 1 ? 0 : (i / (count - 1)) * maxDelay;
+      const { x, y } = this._positionAt(ballId, now - delay);
+      meshes[i].position.x = x;
+      meshes[i].position.y = y;
+    }
+  }
+
+  _positionAt(ballId, targetTime) {
+    const hist = this.history.get(ballId) || [];
+    if (hist.length === 0) return { x: 0, y: 0 };
+    if (hist.length === 1 || targetTime >= hist[hist.length - 1].time) return hist[hist.length - 1].pos;
+    for (let i = 0; i < hist.length - 1; i++) {
+      if (hist[i].time <= targetTime && hist[i + 1].time >= targetTime) {
+        const span = hist[i + 1].time - hist[i].time;
+        const t = span > 0 ? (targetTime - hist[i].time) / span : 0;
+        return {
+          x: hist[i].pos.x + (hist[i + 1].pos.x - hist[i].pos.x) * t,
+          y: hist[i].pos.y + (hist[i + 1].pos.y - hist[i].pos.y) * t,
+        };
+      }
+    }
+    return hist[0].pos;
+  }
+
+  _restyleAll() {
+    const { count, opacity } = this.config;
+    for (const [ballId, meshes] of this.polygons) {
+      for (let i = 0; i < meshes.length; i++) {
+        const t = count === 1 ? 0 : i / (count - 1);
+        meshes[i].material.color.setHex(colorFor(this.config, ballId, t));
+        meshes[i].material.opacity = opacity * (1 - t * 0.5);
       }
     }
   }
 
-  createGeometry(id, { ballId, index, position }) {
-    const t = index / (this.config.count - 1);
-    const radius = this.config.radiusRange[0] + (this.config.radiusRange[1] - this.config.radiusRange[0]) * t;
-    const color = this.colorFor(ballId, t);
-
-    const geoms = GeometryPrimitives.polygon(radius, this.config.sides, this.config.perimeterWidth);
-    const material = new MaterialBuilder().color(color).opacity(this.config.opacity * (1 - t * 0.5)).doubleSided().build();
-    const mesh = new THREE.Mesh(geoms.fill, material);
-    mesh.position.set(position.x, position.y, this.config.zIndex - index * 0.001);
-
-    let perimeterMesh = null;
-    if (geoms.perimeter) {
-      const pMat = new MaterialBuilder().color(0xffffff).doubleSided().build();
-      perimeterMesh = new THREE.Mesh(geoms.perimeter, pMat);
-      perimeterMesh.position.set(position.x, position.y, this.config.zIndex - index * 0.001 + 0.0001);
-      this.scene.add(perimeterMesh);
-    }
-
-    return { mesh, geometry: geoms.fill, material, perimeterMesh, perimeterGeometry: geoms.perimeter, perimeterMaterial: perimeterMesh?.material, ballId, index, _colorT: t };
+  _disposeBall(ballId) {
+    const meshes = this.polygons.get(ballId);
+    if (!meshes) return;
+    for (const m of meshes) disposeMesh(this.scene, m);
+    this.polygons.delete(ballId);
   }
 
-  updateGeometry() {} // Handled in animateAllForBall
-
-  remove(id) {
-    const obj = this.objects.get(id);
-    if (!obj) return;
-    this.scene.remove(obj.mesh);
-    obj.geometry?.dispose();
-    obj.material?.dispose();
-    if (obj.perimeterMesh) {
-      this.scene.remove(obj.perimeterMesh);
-      obj.perimeterGeometry?.dispose();
-      obj.perimeterMaterial?.dispose();
-    }
-    this.objects.delete(id);
+  _disposeAll() {
+    for (const ballId of [...this.polygons.keys()]) this._disposeBall(ballId);
   }
 }
-
-
-// Registration
-effectRegistry.register('trails', Trails);
