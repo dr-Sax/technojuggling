@@ -349,8 +349,4 @@ export class BallSpacetime extends GeometryBase {
 }
 
 
-effectRegistry.register('spacetime', BallSpacetime, {
-  updateMethod: 'updateBall',
-  removeBallMethod: 'removeBall',
-  clearMethod: 'clear',
-});
+effectRegistry.register('spacetime', BallSpacetime);

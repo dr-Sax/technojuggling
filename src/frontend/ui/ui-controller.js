@@ -1,54 +1,38 @@
 /**
- * UI Controller - orchestrates code execution and UI state
+ * UI Controller - orchestrates code execution and UI state.
  *
- * MIDI integration: setMidiEditorBridge(bridge) attaches a bridge that
- * receives the latest config.midi mapping on every successful execute.
- * The bridge is also what pads call when they want to trigger Ctrl-Enter.
+ * Owns the editor, runs user code, decides whether each execute is a full
+ * scene reload or a light param update, and wires the MIDI editor bridge.
  *
- * On the first successful execute after the bridge is attached, we also
- * call bridge.autoAssignChannels() once — that locks each of the 8
- * channels onto one of the first 8 range-commented tokens so the knobs
- * are immediately driving real parameters. Subsequent executes don't
- * re-assign (a re-assign would clobber whatever the user has since
- * locked onto).
+ * Structural reload = anything that would require recreating video elements
+ * or changing which effects are enabled. Detected by stringifying a
+ * stripped-down view of the config that excludes per-ball channel values
+ * and inner effect-block values (those go through the light-update path).
  */
 
 import { LiveCodeEditor } from './live-code-editor.js';
-import { CodeExecutor } from './code-executor.js';
 
 export class UIController {
   constructor(sceneManager, websocketClient) {
     this.sceneManager = sceneManager;
     this.wsClient = websocketClient;
     this.codeEditor = null;
-    this.codeExecutor = new CodeExecutor(sceneManager);
     this.loadingOverlay = document.getElementById('loadingOverlay');
-    this.calibrationComplete = false;
     this.lastExecutedCode = '';
-    this.lastConfig = null;
+    this.lastStructuralKey = null;
     this.midiEditorBridge = null;
     this._midiAutoAssigned = false;
   }
 
   async initialize(initialCode = '') {
-    this.codeEditor = new LiveCodeEditor('code-editor', () => {
-      this.executeCode();
-    });
-
-    await this.codeEditor.initialize(initialCode);
-
+    this.codeEditor = new LiveCodeEditor('code-editor', () => this.executeCode());
+    this.codeEditor.setValue(initialCode);
     console.log('✓ UI controller initialized');
   }
 
-  /**
-   * Attach the MIDI editor bridge. After this, every successful execute
-   * pushes the config's `midi` block to the bridge so it knows which CCs
-   * are the joystick, which note is the execute pad, etc.
-   */
   setMidiEditorBridge(bridge) {
     this.midiEditorBridge = bridge;
-    // If we already have a config loaded, push the mapping immediately.
-    if (this.lastConfig && this.lastConfig.midi) {
+    if (this.lastConfig?.midi) {
       this.midiEditorBridge.updateMapping(this.lastConfig.midi);
     }
   }
@@ -58,18 +42,26 @@ export class UIController {
     const isFirstRun = this.lastExecutedCode === '';
 
     try {
-      this.lastConfig = await this.codeExecutor.execute(newCode, isFirstRun, this.lastConfig);
-      this.lastExecutedCode = newCode;
-
-      // Push fresh MIDI mapping to the bridge (no-op if no bridge or no midi block)
-      if (this.midiEditorBridge && this.lastConfig && this.lastConfig.midi) {
-        this.midiEditorBridge.updateMapping(this.lastConfig.midi);
+      const config = eval(`(${newCode.trim()})`);
+      if (!config.clips && !config.scenes) {
+        console.warn('No sequence properties found in config');
+        return;
       }
 
-      // One-shot: after the very first successful execute (when the editor
-      // is populated and the config has been parsed), lock each channel
-      // onto one of the first 8 range-commented tokens. Gated by a flag
-      // so subsequent executes don't clobber the user's selections.
+      const structuralKey = this._structuralKey(config);
+      if (isFirstRun || structuralKey !== this.lastStructuralKey) {
+        await this.sceneManager.loadConfig(config);
+      } else {
+        await this.sceneManager.updateConfig(config);
+      }
+
+      this.lastStructuralKey = structuralKey;
+      this.lastExecutedCode = newCode;
+      this.lastConfig = config;
+
+      if (this.midiEditorBridge && config.midi) {
+        this.midiEditorBridge.updateMapping(config.midi);
+      }
       if (this.midiEditorBridge && !this._midiAutoAssigned) {
         this.midiEditorBridge.autoAssignChannels();
         this._midiAutoAssigned = true;
@@ -78,6 +70,29 @@ export class UIController {
       console.error('Code execution error:', error);
       this.showError(error.message);
     }
+  }
+
+  /** Build a stable string that changes only when something structural changes. */
+  _structuralKey(config) {
+    const clipSig = {};
+    for (const [k, c] of Object.entries(config.clips || {})) {
+      clipSig[k] = { url: c.url, start: c.start, end: c.end };
+    }
+    const channelKeys = Object.keys(config.channels || {}).sort();
+    const sceneSig = (config.scenes || []).map(scene => {
+      const blocks = {};
+      for (const [k, v] of Object.entries(scene)) {
+        if (k === 'clips') continue;
+        blocks[k] = (v && typeof v === 'object') ? !!v.enabled : true;
+      }
+      return { clips: scene.clips || null, blocks };
+    });
+    return JSON.stringify({
+      clips: clipSig,
+      channels: channelKeys,
+      scenes: sceneSig,
+      showCamera: config.showCamera,
+    });
   }
 
   hideLoadingScreen() {
@@ -93,7 +108,6 @@ export class UIController {
   }
 
   onCalibrationComplete() {
-    this.calibrationComplete = true;
     this.hideLoadingScreen();
     this.executeCode();
   }

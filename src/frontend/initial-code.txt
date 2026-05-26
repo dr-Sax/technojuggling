@@ -88,9 +88,9 @@
       useMask: 1, 
       maskShape: "circle",   
       maskRadius: 0.5,
-      pitch: "10-3*b0x",
-      lowpass:"1000*b1x",
-      speed: "2*b2x"
+      //pitch: "10-3*b0x",
+      //lowpass:"1000*b1x",
+      //speed: "2*b2x"
     },
     ball1: { 
       scale: 31, //[0,50],51
@@ -124,7 +124,7 @@
     {
       clips: { ball0: "A", ball1: "B" , ball2: "C" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 3, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000, offsetY:6},
     },
 
@@ -132,7 +132,7 @@
     {
       clips: { ball0: "D", ball1: "E" , ball2: "F" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 10, sides: 4, maxDelay: 1, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -140,7 +140,7 @@
     {
       clips: { ball0: "G", ball1: "H" , ball2: "I" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -148,7 +148,7 @@
     {
       clips: { ball0: "J", ball1: "K" , ball2: "L" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -156,7 +156,7 @@
     {
       clips: { ball0: "M", ball1: "N" , ball2: "O" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -164,7 +164,7 @@
     {
       clips: { ball0: "P", ball1: "Q" , ball2: "R" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -172,7 +172,7 @@
     {
       clips: { ball0: "S", ball1: "T" , ball2: "U" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -180,7 +180,7 @@
     {
       clips: { ball0: "V", ball1: "W" , ball2: "X", ball3: "Z"},
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -188,7 +188,7 @@
     {
       clips: { ball0: "AA", ball1: "AB" , ball2: "AC" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 
@@ -269,7 +269,7 @@
     {
       clips: { ball0: "QR", ball1: "QR" , ball2: "QR" },
       ballConnections: { enabled: true, mode: "mesh", lineWidth: 0.08, color: 0x00ffff },
-      ballTrails:      { enabled: true, count: 5, sides: 5, maxDelay: 0.5, radiusRange: [0.5, 2.0]},
+      ballTrails:      { enabled: true, count: 5, sides: 5 },
       ballCaptions:    { enabled: true, autoFromClipLabel: true, fontSize: 24, scale: 0.05, color: 0xff0000 },
     },
 

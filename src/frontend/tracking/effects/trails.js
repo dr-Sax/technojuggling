@@ -91,6 +91,4 @@ export class Trails extends PerBallEffect {
 
 
 // Registration
-effectRegistry.register('trails', Trails, {
-  updateMethod: 'updateBall', removeBallMethod: 'removeBall', clearMethod: 'clear'
-});
+effectRegistry.register('trails', Trails);

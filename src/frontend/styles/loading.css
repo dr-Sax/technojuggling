@@ -1,0 +1,120 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: #000;
+    font-family: 'Courier New', monospace;
+}
+
+/* 3D rendering container */
+#webgl-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Loading screen */
+#loadingOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.5s;
+}
+
+#loadingOverlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-text {
+    font-size: 48px;
+    color: #fff;
+    letter-spacing: 0.2em;
+    margin-bottom: 40px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.loading-status {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 30px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+.loading-status.error {
+    color: #ff4444;
+}
+
+/* Calibration buttons */
+.calibration-buttons {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.calibration-buttons.show {
+    opacity: 1;
+}
+
+.calibration-btn {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 15px 30px;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s;
+    min-width: 200px;
+}
+
+.calibration-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+}
+
+.calibration-btn:active {
+    transform: translateY(0);
+}
+
+.calibration-btn.primary {
+    border-color: #00ff00;
+    color: #00ff00;
+}
+
+.calibration-btn.primary:hover {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: #00ff00;
+}
+
+.calibration-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}

@@ -259,11 +259,4 @@ export class Captions extends PerBallEffect {
 
 // Registration. Keyed as 'captions' → config key 'ballCaptions'
 // (applyAllEffects derives the key by capitalizing the first letter).
-effectRegistry.register('captions', Captions, {
-  updateMethod: 'updateBall',
-  requiresWorldPos: true,
-  hasEnabled: true,
-  hasConfig: true,
-  clearMethod: 'clear',
-  removeBallMethod: 'removeBall',
-});
+effectRegistry.register('captions', Captions);

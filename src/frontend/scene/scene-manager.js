@@ -28,8 +28,8 @@
  *
  * The structural-vs-light decision lives in CodeExecutor.
  *
- * MIDI: setMidiState() forwards state to both this evaluator and the
- * ParameterManager's evaluator, so MIDI vars (cc1, ...) work in expressions.
+ * MIDI: setMidiState() forwards state to the expression evaluator, so MIDI
+ * vars (cc1, ...) work in expressions.
  *
  * Live expressions: any numeric param in any effect block or channel param
  * may be a string expression like "sin(time)*20" or "b0y*5". These are
@@ -39,7 +39,6 @@
 import { CONFIG } from '../core/config.js';
 import { ExpressionEvaluator } from './expression-system.js';
 import { MediaPool } from './media-pool.js';
-import { ParameterManager } from './parameter-manager.js';
 import { effectRegistry } from '../tracking/effect-registry.js';
 
 const EFFECT_KEYS = ['ballTrails', 'ballConnections', 'ballSpacetime', 'ballSincWaves', 'ballCaptions'];
@@ -61,11 +60,15 @@ export class SceneManager {
     // to know which clips are live (for prune).
     this.ballAssignments = new Map();
 
+    // Map<ballIndex (number), channelParams (object)> — last-applied channel
+    // params per ball. Per-frame expression evaluation walks this map and
+    // re-evaluates any string-valued params against the current context.
+    this.ballParams = new Map();
+
     this.evaluator = new ExpressionEvaluator();
     this.startTime = performance.now() / 1000;
 
     this.mediaPool = new MediaPool(wsClient);
-    this.parameterManager = new ParameterManager();
   }
 
   // ============================================================================
@@ -257,10 +260,9 @@ export class SceneManager {
       timeOffset: 0,
     });
 
-    // Channel params are the per-ball render/audio settings.
-    // ParameterManager keeps a copy so the per-frame expression evaluator
-    // can re-evaluate any string-expression params each frame.
-    this.parameterManager.setParameters(objectId, channelParams);
+    // Stash channel params so the per-frame expression evaluator can
+    // re-evaluate any string-expression params each frame.
+    this.ballParams.set(ballIdx, channelParams);
     this.ballManager.applyParameters(objectName, channelParams);
 
     this.ballAssignments.set(ballIdx, clipKey);
@@ -268,7 +270,7 @@ export class SceneManager {
 
   _clearAssignments() {
     this.mediaPool.clear();
-    this.parameterManager.clearAll();
+    this.ballParams.clear();
     this.ballAssignments.clear();
   }
 
@@ -276,7 +278,7 @@ export class SceneManager {
     const assigned = new Set(this._sceneClipAssignments(scene).map(([idx]) => String(idx)));
     for (let i = 0; i < MAX_BALLS; i++) {
       if (!assigned.has(String(i))) {
-        this.ballManager.media.setVisible(String(i), false);
+        this.ballManager.setMediaVisible(String(i), false);
       }
     }
   }
@@ -301,11 +303,8 @@ export class SceneManager {
   _applyLightChannelUpdate(config) {
     for (const [ballIdx] of this.ballAssignments) {
       const channelParams = this._channelParams(ballIdx);
-      const objectId = `ball_${ballIdx}`;
-      const objectName = String(ballIdx);
-
-      this.parameterManager.setParameters(objectId, channelParams);
-      this.ballManager.applyParameters(objectName, channelParams);
+      this.ballParams.set(ballIdx, channelParams);
+      this.ballManager.applyParameters(String(ballIdx), channelParams);
     }
   }
 
@@ -409,16 +408,23 @@ export class SceneManager {
     this._updateEffectExpressions(context);
   }
 
+  /**
+   * Walk each ball's channel params. If any value is a string expression,
+   * evaluate it against the current frame's context and re-apply. Balls
+   * whose params contain no expressions are skipped — no per-frame cost.
+   */
   _updateBallExpressions(context) {
-    if (!this.parameterManager.hasExpressions()) return;
-
-    // ParameterManager takes (time, ballData) — split context back apart.
-    const { time, t: _t, ...ballData } = context;
-    const updates = this.parameterManager.getAllUpdates(time, ballData);
-
-    for (const update of updates) {
-      const objectName = update.objectId.replace('ball_', '');
-      this.ballManager.applyParameters(objectName, update.params);
+    for (const [ballIdx, params] of this.ballParams) {
+      let evaluated = null;
+      for (const [key, value] of Object.entries(params)) {
+        if (this.evaluator.isExpression(value)) {
+          if (!evaluated) evaluated = { ...params };
+          evaluated[key] = this.evaluator.evaluate(value, context);
+        }
+      }
+      if (evaluated) {
+        this.ballManager.applyParameters(String(ballIdx), evaluated);
+      }
     }
   }
 
@@ -570,12 +576,9 @@ export class SceneManager {
     this.audioProcessorRef = audioProcessor;
   }
 
-  /** Wire MIDI state into both expression evaluators (this one + parameterManager's). */
+  /** Wire MIDI state into the expression evaluator. */
   setMidiState(midiState) {
     this.midiState = midiState;
     this.evaluator.setMidiState(midiState);
-    if (this.parameterManager && this.parameterManager.evaluator) {
-      this.parameterManager.evaluator.setMidiState(midiState);
-    }
   }
 }

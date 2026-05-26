@@ -359,8 +359,4 @@ export class BallSincWaves extends GeometryBase {
 // applyAllEffects() derives the config key by capitalizing the first letter
 // only: ball + Name. 'sincwaves' -> wrong key 'ballSincwaves'; 'sincWaves' ->
 // correct key 'ballSincWaves', which is what SceneGroupController writes.
-effectRegistry.register('sincWaves', BallSincWaves, {
-    updateMethod: 'updateBall', requiresWorldPos: true,
-    hasEnabled: true, hasConfig: true,
-    clearMethod: 'clear', removeBallMethod: 'removeBall'
-});
+effectRegistry.register('sincWaves', BallSincWaves);

@@ -261,7 +261,7 @@ export class Connections extends GlobalEffect {
     if (typeof content === 'string' && this._ballMedia) {
       for (const [ballId, stream] of Object.entries(this._routing)) {
         if (stream !== content) continue;
-        const el = this._ballMedia.getElement(ballId.replace('ball_', ''));
+        const el = this._ballMedia.getMediaElement(ballId.replace('ball_', ''));
         if (!el) continue;
         try {
           const texture = new THREE.Texture(el);
@@ -351,6 +351,4 @@ export class Connections extends GlobalEffect {
 
 
 // Registration
-effectRegistry.register('connections', Connections, {
-  updateMethod: null, clearMethod: 'clear', removeBallMethod: null
-});
+effectRegistry.register('connections', Connections);

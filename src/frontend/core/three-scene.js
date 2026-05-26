@@ -3,6 +3,7 @@
  */
 import { CONFIG } from './config.js';
 import { effectRegistry } from '../tracking/effect-registry.js';
+import { videoTextureUploader } from '../media/media-object.js';
 
 export class ThreeSceneManager {
   constructor() {
@@ -15,8 +16,6 @@ export class ThreeSceneManager {
 
     // Reference to scene manager (set externally)
     this.sceneManagerRef = null;
-    // Reference to visual effects processor for throttled texture updates
-    this.visualFXRef = null;
   }
 
   initialize() {
@@ -200,15 +199,12 @@ export class ThreeSceneManager {
       }
     }
 
-    // Throttled video texture uploads (20fps instead of 60fps)
-    if (this.visualFXRef) {
-      this.visualFXRef.updateTextures();
+    if (this.sceneManagerRef?.ballManager?.tickTextures) {
+      this.sceneManagerRef.ballManager.tickTextures();
     }
 
-    // Animated GIF texture refresh on tracked balls
-    if (this.sceneManagerRef?.ballManager?.media?.tickTextures) {
-      this.sceneManagerRef.ballManager.media.tickTextures();
-    }
+    // video texture refresh on tracked balls
+    videoTextureUploader.tick();
 
     this.renderer.render(this.threeScene, this.camera);
   }
@@ -249,9 +245,5 @@ export class ThreeSceneManager {
   setSceneManager(sceneManager) {
     this.sceneManagerRef = sceneManager;
     sceneManager.setThreeSceneRef(this);
-  }
-
-  setVisualFX(visualFX) {
-    this.visualFXRef = visualFX;
   }
 }

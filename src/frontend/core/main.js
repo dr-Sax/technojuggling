@@ -12,9 +12,8 @@ import { BallTrackingManager } from '../tracking/ball-tracking.js';
 import { SceneManager } from '../scene/scene-manager.js';
 import { UIController } from '../ui/ui-controller.js';
 
-// Audio and VisualEffectsProcessor
+// AudioProcessor
 import { AudioProcessor } from '../audio/audio-processor.js';
-import { VisualEffectsProcessor } from '../media/visual-effects-processor.js';
 
 // MIDI
 import { MidiState } from '../midi/midi-state.js';
@@ -26,7 +25,6 @@ class TellAVision {
     this.threeScene = null;
     this.wsClient = null;
     this.audioProcessor = null;
-    this.visualFX = null;
     this.ballManager = null;
     this.sceneManager = null;
     this.uiController = null;
@@ -58,12 +56,8 @@ class TellAVision {
     this.audioProcessor = new AudioProcessor();
     this.audioProcessor.initialize();
 
-    // 3. Initialize visual effects processor
-    this.visualFX = new VisualEffectsProcessor();
-    this.visualFX.initialize();
-
     // 4. Initialize ball tracking manager
-    this.ballManager = new BallTrackingManager(this.threeScene, this.audioProcessor, this.visualFX);
+    this.ballManager = new BallTrackingManager(this.threeScene, this.audioProcessor);
 
     // 5. Initialize WebSocket client with callbacks
     this.wsClient = new WebSocketClient(
@@ -78,15 +72,12 @@ class TellAVision {
     );
 
     this.threeScene.setSceneManager(this.sceneManager);
-    this.threeScene.setVisualFX(this.visualFX);
 
     // 7. Give scene manager access to audio processor (for video clip audio effects)
     this.sceneManager.setAudioProcessor(this.audioProcessor);
 
     // 8. Initialize UI controller
-    const codeEditorDiv = document.getElementById('code-editor');
-    const initialCode = codeEditorDiv.dataset.initialCode || '';
-
+    const initialCode = await fetch('./initial-code.txt').then(r => r.text());
     this.uiController = new UIController(this.sceneManager, this.wsClient);
     await this.uiController.initialize(initialCode);
 

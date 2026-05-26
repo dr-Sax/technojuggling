@@ -3,9 +3,14 @@
  *
  * Accepts a pre-loaded DOM element (from MediaPool) via attachElement() and
  * builds the Three.js mesh. Three media kinds:
- *   - video          → shader material fed by VisualEffectsProcessor
+ *   - video           → shader material with throttled texture uploads
  *   - animated GIF    → decoded by GifTexture, advanced each frame via tickTexture()
- *   - static image   → plain THREE.Texture, uploaded once
+ *   - static image    → plain THREE.Texture, uploaded once
+ *
+ * Video texture uploads are throttled to ~30fps (vs 60fps render rate) via the
+ * shared videoTextureUploader — see bottom of file. Per-MediaObject we just
+ * register/unregister the {texture, element} pair with that uploader; one
+ * render-loop call drains them all.
  *
  * Animated GIFs get special handling because a cross-origin GIF <img> handed
  * to WebGL freezes on its first frame; see GifTexture for the details.
@@ -14,11 +19,32 @@ import { CONFIG } from '../core/config.js';
 import { MaskShader } from './mask-shader.js';
 import { GifTexture } from './gif-texture.js';
 
+// Passthrough fragment shader for ball videos and images.
+// MaskShader.addToShader() will inject mask alpha into the `gl_FragColor = color;`
+// line — don't reformat that line or the regex injection breaks silently.
+const PASSTHROUGH_FRAGMENT_SHADER = `
+  uniform sampler2D videoTexture;
+  uniform float opacity;
+  varying vec2 vUv;
+  void main() {
+    vec4 color = texture2D(videoTexture, vUv);
+    color.a *= opacity;
+    gl_FragColor = color;
+  }
+`;
+
+const PASSTHROUGH_VERTEX_SHADER = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
 export class MediaObject {
-  constructor(sceneManager, audioProcessor, visualFX, objectId) {
+  constructor(sceneManager, audioProcessor, objectId) {
     this.sceneManager = sceneManager;
     this.audioProcessor = audioProcessor;
-    this.visualFX = visualFX;
     this.objectId = objectId;
     this.element = null;
     this.mesh = null;
@@ -88,10 +114,6 @@ export class MediaObject {
     }
   }
 
-  /**
-   * Wait for a static <img> to be ready (if needed) and build its mesh.
-   * Shared by the static-image path and the GIF-decode-failure fallback.
-   */
   async _attachStaticImage(element, zIndex, scale) {
     if (element.complete && element.naturalWidth) {
       this._createMesh(element.naturalWidth || 1920, element.naturalHeight || 1080, zIndex, scale, false);
@@ -124,8 +146,7 @@ export class MediaObject {
       }
     };
 
-    // Initial seek: start at `start`, shifted by `offset` within the clip
-    // window. offset shifts WHEN in the loop we start, not WHERE in the file.
+    // Initial seek: start at `start`, shifted by `offset` within the clip window.
     const doSeek = () => {
       const clipDuration = end - start;
       const offsetIntoClip = clipDuration > 0
@@ -150,14 +171,27 @@ export class MediaObject {
     const h = finalScale * 9;
 
     if (isVideo) {
-      this.visualFX.addVideo(this.element, this.objectId);
-      const baseMat = this.visualFX.getMaterial(this.objectId);
+      // Build texture, uniforms, and the masked shader material in one place.
+      // Manual-update Texture (not VideoTexture) so videoTextureUploader can
+      // throttle uploads to 30fps instead of 60fps render rate.
+      this.texture = new THREE.Texture(this.element);
+      this.texture.minFilter = THREE.LinearFilter;
+      this.texture.magFilter = THREE.LinearFilter;
+      this.texture.generateMipmaps = false;
+
       this.material = new THREE.ShaderMaterial({
-        uniforms: baseMat.uniforms,
-        vertexShader: baseMat.vertexShader,
-        fragmentShader: MaskShader.addToShader(baseMat.fragmentShader),
-        transparent: true
+        uniforms: {
+          videoTexture: { value: this.texture },
+          opacity:      { value: 1.0 },
+        },
+        vertexShader:   PASSTHROUGH_VERTEX_SHADER,
+        fragmentShader: MaskShader.addToShader(PASSTHROUGH_FRAGMENT_SHADER),
+        transparent: true,
       });
+
+      // Register with the shared throttled uploader.
+      videoTextureUploader.register(this.objectId, this.texture, this.element);
+
       this.audioProcessor.addVideo(this.element, this.objectId);
     } else {
       // Image path — GifTexture's CanvasTexture for GIFs, plain THREE.Texture
@@ -169,25 +203,16 @@ export class MediaObject {
         this.texture.needsUpdate = true;
         this.texture.minFilter = this.texture.magFilter = THREE.LinearFilter;
       }
+
       this.material = new THREE.ShaderMaterial({
         uniforms: {
           videoTexture: { value: this.texture },
-          time: { value: 0 },
-          opacity: { value: 1.0 }
+          time:         { value: 0 },
+          opacity:      { value: 1.0 },
         },
-        vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: MaskShader.addToShader(
-          `uniform sampler2D videoTexture;
-           uniform float opacity;
-           varying vec2 vUv;
-           void main() {
-             vec2 uv = vUv;
-             vec4 color = texture2D(videoTexture, uv);
-             color.a *= opacity;
-             gl_FragColor = color;
-           }`
-        ),
-        transparent: true
+        vertexShader:   PASSTHROUGH_VERTEX_SHADER,
+        fragmentShader: MaskShader.addToShader(PASSTHROUGH_FRAGMENT_SHADER),
+        transparent: true,
       });
     }
 
@@ -199,7 +224,7 @@ export class MediaObject {
 
   /**
    * Per-frame texture refresh, called from the render loop. Only animated
-   * GIFs need this — video uploads are handled by VisualEffectsProcessor and
+   * GIFs need this — video uploads are handled by videoTextureUploader and
    * static images upload once at creation.
    */
   tickTexture() {
@@ -230,14 +255,11 @@ export class MediaObject {
       this.element.style.filter = filters.join(' ');
 
       this.audioProcessor.applyParameters(this.objectId, params);
-      this.visualFX.applyParameters(this.objectId, params, Date.now() / 1000);
     }
 
     const baseScale = this.sceneManager.getPlaneHeight() / 480;
     const finalScale = baseScale * perspectiveScale * (params.scale || 1.0);
 
-    // For animated GIFs the <img> may report 0x0 natural dims once decoded —
-    // prefer the GifTexture's dimensions.
     let aspect;
     if (this.mediaType === 'video') {
       aspect = 16 / 9;
@@ -309,12 +331,12 @@ export class MediaObject {
       this.element.pause();
       this.element.ontimeupdate = null;
       this.element.src = '';
+      videoTextureUploader.unregister(this.objectId);
     }
     if (this.gifTexture) {
-      // GifTexture owns its CanvasTexture and disposes it itself.
       this.gifTexture.dispose();
       this.gifTexture = null;
-      this.texture = null; // was a reference to gifTexture.texture
+      this.texture = null;
     } else if (this.texture) {
       this.texture.dispose();
       this.texture = null;
@@ -324,6 +346,50 @@ export class MediaObject {
     this.isAnimatedImage = false;
     this.visible = false;
     this.audioProcessor.removeVideo(this.objectId);
-    this.visualFX.removeVideo(this.objectId);
   }
 }
+
+/**
+ * Shared video-texture upload throttler.
+ *
+ * Three.js Textures wrapping <video> elements need `needsUpdate = true` each
+ * frame the GPU should re-sample. Doing it at full render rate (60fps) is
+ * wasteful for small masked ball videos — we throttle to ~30fps via this
+ * shared loop. Each MediaObject registers its (texture, element) pair on
+ * construction and unregisters on dispose. ThreeScene's animate() loop calls
+ * tick() once per frame; it walks all registered videos and updates each one
+ * that's due.
+ */
+class VideoTextureUploader {
+  constructor(targetFps = 30) {
+    this.entries = new Map(); // id → { texture, element, lastUpload }
+    this.intervalMs = 1000 / targetFps;
+  }
+
+  register(id, texture, element) {
+    this.entries.set(id, { texture, element, lastUpload: 0 });
+  }
+
+  unregister(id) {
+    this.entries.delete(id);
+  }
+
+  /** Call once per render frame. */
+  tick() {
+    const now = performance.now();
+    for (const entry of this.entries.values()) {
+      if (now - entry.lastUpload < this.intervalMs) continue;
+      const el = entry.element;
+      if (el && el.readyState >= 2 && !el.paused) {
+        entry.texture.needsUpdate = true;
+        entry.lastUpload = now;
+      }
+    }
+  }
+
+  clear() {
+    this.entries.clear();
+  }
+}
+
+export const videoTextureUploader = new VideoTextureUploader(30);
