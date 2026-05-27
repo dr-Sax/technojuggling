@@ -58,8 +58,6 @@ export class ThreeSceneManager {
   }
 
   setupCameraFeed() {
-    this.frameUpdateCount = 0;
-    this.lastFrameTime = Date.now();
     this._decoding = false; // true while createImageBitmap is in flight
     this._pendingBlob = null; // newest frame that arrived during a decode
 
@@ -105,8 +103,6 @@ export class ThreeSceneManager {
         }
         this.cameraTexture.image = bitmap;
         this.cameraTexture.needsUpdate = true;
-        this.frameUpdateCount++;
-        this.lastFrameTime = Date.now();
         this._decoding = false;
 
         // If a newer frame arrived while we were decoding, process it now
@@ -127,33 +123,7 @@ export class ThreeSceneManager {
   }
 
   updateCameraFrame(frameData) {
-    // frameData is either a Blob (binary path) or a string URL (legacy)
-    if (frameData instanceof Blob) {
       this._processBlob(frameData);
-    } else {
-      // Legacy: string URL (data URL or blob URL)
-      this._loadLegacyFrame(frameData);
-    }
-  }
-
-  _loadLegacyFrame(url) {
-    // Fallback for string URLs
-    if (!this._legacyImg) {
-      this._legacyImg = document.createElement('img');
-      this._legacyImg.onload = () => {
-        if (this._legacyImg.complete && this._legacyImg.naturalWidth > 0) {
-          this.cameraTexture.image = this._legacyImg;
-          this.cameraTexture.needsUpdate = true;
-        }
-        this.imageLoading = false;
-      };
-      this._legacyImg.onerror = () => {
-        this.imageLoading = false;
-      };
-    }
-    if (this.imageLoading) return;
-    this._legacyImg.src = url;
-    this.imageLoading = true;
   }
 
   // Toggle camera feed visibility
@@ -173,6 +143,10 @@ export class ThreeSceneManager {
     if (this.cameraFeedPlane) {
       this.cameraFeedPlane.position.z = z;
     }
+  }
+
+  setBackgroundColor(hexColor) {
+    this.threeScene.background = new THREE.Color(hexColor);
   }
 
   startAnimation() {
@@ -207,10 +181,6 @@ export class ThreeSceneManager {
     videoTextureUploader.tick();
 
     this.renderer.render(this.threeScene, this.camera);
-  }
-
-  stopAnimation() {
-    this.animating = false;
   }
 
   handleResize() {

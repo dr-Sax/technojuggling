@@ -41,7 +41,6 @@ import { ExpressionEvaluator } from './expression-system.js';
 import { MediaPool } from './media-pool.js';
 import { effectRegistry } from '../tracking/effect-registry.js';
 
-const EFFECT_KEYS = ['ballTrails', 'ballConnections', 'ballSpacetime', 'ballSincWaves', 'ballCaptions'];
 const MAX_BALLS = 16;
 
 export class SceneManager {
@@ -478,7 +477,8 @@ export class SceneManager {
       if (!clip) continue;
       texts[ballIdx] = clip.label || clipKey;
     }
-    scene.ballCaptions = { ...captions, texts };
+
+    scene.captions = { ...captions, texts };
   }
 
   // ============================================================================
@@ -487,11 +487,6 @@ export class SceneManager {
 
   setCameraVisible(visible) {
     if (this.threeSceneRef) this.threeSceneRef.setCameraVisible(visible);
-  }
-
-  mapCameraToWorld(normalizedX, normalizedY) {
-    if (this.threeSceneRef) return this.threeSceneRef.mapCameraToWorld(normalizedX, normalizedY);
-    return { x: 0, y: 0 };
   }
 
   getWebGLScene() {

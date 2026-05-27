@@ -43,7 +43,7 @@ class TellAVision {
   }
 
   async initialize() {
-    console.log('Initializing Tell-A-Vision...');
+    console.log('Initializing Techno-juggling...');
 
     // Setup calibration button handlers
     this.setupCalibrationButtons();

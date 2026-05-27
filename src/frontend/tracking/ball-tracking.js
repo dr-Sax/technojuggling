@@ -30,7 +30,6 @@ export class BallTrackingManager {
       ...config,
       animated: poolMedia.animated || false,
     });
-    obj.setLocked(config.locked || false);
     obj.setVisible(false);
     this.media[ballId] = obj;
     return obj;
@@ -40,7 +39,6 @@ export class BallTrackingManager {
     this.media[ballId]?.applyParameters({ scale: 3, ...params }, 1.0);
   }
 
-  setBallLocked(ballId, locked) { this.media[ballId]?.setLocked(locked); }
   setMediaVisible(ballId, visible) { this.media[ballId]?.setVisible(visible); }
   setAllMediaVisible(visible) {
     for (const m of Object.values(this.media)) m.setVisible(visible);

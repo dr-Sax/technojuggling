@@ -25,14 +25,6 @@ export class WebSocketClient {
     this.onConnectionChange  = null;
     this.onCalibrationRequest = null;
     this.onCalibrationComplete = null;
-
-    // Performance tracking
-    this.frameCount   = 0;
-    this.lastStatsTime = Date.now();
-    this.latencySum   = 0;
-    this.latencyCount = 0;
-
-    this._lastBlobUrl = null;
   }
 
   connect() {
@@ -71,7 +63,6 @@ export class WebSocketClient {
 
   _handleBinaryFrame(blob) {
     if (this.onFrameData) this.onFrameData(blob);
-    this.frameCount++;
   }
 
   _handleJsonMessage(rawData) {
@@ -90,10 +81,6 @@ export class WebSocketClient {
 
         case 'balls':
           if (this.onBallData && data.balls) this.onBallData(data.balls);
-          if (data.timestamp) {
-            this.latencySum += Date.now() - data.timestamp * 1000;
-            this.latencyCount++;
-          }
           break;
 
         case 'resolve_url_result':
@@ -112,19 +99,6 @@ export class WebSocketClient {
 
     } catch (e) {
       console.error('Error parsing WebSocket message:', e);
-    }
-
-    // Periodic stats log
-    const now = Date.now();
-    if (now - this.lastStatsTime > CONFIG.STATS_UPDATE_INTERVAL) {
-      const elapsed    = (now - this.lastStatsTime) / 1000;
-      const fps        = this.frameCount / elapsed;
-      const avgLatency = this.latencyCount > 0 ?
-        this.latencySum / this.latencyCount : 0;
-      this.frameCount   = 0;
-      this.lastStatsTime = now;
-      this.latencySum   = 0;
-      this.latencyCount = 0;
     }
   }
 
@@ -162,7 +136,6 @@ export class WebSocketClient {
   handleLegacyFrame(data) {
     if (this.onFrameData) this.onFrameData('data:image/jpeg;base64,' + data.frame);
     if (this.onBallData && data.balls) this.onBallData(data.balls);
-    this.frameCount++;
   }
 
   attemptReconnect() {
