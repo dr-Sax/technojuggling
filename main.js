@@ -23,6 +23,9 @@ function startPythonServer() {
 
   // Spawn Python process with UNBUFFERED output
   pythonProcess = spawn(venvPython, ['-u', pythonScript, WEBSOCKET_PORT.toString()]);
+  pythonProcess.stdout.on('data', (data) => console.log('[Python]', data.toString().trim()));
+  pythonProcess.stderr.on('data', (data) => console.error('[Python ERR]', data.toString().trim()));
+  pythonProcess.on('close', (code) => console.log('[Python] process exited, code:', code));
 }
 
 /**
@@ -121,9 +124,10 @@ function createWindow() {
 // Forcing GPU acceleration
 app.commandLine.appendSwitch('ignore-gpu-blacklist');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
-app.commandLine.appendSwitch('use-angle', 'd3d11');
-app.commandLine.appendSwitch('use-gl', 'angle');
-app.commandLine.appendSwitch('high-dpi-support', '1');
+app.commandLine.appendSwitch('use-angle', 'd3d11on12');    // bypasses buggy D3D11 path
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
 app.commandLine.appendSwitch('force_high_performance_gpu');
 
 // When Electron is ready

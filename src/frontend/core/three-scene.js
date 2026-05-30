@@ -44,8 +44,8 @@ export class ThreeSceneManager {
       powerPreference: 'high-performance',
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-
+    this.renderer.setPixelRatio(1.0);
+    
     document.getElementById('webgl-container').appendChild(this.renderer.domElement);
 
     // Camera feed background

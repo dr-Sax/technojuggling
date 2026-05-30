@@ -20,21 +20,12 @@ export class UIController {
     this.loadingOverlay = document.getElementById('loadingOverlay');
     this.lastExecutedCode = '';
     this.lastStructuralKey = null;
-    this.midiEditorBridge = null;
-    this._midiAutoAssigned = false;
   }
 
   async initialize(initialCode = '') {
     this.codeEditor = new LiveCodeEditor('code-editor', () => this.executeCode());
     this.codeEditor.setValue(initialCode);
     console.log('✓ UI controller initialized');
-  }
-
-  setMidiEditorBridge(bridge) {
-    this.midiEditorBridge = bridge;
-    if (this.lastConfig?.midi) {
-      this.midiEditorBridge.updateMapping(this.lastConfig.midi);
-    }
   }
 
   async executeCode() {
@@ -58,14 +49,6 @@ export class UIController {
       this.lastStructuralKey = structuralKey;
       this.lastExecutedCode = newCode;
       this.lastConfig = config;
-
-      if (this.midiEditorBridge && config.midi) {
-        this.midiEditorBridge.updateMapping(config.midi);
-      }
-      if (this.midiEditorBridge && !this._midiAutoAssigned) {
-        this.midiEditorBridge.autoAssignChannels();
-        this._midiAutoAssigned = true;
-      }
     } catch (error) {
       console.error('Code execution error:', error);
       this.showError(error.message);

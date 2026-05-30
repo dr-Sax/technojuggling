@@ -11,7 +11,7 @@
  *
  * Each scene declares which clip goes on which ball channel, plus a set of
  * effect blocks (ballTrails, ballConnections, ballSpacetime, ballSincWaves,
- * ballCaptions). Channels are persistent transform state — MIDI knobs
+ * ballCaptions). Channels are persistent transform state 
  * modify them and the values stick across scene changes.
  *
  * Two reload paths:
@@ -27,9 +27,6 @@
  *                                also apply live via applyAllEffects.
  *
  * The structural-vs-light decision lives in CodeExecutor.
- *
- * MIDI: setMidiState() forwards state to the expression evaluator, so MIDI
- * vars (cc1, ...) work in expressions.
  *
  * Live expressions: any numeric param in any effect block or channel param
  * may be a string expression like "sin(time)*20" or "b0y*5". These are
@@ -49,7 +46,6 @@ export class SceneManager {
     this.wsClient = wsClient;
     this.threeSceneRef = null;
     this.audioProcessorRef = null;
-    this.midiState = null;
 
     this.activeConfig = null;
     this.activeSceneIndex = 0;
@@ -287,7 +283,6 @@ export class SceneManager {
 
   /**
    * Push new channel params to each currently-assigned ball, WITHOUT
-   * touching the video element. This is the MIDI-knob path: the channel's
    * volume/scale/opacity/mask values shift live, but the playing video
    * keeps its currentTime intact.
    */
@@ -320,7 +315,6 @@ export class SceneManager {
    *   ball_0, ball_1, ...     — { x, y, vx, vy } objects
    *   ball_0_x/_y/_vx/_vy ... — flattened scalar accessors
    *   b0x, b0y, b1x, b1y, ... — short aliases (positions only)
-   *   cc1..cc127, note0..., pitchBend, chPressure  — via MIDI state
    */
   getBallContext() {
     const time = this.getTime();
@@ -507,11 +501,5 @@ export class SceneManager {
 
   setAudioProcessor(audioProcessor) {
     this.audioProcessorRef = audioProcessor;
-  }
-
-  /** Wire MIDI state into the expression evaluator. */
-  setMidiState(midiState) {
-    this.midiState = midiState;
-    this.evaluator.setMidiState(midiState);
   }
 }

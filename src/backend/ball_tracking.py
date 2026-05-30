@@ -48,6 +48,7 @@ class KalmanBallTracker:
     def predict(self):
         """Predict next position"""
         prediction = self.kf.predict()
+        prediction = prediction.flatten()
         return float(prediction[0]), float(prediction[1]), float(prediction[2]), float(prediction[3])
         
     def get_predicted_position(self):
@@ -153,7 +154,9 @@ class BallTracker:
                             ], dtype=np.float32)
                         
                         # Update Kalman filter with detection
-                        self.kalman_trackers[i].update(norm_x, norm_y)
+                        self.kalman_trackers[i].kf.statePost = np.array([
+                            [norm_x], [norm_y], [0], [0]
+                        ], dtype=np.float32)
                         
                         # Get predicted state (smoothed position + velocity)
                         pred_x, pred_y, vx, vy = self.kalman_trackers[i].predict()

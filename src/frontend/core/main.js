@@ -16,9 +16,7 @@ import { UIController } from '../ui/ui-controller.js';
 import { AudioProcessor } from '../audio/audio-processor.js';
 
 // MIDI
-import { MidiState } from '../midi/midi-state.js';
-import { MidiController } from '../midi/midi-controller.js';
-import { MidiEditorBridge } from '../midi/midi-editor-bridge.js';
+import { MidiKnobs } from '../midi/midi-knobs.js';
 
 class TellAVision {
   constructor() {
@@ -82,20 +80,8 @@ class TellAVision {
     await this.uiController.initialize(initialCode);
 
     // 8b. Initialize MIDI subsystem
-    //   - MidiState: holds live values, injected into expression scope
-    //   - MidiEditorBridge: joystick → cursor nav, knob → rewrite value, pad → execute
-    //   - MidiController: Web MIDI API access, parses messages, dispatches to the above
-    this.midiState = new MidiState();
-    this.sceneManager.setMidiState(this.midiState);
-
-    this.midiEditorBridge = new MidiEditorBridge(
-      this.uiController.codeEditor,
-      () => this.uiController.executeCode()
-    );
-    this.uiController.setMidiEditorBridge(this.midiEditorBridge);
-
-    this.midiController = new MidiController(this.midiState, this.midiEditorBridge);
-    await this.midiController.initialize();
+    this.midiKnobs = new MidiKnobs(this.uiController.codeEditor, () => this.uiController.executeCode());
+    await this.midiKnobs.connect();
 
     // 9. Set up WebSocket callbacks
     this.wsClient.onConnectionChange = (connected, message) => {

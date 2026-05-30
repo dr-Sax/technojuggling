@@ -4,10 +4,6 @@
  * Single class: ExpressionEvaluator. The former ParameterAnimator class
  * has been absorbed into SceneManager directly.
  *
- * MIDI integration: call setMidiState(midiState) to make MIDI variables
- * (cc1..cc127, note0..note127, noteHeld0..noteHeld127, pitchBend, chPressure)
- * available inside any expression string. e.g. scale: "cc1 * 10"
- *
  * Ball-data resilience: every evaluate() call pre-seeds default zeros for
  * b0x..b15x, b0y..b15y, ball_0..ball_15 (and their _x/_y/_vx/_vy accessors),
  * so an expression like "b0y * 5" returns 0 — not a ReferenceError —
@@ -19,7 +15,6 @@ const MAX_BALLS = 16;
 
 export class ExpressionEvaluator {
   constructor() {
-    this.midiState = null;
 
     this.mathFunctions = {
       sin: Math.sin,
@@ -38,19 +33,6 @@ export class ExpressionEvaluator {
     };
   }
 
-  /**
-   * Attach a MidiState. Its values become live variables in every evaluate() call.
-   * cc1..cc127       — normalized 0..1
-   * ccRaw1..ccRaw127 — raw 0..127
-   * note0..note127   — last note-on velocity (0 if released)
-   * noteHeld0..noteHeld127 — 1 while held, 0 otherwise
-   * pitchBend        — -1..1
-   * chPressure       — 0..1
-   */
-  setMidiState(midiState) {
-    this.midiState = midiState;
-  }
-
   evaluate(expression, context = {}) {
     try {
       const { time = 0, ...ballData } = context;
@@ -60,11 +42,6 @@ export class ExpressionEvaluator {
         t: time,
         ...this.mathFunctions
       };
-
-      // Merge MIDI variables into scope (cc1..cc127, note0..note127, etc.)
-      if (this.midiState) {
-        Object.assign(scope, this.midiState.getScope());
-      }
 
       // Seed defaults for common ball variables so expressions referencing
       // an as-yet-untracked ball return 0 instead of throwing
@@ -126,10 +103,8 @@ export class ExpressionEvaluator {
     const hasFunctions = /\b(sin|cos|tan|abs|sqrt|pow|min|max|floor|ceil|round|PI|E)\b/.test(value);
     const hasTimeVar = /\btime\b|\bt\b/.test(value);
     const hasBallVar = /\bball_\d+\b|\bb\d+[xy]\b/.test(value);
-    // Detect MIDI variables: cc1, ccRaw5, note36, noteHeld36, pitchBend, chPressure
-    const hasMidiVar = /\bcc(Raw)?\d+\b|\bnote(Held)?\d+\b|\bpitchBend\b|\bchPressure\b/.test(value);
 
-    return hasOperators || hasFunctions || hasTimeVar || hasBallVar || hasMidiVar;
+    return hasOperators || hasFunctions || hasTimeVar || hasBallVar;
   }
 
   validate(expression) {

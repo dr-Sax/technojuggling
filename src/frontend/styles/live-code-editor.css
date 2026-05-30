@@ -108,3 +108,13 @@
     background: rgba(255, 255, 255, 0.3) !important;
     border-radius: 4px;
 }
+
+.midi-ch-0, .midi-ch-0 span { background:#f2777a !important; color:#000 !important; }
+.midi-ch-1, .midi-ch-1 span { background:#f99157 !important; color:#000 !important; }
+.midi-ch-2, .midi-ch-2 span { background:#ffcc66 !important; color:#000 !important; }
+.midi-ch-3, .midi-ch-3 span { background:#99cc99 !important; color:#000 !important; }
+.midi-ch-4, .midi-ch-4 span { background:#6699cc !important; color:#000 !important; }
+.midi-ch-5, .midi-ch-5 span { background:#a16a94 !important; color:#000 !important; }
+.midi-ch-6, .midi-ch-6 span { background:#66cccc !important; color:#000 !important; }
+.midi-ch-7, .midi-ch-7 span { background:#d27b53 !important; color:#000 !important; }
+.midi-locked, .midi-locked span { outline:2px solid #fff !important; font-weight:bold; }
