@@ -25,14 +25,14 @@
 
   },
 
-  activeScene: 0, //[0, 15], 16
-  showCamera: true,
+  activeScene: 4, //[0, 15], 16
+  showCamera: false,//[true, false]
 
   channels: {
     ball0: { 
       scale: "b0x*20", //[0,50],51
-      volume: 0, //[0,99], 100
-      opacity: 0.8, 
+      volume: 3, //[0,99], 100
+      opacity: 0.9, //[0,1], 100,
       useMask: 1, 
       maskShape: "circle",   
       maskRadius: 0.5,
@@ -88,16 +88,19 @@
     },
 
     
-    // Scene 12: RGB filled circles (Jewlery Store)
+    // Scene 1: RGB filled circles (Jewlery Store)
     {
       connections: {
-        enabled: true, mode: "circles", filled: true,
-        perCircleColors: true, opacity: 0.9,
+        enabled: true, 
+        mode: "circles", 
+        filled: true,
+        perCircleColors: true, 
+        opacity: 0.8, //[0,1], 100
         circleContents: [0xff0000, 0x00ff00, 0x0000ff],
       },
     },
 
-    // Scene 13: Sinc Waves
+    // Scene 2: Sinc Waves
     // float x = delta.x * xStretch * frequency;
     // float y = delta.y * yStretch * frequency;
     // 2D sinc: sinc(x) * sinc(y)... sinc(x) = sin(x)/x
@@ -119,7 +122,7 @@
       },
     },
 
-    // Scene 14: Spacetime Braids
+    // Scene 3: Spacetime Braids
     {
       spacetime: {
         enabled: true,
