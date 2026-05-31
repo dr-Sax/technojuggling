@@ -5,7 +5,7 @@ Configuration settings for Tell-A-Vision server
 # ===== CAMERA SETTINGS =====
 # laptop: 0 for logi, 8 for obs virtual cam
 # pc: 5 for logi, 7 for obs virtual cam
-CAMERA_INDEX = 7
+CAMERA_INDEX = 8
 
 # Resolution and FPS settings
 CAMERA_WIDTH = 1280

@@ -1,0 +1,25 @@
+{
+  clips: {},
+  activeScene: 0,
+  showCamera: false,
+  channels: {},
+  scenes: [
+    // Spacetime Braids
+    {
+      spacetime: {
+        enabled: true,
+        zStep: .1,  //[-1, 1], 90 cc70!
+        feedPlaneOffset: 10,
+        maxHistory: 2000, //[0,2000], 2001 cc71!
+        theta: 0, //[0, 6.28], 100 cc72!
+        phi: 0, //[0, 6.28], 100 cc73!
+        radius: 10, //[0, 20], 100 cc74!
+        perBallColors: true,
+        tubeRadius: .25, //[0, 3], 100 cc75!
+        tubeSegments: 6,
+        rebuildEvery: 1,
+        ballColors: { 0: 0xFFFF00, 1: 0xFF8C00, 2: 0xADD8E6, 3: 0x00008B },
+      }
+    }
+  ]
+}

@@ -16,6 +16,23 @@
  * A value is reachable only when its type matches its comment — numbers take
  * numeric ranges, strings take string-set ranges. So an expression such as
  * `scale: "b0x*20" //[0,50],51` is ignored and never overwritten.
+ *
+ * INITIAL CONDITIONS (cc tags):
+ *   A taggable value may carry a knob tag at the end of its range comment to
+ *   bind a knob to it when the script loads:
+ *     scale:   10   //[0,50],51 cc70    position knob 70's cursor here (unlocked)
+ *     opacity: 0.8  //[0,1],100 cc71!   position AND lock knob 71 on load
+ *   The `!` suffix locks on load, so the knob controls the value immediately
+ *   (with sweep-to-pickup, so it won't jump on the first move).
+ *
+ *   Tags are re-applied on initial load and on every manual refresh (Ctrl-Enter)
+ *   — so pasting in a new script and hitting Ctrl-Enter re-binds the knobs. A
+ *   knob's own value rewrites do NOT re-seed, so live tweaks are preserved.
+ *
+ *   Because the tag lives in the comment (never rewritten by the knob) and rides
+ *   along with the line it's on, it can't desync from its parameter. Only literal
+ *   numbers (and strlist strings) are taggable — the same constraint as cursor
+ *   reachability — and the tag must follow a range comment.
  */
 
 const CHANNELS = [
@@ -37,7 +54,7 @@ export class MidiKnobs {
     this.channels = CHANNELS.map((c, i) => ({
       index: i, knob: c.knob, pad: c.pad,
       locked: false,
-      token: null,     // { from, to, text, type, range }
+      token: null,     // { from, to, text, type, range, cc, lockOnLoad }
       slot: -1,        // token index the cursor last landed on
       marker: null,    // CodeMirror highlight + live position source
       armed: false,    // true while a locked channel awaits pickup
@@ -45,6 +62,18 @@ export class MidiKnobs {
     }));
     this._lastExec = 0;
     this._execTimer = null;
+
+    // Ctrl-Enter re-seeds knob→param mappings from cc tags, then runs the
+    // normal execute. Knob-driven executes don't pass through here, so they
+    // never disturb live channel state. This keymap takes precedence over the
+    // editor's own Ctrl-Enter, so we invoke execute ourselves to keep it firing once.
+    this._refreshKeyMap = {
+      'Ctrl-Enter': () => {
+        this.applyInitialMappings();
+        this.onExecute?.();
+      },
+    };
+    this.cm.addKeyMap(this._refreshKeyMap);
   }
 
   // ── Connection ──────────────────────────────────────────────────────────
@@ -74,6 +103,46 @@ export class MidiKnobs {
     } else if (cmd === 0x90 && d2 > 0) {                 // note on = pad
       const ch = this.channels.find((c) => c.pad === d1);
       if (ch) this._toggleLock(ch);
+    }
+  }
+
+  // ── Initial conditions (cc tags) ────────────────────────────────────────────
+  // Seed each channel from `cc<N>` / `cc<N>!` tags in the live-code comments.
+  // Called on initial load and on every manual refresh (Ctrl-Enter). A knob's
+  // own value rewrites never call this, so live performance state is preserved.
+  applyInitialMappings() {
+    const tokens = this._scanTokens();
+
+    // Map knob CC → { token, slot }. First tag wins on duplicates.
+    const byCc = new Map();
+    tokens.forEach((tok, i) => {
+      if (tok.cc == null) return;
+      if (byCc.has(tok.cc)) {
+        console.warn(`MidiKnobs: duplicate cc${tok.cc} tag — keeping the first`);
+        return;
+      }
+      byCc.set(tok.cc, { tok, slot: i });
+    });
+
+    for (const ch of this.channels) {
+      const hit = byCc.get(ch.knob);
+      if (!hit) {
+        // No tag for this knob: reset it to an idle, unlocked cursor.
+        ch.marker?.clear();
+        ch.marker = null;
+        ch.locked = false;
+        ch.token  = null;
+        ch.slot   = -1;
+        ch.armed  = false;
+        ch.pickup = null;
+        continue;
+      }
+      ch.token  = hit.tok;
+      ch.slot   = hit.slot;
+      ch.locked = hit.tok.lockOnLoad;
+      ch.armed  = ch.locked && USE_PICKUP;  // sweep-to-pickup so it won't jump
+      ch.pickup = null;
+      this._highlight(ch, false);           // no scroll during bulk seeding
     }
   }
 
@@ -131,18 +200,19 @@ export class MidiKnobs {
   }
 
   // ── Highlight (and keep the value in view) ─────────────────────────────────
-  _highlight(ch) {
+  _highlight(ch, scroll = true) {
     ch.marker?.clear();
     ch.marker = null;
     if (!ch.token) return;
     const cls = `midi-ch-${ch.index}${ch.locked ? ' midi-locked' : ''}`;
     ch.marker = this.cm.markText(ch.token.from, ch.token.to, { className: cls });
-    this.cm.scrollIntoView({ from: ch.token.from, to: ch.token.to }, 80);
+    if (scroll) this.cm.scrollIntoView({ from: ch.token.from, to: ch.token.to }, 80);
   }
 
   // ── Token scanning ──────────────────────────────────────────────────────────
   // Every number/string token carrying a matching range comment, in document
-  // order. These are the only values a knob can land on.
+  // order. These are the only values a knob can land on. Each token also carries
+  // its cc tag (if any), parsed from the trailing comment.
   _scanTokens() {
     const out = [];
     for (let line = 0; line < this.cm.lineCount(); line++) {
@@ -169,10 +239,26 @@ export class MidiKnobs {
         if (tok.type === 'number' && !numeric) continue;
         if (tok.type === 'string' && range.kind !== 'strlist') continue;
 
-        out.push({ from, to, text, type: tok.type, range });
+        const cc = this._ccTagFor(line, to.ch);
+        out.push({
+          from, to, text, type: tok.type, range,
+          cc: cc?.num ?? null,
+          lockOnLoad: cc?.lock ?? false,
+        });
       }
     }
     return out;
+  }
+
+  // Parse a knob tag from the token's trailing comment:
+  //   cc70   → position knob 70's cursor here (unlocked)
+  //   cc70!  → also lock it on load, so the knob controls the value immediately
+  _ccTagFor(line, afterCh) {
+    const tail = (this.cm.getLine(line) || '').slice(afterCh);
+    const at = tail.indexOf('//');
+    if (at === -1) return null;
+    const m = tail.slice(at + 2).match(/\bcc(\d+)\s*(!)?/i);
+    return m ? { num: parseInt(m[1], 10), lock: !!m[2] } : null;
   }
 
   // Parse the range comment that follows a token. Returns one of:
@@ -251,6 +337,7 @@ export class MidiKnobs {
 
   stop() {
     clearTimeout(this._execTimer);
+    this.cm.removeKeyMap(this._refreshKeyMap);
     this.channels.forEach((ch) => ch.marker?.clear());
   }
 }
