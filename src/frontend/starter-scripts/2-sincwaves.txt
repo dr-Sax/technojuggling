@@ -1,0 +1,30 @@
+{
+  clips: {},
+  activeScene: 0,
+  showCamera: false,
+  channels: {},
+  scenes: [
+    // Spacetime Braids
+    // Scene 13: Sinc Waves
+    // float x = delta.x * xStretch * frequency;
+    // float y = delta.y * yStretch * frequency;
+    // 2D sinc: sinc(x) * sinc(y)... sinc(x) = sin(x)/x
+    // return amplitude * sinc(x) * sinc(y) * decayFactor;
+    {
+      sincwaves: {
+        enabled: true,
+        amplitude: 3.7, //[0,10],100 cc70!
+        frequency: 0.5, //[0, 10], 20 cc74!
+        xStretch: 1.9, //[0,10], 100 cc76!
+        yStretch: 0.5, //[0,10], 100 cc77!
+        decay: 0.1,
+        colorMultR: 1.4,  //[0,10], 100 cc71!
+        colorMultG: 0.2,  //[0,10], 100 cc72!
+        colorMultB: 4.0, //[0,10], 100 cc73!
+        intensityScale: 4.1,  //[0,5], 100 cc75!
+        intensityBias: 0.5,
+        planeSize: 40,
+      }
+    }
+  ]
+}
